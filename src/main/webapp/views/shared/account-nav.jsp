@@ -1,0 +1,3 @@
+<%@ page contentType="text/html;charset=UTF-8" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<aside class="account-nav"><div class="account-person"><span>${fn:substring(sessionScope.user.fullName, 0, 1)}</span><div><b>${sessionScope.user.fullName}</b><small>${sessionScope.user.email}</small></div></div><nav><a href="${cp}/page/profile">Thông tin cá nhân</a><a href="${cp}/page/address">Địa chỉ nhận hàng</a><a href="${cp}/orders/list">Đơn hàng của tôi</a><a href="${cp}/page/wishlist">Sản phẩm yêu thích</a><a href="${cp}/page/reviews">Đánh giá</a><a href="${cp}/page/notifications">Thông báo</a><a href="${cp}/page/change-password">Đổi mật khẩu</a><a href="${cp}/auth/logout">Đăng xuất</a></nav></aside>

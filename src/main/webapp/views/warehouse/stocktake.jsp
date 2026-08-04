@@ -1,0 +1,1 @@
+<%@ page contentType="text/html;charset=UTF-8" %><%@ taglib prefix="c" uri="jakarta.tags.core" %><c:set var="moduleKicker" value="KIỂM KÊ ĐỊNH KỲ"/><c:set var="moduleDescription" value="Đối chiếu tồn hệ thống, tồn thực tế và ghi nhận chênh lệch."/><c:set var="formMode" value="true"/><jsp:include page="/views/shared/management-module.jsp"/>

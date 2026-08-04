@@ -1,0 +1,1 @@
+<%@ page contentType="text/html;charset=UTF-8" %><%@ taglib prefix="c" uri="jakarta.tags.core" %><c:set var="moduleKicker" value="CHỨNG TỪ NHẬP"/><c:set var="moduleDescription" value="Thêm sản phẩm, biến thể, số lượng và giá nhập."/><c:set var="formMode" value="true"/><jsp:include page="/views/shared/management-module.jsp"/>

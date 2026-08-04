@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns="https://jakarta.ee/xml/ns/jakartaee" version="6.0">
+    <display-name>WatchStore</display-name>
+    <welcome-file-list><welcome-file>index.jsp</welcome-file></welcome-file-list>
+    <session-config><session-timeout>30</session-timeout></session-config>
+    <error-page><error-code>404</error-code><location>/page/home</location></error-page>
+</web-app>

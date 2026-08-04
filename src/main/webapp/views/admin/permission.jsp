@@ -1,0 +1,1 @@
+<%@ page contentType="text/html;charset=UTF-8" %><%@ taglib prefix="c" uri="jakarta.tags.core" %><c:set var="moduleKicker" value="MA TRẬN PHÂN QUYỀN"/><c:set var="moduleDescription" value="Cấu hình quyền xem, thêm, sửa, duyệt và xuất báo cáo theo module."/><c:set var="tableKind" value="permissions"/><jsp:include page="/views/shared/management-module.jsp"/>

@@ -1,0 +1,1 @@
+<%@ page contentType="text/html;charset=UTF-8" %><%@ taglib prefix="c" uri="jakarta.tags.core" %><c:set var="moduleKicker" value="CHỨNG TỪ XUẤT"/><c:set var="moduleDescription" value="Kiểm tra tồn khả dụng trước khi xác nhận xuất kho."/><c:set var="formMode" value="true"/><jsp:include page="/views/shared/management-module.jsp"/>
