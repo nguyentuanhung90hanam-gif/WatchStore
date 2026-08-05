@@ -179,7 +179,7 @@
                             <c:choose>
 
 
-                                <c:when test="${b.status == true}">
+                                <c:when test="${b.status == 'ACTIVE'}">
 
                                     <span class="status status-active">
                                         ● Hoạt động
