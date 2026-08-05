@@ -1,7 +1,7 @@
 <%@ page contentType="text/html;charset=UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <c:set var="cp" value="${pageContext.request.contextPath}" scope="request" />
-<c:set var="assetVersion" value="20260803.3" scope="request" />
+<c:set var="assetVersion" value="20260805.1" scope="request" />
 <!doctype html>
 <html lang="vi">
 <head>
@@ -14,6 +14,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700;800&amp;family=Noto+Serif:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
     <link rel="stylesheet" href="${cp}/assets/css/app.css?v=${assetVersion}">
+    <c:if test="${adminLayout}">
+        <link rel="stylesheet" href="${cp}/assets/css/admin.css?v=${assetVersion}">
+    </c:if>
 </head>
 <body class="${adminLayout ? 'admin-body' : 'storefront-body'}">
 <c:if test="${not adminLayout}">
@@ -72,6 +75,10 @@
     </header>
 </c:if>
 <c:if test="${not empty sessionScope.flash}">
-    <div class="toast show">✓ ${sessionScope.flash}</div>
+    <div class="toast show" role="status">✓ ${sessionScope.flash}</div>
     <c:remove var="flash" scope="session" />
+</c:if>
+<c:if test="${not empty sessionScope.flashError}">
+    <div class="toast toast-error show" role="alert">! ${sessionScope.flashError}</div>
+    <c:remove var="flashError" scope="session" />
 </c:if>
