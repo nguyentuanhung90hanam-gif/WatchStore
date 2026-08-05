@@ -1,1 +1,66 @@
-<%@ page contentType="text/html;charset=UTF-8" %><%@ taglib prefix="c" uri="jakarta.tags.core" %><c:set var="dashboardLabel" value="TRUNG TÂM KHO HÀNG"/><c:set var="metric1Label" value="Tổng biến thể"/><c:set var="metric1Value" value="456"/><c:set var="metric2Label" value="Phiếu nhập tháng"/><c:set var="metric2Value" value="38"/><c:set var="metric3Label" value="Phiếu xuất tháng"/><c:set var="metric3Value" value="142"/><c:set var="metric4Label" value="Sắp hết hàng"/><c:set var="metric4Value" value="12"/><c:set var="chartTitle" value="Nhập — xuất — tồn"/><c:set var="task1" value="Sản phẩm sắp hết"/><c:set var="task2" value="Phiếu nhập chờ duyệt"/><c:set var="task3" value="Chênh lệch kiểm kê"/><c:set var="tableTitle" value="Cảnh báo tồn kho"/><jsp:include page="/views/shared/management-dashboard.jsp"/>
+<%@ page contentType="text/html;charset=UTF-8" %>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+
+<%--
+  dashboard.jsp — Tổng quan kho hàng
+--%>
+
+<div class="portal-welcome">
+    <div>
+        <p class="eyebrow dark">TRUNG TÂM KHO HÀNG</p>
+        <h2>Xin chào, ${empty sessionScope.user ? 'Nhân viên kho' : sessionScope.user.fullName}</h2>
+        <span>
+            <c:choose>
+                <c:when test="${isDbConnected}">
+                    <strong style="color:var(--color-success, #2e7d32);">🟢 CSDL SQL Server: Đã kết nối</strong> — Dữ liệu được lưu vĩnh viễn vào CSDL.
+                </c:when>
+                <c:otherwise>
+                    <strong style="color:#d97706;">🟡 Chế độ Demo: Dữ liệu mẫu</strong> — CSDL SQL Server chưa kết nối, dữ liệu mới sẽ lưu tạm trong bộ nhớ RAM.
+                </c:otherwise>
+            </c:choose>
+        </span>
+    </div>
+</div>
+
+<c:if test="${not empty sessionScope.flashMessage}">
+    <div class="flash-message">${sessionScope.flashMessage}</div>
+    <c:remove var="flashMessage" scope="session"/>
+</c:if>
+
+<div class="metric-grid">
+
+    <article>
+        <span>Tổng biến thể sản phẩm</span>
+        <b>${totalVariants}</b>
+    </article>
+
+    <article>
+        <span>Tổng tồn kho (sản phẩm)</span>
+        <b>${totalInventory}</b>
+    </article>
+
+    <article>
+        <span>Phiếu nhập hôm nay</span>
+        <b>${todayReceipts}</b>
+    </article>
+
+    <article>
+        <span>Phiếu xuất hôm nay</span>
+        <b>${todayExports}</b>
+    </article>
+
+</div>
+
+<c:if test="${lowStockCount > 0}">
+    <div class="alert-banner">
+        <span>⚠ Có <b>${lowStockCount}</b> biến thể đang dưới ngưỡng tồn kho tối thiểu.</span>
+        <a href="${pageContext.request.contextPath}/manage/warehouse/alerts">Xem cảnh báo →</a>
+    </div>
+</c:if>
+
+<div class="quick-links">
+    <a href="${pageContext.request.contextPath}/manage/warehouse/receipts">⇩ Phiếu nhập kho</a>
+    <a href="${pageContext.request.contextPath}/manage/warehouse/exports">⇧ Phiếu xuất kho</a>
+    <a href="${pageContext.request.contextPath}/manage/warehouse/inventory">▣ Xem tồn kho</a>
+    <a href="${pageContext.request.contextPath}/manage/warehouse/stocktake">✓ Kiểm kê kho</a>
+</div>
