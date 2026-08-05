@@ -63,7 +63,7 @@
             <a class="btn btn-add"
                href="${pageContext.request.contextPath}/manage/admin/brands/add">
 
-                + Thêm thương hiệu
+                 Thêm thương hiệu
 
             </a>
 

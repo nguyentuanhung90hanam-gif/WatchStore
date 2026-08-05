@@ -5,22 +5,17 @@
     font-family:"Segoe UI", sans-serif;
 }
 
-
 body{
-
-    background:#111827;
-    color:#fff;
-
+    background:#fffdf8;
+    color:#1f2937;
 }
 
 
 /* KHUNG CHÍNH */
 
 .admin-container{
-
     display:flex;
     min-height:100vh;
-
 }
 
 
@@ -29,18 +24,18 @@ body{
 .sidebar{
 
     width:260px;
-    background:#0f172a;
+    background:#ffffff;
     padding:25px;
 
     box-shadow:
-            5px 0 20px rgba(0,0,0,0.4);
+            5px 0 20px rgba(0,0,0,0.08);
 
 }
 
 
 .logo{
 
-    color:#facc15;
+    color:#b45309;
     margin-bottom:40px;
     text-align:center;
 
@@ -63,7 +58,7 @@ body{
 
     cursor:pointer;
 
-    color:#cbd5e1;
+    color:#4b5563;
 
 }
 
@@ -71,15 +66,14 @@ body{
 .sidebar li:hover,
 .sidebar .active{
 
-    background:#1e293b;
-    color:#fff;
+    background:#fff3d6;
+    color:#b45309;
 
 }
 
 
 
 /* CONTENT */
-
 
 .content{
 
@@ -92,16 +86,17 @@ body{
 .content h1{
 
     margin-bottom:25px;
+    color:#111827;
 
 }
 
 
-/* THANH TÌM KIẾM */
 
+/* THANH TÌM KIẾM */
 
 .toolbar{
 
-    background:#1e293b;
+    background:#ffffff;
 
     padding:20px;
 
@@ -113,6 +108,8 @@ body{
 
     margin-bottom:25px;
 
+    border:1px solid #eee7dc;
+
 }
 
 
@@ -120,13 +117,13 @@ body{
 
     flex:1;
 
-    background:#0f172a;
+    background:#ffffff;
 
-    border:none;
+    border:1px solid #ddd6c8;
 
     padding:12px 15px;
 
-    color:white;
+    color:#1f2937;
 
     border-radius:8px;
 
@@ -135,7 +132,6 @@ body{
 
 
 /* BUTTON */
-
 
 button{
 
@@ -161,7 +157,7 @@ button{
 
 .btn-add{
 
-    background:#16a34a;
+    background:#b45309;
 
     color:white;
 
@@ -171,14 +167,15 @@ button{
 
 /* TABLE */
 
-
 .table-box{
 
-    background:#1e293b;
+    background:#ffffff;
 
     padding:20px;
 
     border-radius:15px;
+
+    border:1px solid #eee7dc;
 
 }
 
@@ -189,12 +186,21 @@ table{
 
     border-collapse:collapse;
 
+    background:#ffffff;
+
 }
 
 
 thead{
 
-    background:#0f172a;
+    background:#fff7e6;
+
+}
+
+
+th{
+
+    color:#92400e;
 
 }
 
@@ -206,15 +212,21 @@ th,td{
     text-align:center;
 
     border-bottom:
-            1px solid #334155;
+            1px solid #eee7dc;
 
 }
 
 
+td{
+
+    color:#374151;
+
+}
+
 
 tr:hover{
 
-    background:#273449;
+    background:#fffaf0;
 
 }
 
@@ -235,16 +247,34 @@ tr:hover{
 
 .active-status{
 
-    background:#14532d;
+    background:#dcfce7;
 
-    color:#4ade80;
+    color:#15803d;
 
 }
 
 
+/* FIX TRẠNG THÁI JSP */
+
+td span{
+
+    padding:6px 12px;
+
+    border-radius:20px;
+
+}
+
+
+.status-inactive{
+
+    background:#fee2e2;
+
+    color:#dc2626;
+
+}
+
 
 /* ACTION */
-
 
 .edit{
 
@@ -262,40 +292,52 @@ tr:hover{
     color:white;
 
 }
-/* ===== FIX GIAO DIEN THUONG HIEU ===== */
 
 
-/* Nút thêm thương hiệu */
+/* LINK */
+
 a{
+
     text-decoration:none;
+
 }
 
 
 a[href*="add"]{
+
     display:inline-block;
-    background:#f59e0b;
-    color:#111827 !important;
+
+    background:#b45309;
+
+    color:white !important;
+
     padding:10px 18px;
+
     border-radius:8px;
+
     font-weight:600;
+
     margin-bottom:20px;
+
 }
 
 
 a[href*="add"]:hover{
-    background:#fbbf24;
+
+    background:#92400e;
+
 }
 
 
-
-/* Thanh tìm kiếm */
+/* INPUT */
 
 input[type="text"]{
 
-    background:#0f172a !important;
-    color:white !important;
+    background:#ffffff !important;
 
-    border:1px solid #334155;
+    color:#1f2937 !important;
+
+    border:1px solid #ddd6c8;
 
     padding:12px 15px;
 
@@ -306,13 +348,13 @@ input[type="text"]{
 
 input::placeholder{
 
-    color:#94a3b8;
+    color:#9ca3af;
 
 }
 
 
 
-/* Nút tìm kiếm */
+/* BUTTON CHUNG */
 
 button,
 input[type="submit"]{
@@ -337,14 +379,13 @@ input[type="submit"]{
 button:hover,
 input[type="submit"]:hover{
 
-    background:#1d4ed8;
+    opacity:0.85;
 
 }
 
 
 
-/* Link sửa xóa */
-
+/* SỬA XÓA */
 
 td a{
 
@@ -357,7 +398,6 @@ td a{
 }
 
 
-
 td a:first-child{
 
     background:#2563eb;
@@ -365,7 +405,6 @@ td a:first-child{
     color:white !important;
 
 }
-
 
 
 td a:last-child{
@@ -382,52 +421,80 @@ td a:hover{
     opacity:0.8;
 
 }
+/* ===== CHỈNH NÚT NHỎ GỌN ===== */
+
+button,
+input[type="submit"]{
+
+    padding:8px 14px;
+    font-size:14px;
+    border-radius:6px;
+}
 
 
+/* Nút thêm thương hiệu */
 
-/* Trạng thái */
+a[href*="add"]{
 
-
-td span{
-
-    background:#7f1d1d;
-
-    color:#fecaca;
-
-    padding:6px 12px;
-
-    border-radius:20px;
+    padding:8px 14px;
+    font-size:14px;
+    border-radius:6px;
+    margin-bottom:15px;
 
 }
 
 
+/* Thanh tìm kiếm */
 
-/* bảng */
+.toolbar{
 
-table{
-
-    background:#111827;
-
-}
-
-
-th{
-
-    color:#facc15 !important;
+    padding:15px;
+    gap:10px;
 
 }
 
 
-td{
+.toolbar input,
+input[type="text"]{
 
-    color:#e5e7eb;
+    height:38px;
+    padding:8px 12px;
+    font-size:14px;
 
 }
 
 
+/* Nút tìm kiếm */
 
-tr:hover{
+.toolbar button,
+input[type="submit"]{
 
-    background:#1e293b;
+    height:38px;
+    padding:0 16px;
+
+}
+/* ===== CHỈNH THANH TÌM KIẾM ===== */
+
+.toolbar form{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex:1;
+}
+
+
+.toolbar form input[type="text"]{
+
+    width:450px;
+    height:38px;
+
+}
+
+
+.toolbar form button{
+
+    height:38px;
+    padding:0 20px;
+    white-space:nowrap;
 
 }

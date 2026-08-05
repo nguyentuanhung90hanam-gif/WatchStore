@@ -26,18 +26,32 @@ public class BrandController extends HttpServlet {
         String action = req.getPathInfo();
 
         if (action == null || "/".equals(action)) {
+
             req.setAttribute("brands", brandRepository.findAll());
-            req.getRequestDispatcher("/views/admin/brand-list.jsp")
+
+            req.setAttribute("adminArea", "admin");
+            req.setAttribute("pageTitle", "Quản lý thương hiệu");
+            req.setAttribute("contentPage", "/views/admin/brand-list.jsp");
+
+            req.getRequestDispatcher("/views/layout/admin-layout.jsp")
                     .forward(req, resp);
+
             return;
         }
 
         switch (action) {
 
             case "/add":
-                req.getRequestDispatcher("/views/admin/brand-form.jsp")
+
+                req.setAttribute("adminArea", "admin");
+                req.setAttribute("pageTitle", "Thêm thương hiệu");
+                req.setAttribute("contentPage", "/views/admin/brand-form.jsp");
+
+                req.getRequestDispatcher("/views/layout/admin-layout.jsp")
                         .forward(req, resp);
+
                 break;
+
 
             case "/edit":
 
@@ -46,10 +60,15 @@ public class BrandController extends HttpServlet {
                 req.setAttribute("brand",
                         brandRepository.findById(id));
 
-                req.getRequestDispatcher("/views/admin/brand-form.jsp")
+                req.setAttribute("adminArea", "admin");
+                req.setAttribute("pageTitle", "Sửa thương hiệu");
+                req.setAttribute("contentPage", "/views/admin/brand-form.jsp");
+
+                req.getRequestDispatcher("/views/layout/admin-layout.jsp")
                         .forward(req, resp);
 
                 break;
+
 
             case "/delete":
 
@@ -61,6 +80,7 @@ public class BrandController extends HttpServlet {
 
                 break;
 
+
             case "/search":
 
                 String keyword = req.getParameter("keyword");
@@ -68,18 +88,25 @@ public class BrandController extends HttpServlet {
                 req.setAttribute("brands",
                         brandRepository.search(keyword));
 
-                req.getRequestDispatcher("/views/admin/brand-list.jsp")
+                req.setAttribute("adminArea", "admin");
+                req.setAttribute("pageTitle", "Quản lý thương hiệu");
+                req.setAttribute("contentPage", "/views/admin/brand-list.jsp");
+
+                req.getRequestDispatcher("/views/layout/admin-layout.jsp")
                         .forward(req, resp);
 
                 break;
 
+
             default:
+
                 resp.sendRedirect(req.getContextPath()
                         + "/manage/admin/brands");
 
         }
 
     }
+
 
     @Override
     protected void doPost(HttpServletRequest req,
@@ -100,6 +127,7 @@ public class BrandController extends HttpServlet {
         brand.setDescription(req.getParameter("description"));
         brand.setStatus(req.getParameter("status"));
 
+
         if (id == null || id.isBlank()) {
 
             brandRepository.insert(brand);
@@ -111,6 +139,7 @@ public class BrandController extends HttpServlet {
             brandRepository.update(brand);
 
         }
+
 
         resp.sendRedirect(req.getContextPath()
                 + "/manage/admin/brands");
