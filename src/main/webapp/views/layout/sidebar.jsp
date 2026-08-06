@@ -10,7 +10,28 @@
                 <a href="${cp}/manage/sales/dashboard">▦ Tổng quan</a><a href="${cp}/manage/sales/orders">▣ Đơn hàng</a><a href="${cp}/manage/sales/customers">♙ Khách hàng</a><a href="${cp}/manage/sales/reviews">★ Đánh giá</a><a href="${cp}/manage/sales/delivery">▤ Vận chuyển</a><a href="${cp}/manage/sales/returns">↺ Đổi trả</a><a href="${cp}/manage/sales/report">◫ Báo cáo</a>
             </c:when>
             <c:when test="${adminArea == 'warehouse'}">
-                <a href="${cp}/manage/warehouse/dashboard">▦ Tổng quan</a><a href="${cp}/manage/warehouse/receipts">⇩ Phiếu nhập</a><a href="${cp}/manage/warehouse/exports">⇧ Phiếu xuất</a><a href="${cp}/manage/warehouse/inventory">▣ Tồn kho</a><a href="${cp}/manage/warehouse/stocktake">✓ Kiểm kê</a><a href="${cp}/manage/warehouse/variants">◇ Biến thể</a><a href="${cp}/manage/warehouse/alerts">! Cảnh báo</a>
+                <div class="sidebar-group">
+                    <div class="sidebar-group-title">TỔNG QUAN</div>
+                    <a href="${cp}/manage/warehouse/dashboard">▦ Tổng quan</a>
+                </div>
+                <div class="sidebar-group">
+                    <div class="sidebar-group-title">QUẢN LÝ KHO</div>
+                    <a href="${cp}/manage/warehouse/receipts">⇩ Phiếu nhập</a>
+                    <a href="${cp}/manage/warehouse/exports">⇧ Phiếu xuất</a>
+                    <a href="${cp}/manage/warehouse/inventory">▣ Tồn kho</a>
+                    <a href="${cp}/manage/warehouse/stocktake">✓ Kiểm kê</a>
+                    <a href="${cp}/manage/warehouse/variants">◇ Biến thể</a>
+                    <a href="${cp}/manage/warehouse/alerts">⚠ Cảnh báo</a>
+                </div>
+                <div class="sidebar-group">
+                    <div class="sidebar-group-title">THỐNG KÊ</div>
+                    <a href="${cp}/manage/warehouse/statistics">◫ Báo cáo kho</a>
+                </div>
+                <div class="sidebar-group">
+                    <div class="sidebar-group-title">TÀI KHOẢN</div>
+                    <a href="${cp}/page/profile">♙ Thông tin cá nhân</a>
+                    <a href="${cp}/page/change-password">🔑 Đổi mật khẩu</a>
+                </div>
             </c:when>
             <c:otherwise>
                 <a href="${cp}/manage/admin/dashboard">▦ Tổng quan</a><a href="${cp}/manage/admin/accounts">♙ Tài khoản</a><a href="${cp}/manage/admin/roles">♜ Vai trò</a><a href="${cp}/manage/admin/products">▣ Sản phẩm</a><a href="${cp}/manage/admin/categories">⌘ Danh mục</a><a href="${cp}/manage/admin/brands">◆ Thương hiệu</a><a href="${cp}/manage/admin/vouchers">% Voucher</a><a href="${cp}/manage/admin/posts">▤ Bài viết</a><a href="${cp}/manage/admin/statistics">◫ Thống kê</a>

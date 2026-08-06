@@ -48,9 +48,7 @@ public class StockReceipt {
     public String getCreatedByName()                      { return createdByName; }
     public void setCreatedByName(String createdByName)    { this.createdByName = createdByName; }
 
-    /**
-     * Trả về nhãn trạng thái tiếng Việt để hiển thị trên JSP.
-     */
+
     public String getStatusLabel() {
         switch (status == null ? "" : status) {
             case "DRAFT":      return "Nháp";
@@ -61,9 +59,7 @@ public class StockReceipt {
         }
     }
 
-    /**
-     * Trả về CSS class để tô màu badge trạng thái.
-     */
+
     public String getStatusClass() {
         switch (status == null ? "" : status) {
             case "COMPLETED": return "success";

@@ -81,6 +81,13 @@
                                        href="${pageContext.request.contextPath}/manage/warehouse/export-edit?id=${e.exportID}">
                                         ✎ Sửa
                                     </a>
+                                    &nbsp;|&nbsp;
+                                    <%-- Nút in phiếu xuất --%>
+                                    <a class="table-action"
+                                       href="${pageContext.request.contextPath}/manage/warehouse/export-print?id=${e.exportID}"
+                                       target="_blank">
+                                        🖨️ In
+                                    </a>
                                     <c:choose>
                                         <c:when test="${e.status != 'COMPLETED'}">
                                             &nbsp;|&nbsp;

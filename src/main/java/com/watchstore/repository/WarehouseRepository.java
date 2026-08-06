@@ -5,6 +5,7 @@ import com.watchstore.model.InventoryItem;
 import com.watchstore.model.StockExport;
 import com.watchstore.model.StockReceipt;
 import com.watchstore.model.StocktakeRecord;
+import com.watchstore.model.Variant;
 
 import java.math.BigDecimal;
 import java.sql.Connection;
@@ -747,6 +748,295 @@ public class WarehouseRepository {
 
         if (list.isEmpty()) {
             return MOCK_INVENTORY.stream().filter(InventoryItem::isLowStock).toList();
+        }
+        return list;
+    }
+
+    // =========================================================================
+    // PHẦN 7: QUẢN LÝ BIẾN THỂ (CRUD)
+    // =========================================================================
+
+    // Dữ liệu mock cho Biến thể khi DB chưa kết nối
+    private static final List<Variant> MOCK_VARIANTS = Collections.synchronizedList(new ArrayList<>());
+
+    static {
+        Variant v1 = new Variant();
+        v1.setVariantID(1);
+        v1.setSku("SKU-EFR-108-SL");
+        v1.setVariantName("Mặt Xanh / Dây thép");
+        v1.setColor("Xanh");
+        v1.setMaterial("Thép không gỉ");
+        v1.setPrice(new BigDecimal("4500000"));
+        v1.setStockQty(18);
+        v1.setStatus("ACTIVE");
+        v1.setProductName("Edifice Sapphire EFR-S108D");
+        v1.setProductCode("CAS-EFR-108");
+        MOCK_VARIANTS.add(v1);
+
+        Variant v2 = new Variant();
+        v2.setVariantID(2);
+        v2.setSku("SKU-PRO-510-BK");
+        v2.setVariantName("Mặt Đen / Dây cao su");
+        v2.setColor("Đen");
+        v2.setMaterial("Cao su");
+        v2.setPrice(new BigDecimal("12000000"));
+        v2.setStockQty(4);
+        v2.setStatus("ACTIVE");
+        v2.setProductName("Prospex Diver Automatic");
+        v2.setProductCode("SEI-PRO-510");
+        MOCK_VARIANTS.add(v2);
+
+        Variant v3 = new Variant();
+        v3.setVariantID(3);
+        v3.setSku("SKU-LEL-080-GD");
+        v3.setVariantName("Vỏ Vàng / Dây da đen");
+        v3.setColor("Vàng");
+        v3.setMaterial("Da");
+        v3.setPrice(new BigDecimal("25000000"));
+        v3.setStockQty(0);
+        v3.setStatus("INACTIVE");
+        v3.setProductName("Le Locle Powermatic 80");
+        v3.setProductCode("TIS-LEL-080");
+        MOCK_VARIANTS.add(v3);
+    }
+
+    /** Lấy danh sách tất cả biến thể */
+    public List<Variant> findAllVariants() {
+        List<Variant> list = new ArrayList<>();
+        String sql =
+            "SELECT v.VariantID, v.SKU, v.VariantName, v.Color, v.Material, " +
+            "       v.Price, v.Status, " +
+            "       ISNULL(ib.QuantityOnHand, 0) AS StockQty, " +
+            "       p.ProductName, p.ProductCode " +
+            "FROM ProductVariants v " +
+            "JOIN Products p ON p.ProductID = v.ProductID " +
+            "LEFT JOIN InventoryBalances ib ON ib.VariantID = v.VariantID " +
+            "ORDER BY v.VariantID DESC";
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                Variant v = new Variant();
+                v.setVariantID(rs.getLong("VariantID"));
+                v.setSku(rs.getString("SKU"));
+                v.setVariantName(rs.getString("VariantName"));
+                v.setColor(rs.getString("Color"));
+                v.setMaterial(rs.getString("Material"));
+                v.setPrice(rs.getBigDecimal("Price"));
+                v.setStockQty(rs.getInt("StockQty"));
+                v.setStatus(rs.getString("Status"));
+                v.setProductName(rs.getString("ProductName"));
+                v.setProductCode(rs.getString("ProductCode"));
+                list.add(v);
+            }
+        } catch (Exception e) {
+            System.err.println("SQL ERROR (findAllVariants): " + e.getMessage());
+        }
+        return list.isEmpty() ? new ArrayList<>(MOCK_VARIANTS) : list;
+    }
+
+    /** Tìm biến thể theo ID */
+    public Variant findVariantById(long id) {
+        String sql =
+            "SELECT v.VariantID, v.SKU, v.VariantName, v.Color, v.Material, " +
+            "       v.Price, v.Status, " +
+            "       ISNULL(ib.QuantityOnHand, 0) AS StockQty, " +
+            "       p.ProductName, p.ProductCode " +
+            "FROM ProductVariants v " +
+            "JOIN Products p ON p.ProductID = v.ProductID " +
+            "LEFT JOIN InventoryBalances ib ON ib.VariantID = v.VariantID " +
+            "WHERE v.VariantID = ?";
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setLong(1, id);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    Variant v = new Variant();
+                    v.setVariantID(rs.getLong("VariantID"));
+                    v.setSku(rs.getString("SKU"));
+                    v.setVariantName(rs.getString("VariantName"));
+                    v.setColor(rs.getString("Color"));
+                    v.setMaterial(rs.getString("Material"));
+                    v.setPrice(rs.getBigDecimal("Price"));
+                    v.setStockQty(rs.getInt("StockQty"));
+                    v.setStatus(rs.getString("Status"));
+                    v.setProductName(rs.getString("ProductName"));
+                    v.setProductCode(rs.getString("ProductCode"));
+                    return v;
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("SQL ERROR (findVariantById): " + e.getMessage());
+        }
+        return MOCK_VARIANTS.stream().filter(v -> v.getVariantID() == id).findFirst().orElse(null);
+    }
+
+    /** Thêm biến thể mới */
+    public boolean createVariant(String sku, String variantName, String color,
+                                  String material, BigDecimal price, int productId) {
+        String sql =
+            "INSERT INTO ProductVariants (ProductID, SKU, VariantName, Color, Material, Price, Status) " +
+            "VALUES (?, ?, ?, ?, ?, ?, 'ACTIVE')";
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, productId);
+            ps.setString(2, sku);
+            ps.setString(3, variantName);
+            ps.setString(4, color);
+            ps.setString(5, material);
+            ps.setBigDecimal(6, price != null ? price : BigDecimal.ZERO);
+            if (ps.executeUpdate() > 0) return true;
+        } catch (Exception e) {
+            System.err.println("SQL ERROR (createVariant): " + e.getMessage());
+        }
+        // Lưu mock nếu DB chưa kết nối
+        Variant mock = new Variant();
+        mock.setVariantID(MOCK_VARIANTS.size() + 1);
+        mock.setSku(sku);
+        mock.setVariantName(variantName);
+        mock.setColor(color);
+        mock.setMaterial(material);
+        mock.setPrice(price != null ? price : BigDecimal.ZERO);
+        mock.setStockQty(0);
+        mock.setStatus("ACTIVE");
+        mock.setProductName("Sản phẩm #" + productId);
+        mock.setProductCode("PROD-" + productId);
+        MOCK_VARIANTS.add(0, mock);
+        return true;
+    }
+
+    /** Cập nhật biến thể */
+    public boolean updateVariant(long id, String variantName, String color,
+                                  String material, BigDecimal price, String status) {
+        String sql =
+            "UPDATE ProductVariants SET VariantName = ?, Color = ?, Material = ?, Price = ?, Status = ? " +
+            "WHERE VariantID = ?";
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, variantName);
+            ps.setString(2, color);
+            ps.setString(3, material);
+            ps.setBigDecimal(4, price != null ? price : BigDecimal.ZERO);
+            ps.setString(5, status);
+            ps.setLong(6, id);
+            if (ps.executeUpdate() > 0) return true;
+        } catch (Exception e) {
+            System.err.println("SQL ERROR (updateVariant): " + e.getMessage());
+        }
+        Variant mock = findVariantById(id);
+        if (mock != null) {
+            mock.setVariantName(variantName);
+            mock.setColor(color);
+            mock.setMaterial(material);
+            if (price != null) mock.setPrice(price);
+            if (status != null) mock.setStatus(status);
+            return true;
+        }
+        return false;
+    }
+
+    /** Xóa biến thể (chỉ xóa nếu tồn kho = 0) */
+    public boolean deleteVariant(long id) {
+        Variant v = findVariantById(id);
+        if (v != null && v.getStockQty() > 0) {
+            return false; // Không xóa nếu còn hàng
+        }
+        String sql = "DELETE FROM ProductVariants WHERE VariantID = ?";
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setLong(1, id);
+            if (ps.executeUpdate() > 0) return true;
+        } catch (Exception e) {
+            System.err.println("SQL ERROR (deleteVariant): " + e.getMessage());
+        }
+        return MOCK_VARIANTS.removeIf(item -> item.getVariantID() == id);
+    }
+
+    // =========================================================================
+    // PHẦN 8: THỐNG KÊ KHO
+    // =========================================================================
+
+    /** Đếm tổng số phiếu nhập trong tháng hiện tại */
+    public int getReceiptsThisMonth() {
+        int dbVal = queryInt("SELECT COUNT(*) FROM StockReceipts WHERE MONTH(ReceiptDate)=MONTH(GETDATE()) AND YEAR(ReceiptDate)=YEAR(GETDATE())");
+        return dbVal > 0 ? dbVal : MOCK_RECEIPTS.size();
+    }
+
+    /** Đếm tổng số phiếu xuất trong tháng hiện tại */
+    public int getExportsThisMonth() {
+        int dbVal = queryInt("SELECT COUNT(*) FROM StockExports WHERE MONTH(ExportDate)=MONTH(GETDATE()) AND YEAR(ExportDate)=YEAR(GETDATE())");
+        return dbVal > 0 ? dbVal : MOCK_EXPORTS.size();
+    }
+
+    /** Đếm số biến thể hết hàng */
+    public int getOutOfStockCount() {
+        int dbVal = queryInt("SELECT COUNT(*) FROM InventoryBalances WHERE AvailableQuantity = 0");
+        return dbVal >= 0 ? dbVal : (int) MOCK_INVENTORY.stream().filter(i -> i.getAvailableQuantity() == 0).count();
+    }
+
+    /** Lấy 5 phiếu nhập gần đây nhất */
+    public List<StockReceipt> findRecentReceipts() {
+        List<StockReceipt> list = new ArrayList<>();
+        String sql =
+            "SELECT TOP 5 r.StockReceiptID, r.ReceiptCode, r.SupplierName, r.SupplierPhone, " +
+            "       FORMAT(r.ReceiptDate,'dd/MM/yyyy') AS ReceiptDate, " +
+            "       r.Status, r.TotalCost, r.Note, ISNULL(u.FullName,'Nhân viên kho') AS CreatedByName " +
+            "FROM StockReceipts r LEFT JOIN Users u ON u.UserID=r.CreatedBy " +
+            "ORDER BY r.StockReceiptID DESC";
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                StockReceipt receipt = new StockReceipt();
+                receipt.setReceiptID(rs.getLong("StockReceiptID"));
+                receipt.setReceiptCode(rs.getString("ReceiptCode"));
+                receipt.setSupplierName(rs.getString("SupplierName"));
+                receipt.setReceiptDate(rs.getString("ReceiptDate"));
+                receipt.setStatus(rs.getString("Status"));
+                receipt.setTotalCost(rs.getBigDecimal("TotalCost"));
+                receipt.setCreatedByName(rs.getString("CreatedByName"));
+                list.add(receipt);
+            }
+        } catch (Exception e) {
+            System.err.println("SQL ERROR (findRecentReceipts): " + e.getMessage());
+        }
+        if (list.isEmpty()) {
+            List<StockReceipt> mock = new ArrayList<>(MOCK_RECEIPTS);
+            return mock.subList(0, Math.min(5, mock.size()));
+        }
+        return list;
+    }
+
+    /** Lấy 5 phiếu xuất gần đây nhất */
+    public List<StockExport> findRecentExports() {
+        List<StockExport> list = new ArrayList<>();
+        String sql =
+            "SELECT TOP 5 e.StockExportID, e.ExportCode, e.ExportType, " +
+            "       FORMAT(e.ExportDate,'dd/MM/yyyy') AS ExportDate, " +
+            "       e.Status, e.ReceiverName, e.Note, e.OrderID, " +
+            "       ISNULL(u.FullName,'Nhân viên kho') AS CreatedByName " +
+            "FROM StockExports e LEFT JOIN Users u ON u.UserID=e.CreatedBy " +
+            "ORDER BY e.StockExportID DESC";
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                StockExport export = new StockExport();
+                export.setExportID(rs.getLong("StockExportID"));
+                export.setExportCode(rs.getString("ExportCode"));
+                export.setExportType(rs.getString("ExportType"));
+                export.setExportDate(rs.getString("ExportDate"));
+                export.setStatus(rs.getString("Status"));
+                export.setReceiverName(rs.getString("ReceiverName"));
+                export.setCreatedByName(rs.getString("CreatedByName"));
+                list.add(export);
+            }
+        } catch (Exception e) {
+            System.err.println("SQL ERROR (findRecentExports): " + e.getMessage());
+        }
+        if (list.isEmpty()) {
+            List<StockExport> mock = new ArrayList<>(MOCK_EXPORTS);
+            return mock.subList(0, Math.min(5, mock.size()));
         }
         return list;
     }

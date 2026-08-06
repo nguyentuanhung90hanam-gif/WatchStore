@@ -60,9 +60,7 @@ public class StockExport {
         }
     }
 
-    /**
-     * CSS class cho badge trạng thái.
-     */
+
     public String getStatusClass() {
         switch (status == null ? "" : status) {
             case "COMPLETED": return "success";

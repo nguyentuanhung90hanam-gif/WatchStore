@@ -3,6 +3,8 @@ package com.watchstore.controller.warehouse;
 import com.watchstore.model.StockExport;
 import com.watchstore.model.StockReceipt;
 import com.watchstore.model.User;
+import com.watchstore.model.Variant;
+import com.watchstore.repository.ProductRepository;
 import com.watchstore.repository.WarehouseRepository;
 import com.watchstore.util.ViewRouter;
 import jakarta.servlet.ServletException;
@@ -94,6 +96,37 @@ public class WarehouseController extends HttpServlet {
                 showAlerts(req, resp);
                 break;
 
+            // --- BIẼN THỂ ---
+            case "/variants":
+                showVariants(req, resp);
+                break;
+
+            case "/variant-create":
+                ViewRouter.admin(req, resp, "warehouse/variant-create", "Thêm biến thể", "warehouse");
+                break;
+
+            case "/variant-edit":
+                showVariantEdit(req, resp);
+                break;
+
+            case "/variant-delete":
+                handleDeleteVariant(req, resp);
+                break;
+
+            // --- THỐNG KÊ ---
+            case "/statistics":
+                showStatistics(req, resp);
+                break;
+
+            // --- IN PHIẼU ---
+            case "/receipt-print":
+                showReceiptPrint(req, resp);
+                break;
+
+            case "/export-print":
+                showExportPrint(req, resp);
+                break;
+
             default:
                 resp.sendRedirect(req.getContextPath() + "/manage/warehouse/dashboard");
         }
@@ -134,6 +167,14 @@ public class WarehouseController extends HttpServlet {
 
             case "/inventory-edit":
                 handleUpdateInventory(req, resp);
+                break;
+
+            case "/variant-create":
+                handleCreateVariant(req, resp);
+                break;
+
+            case "/variant-edit":
+                handleUpdateVariant(req, resp);
                 break;
 
             default:
@@ -342,6 +383,107 @@ public class WarehouseController extends HttpServlet {
         boolean ok = repo.updateInventoryItem(sku, quantity, reorderLevel);
         req.getSession().setAttribute("flashMessage", ok ? "Cập nhật tồn kho thành công!" : "Cập nhật thất bại!");
         resp.sendRedirect(req.getContextPath() + "/manage/warehouse/inventory");
+    }
+
+    // =========================================================================
+    // HANDLER: BIẼN THỂ
+    // =========================================================================
+
+    private void showVariants(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
+        req.setAttribute("variants", repo.findAllVariants());
+        ViewRouter.admin(req, resp, "warehouse/variant-list", "Quản lý biến thể", "warehouse");
+    }
+
+    private void showVariantEdit(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
+        long id = parseLong(req.getParameter("id"));
+        Variant variant = repo.findVariantById(id);
+        if (variant == null) {
+            resp.sendRedirect(req.getContextPath() + "/manage/warehouse/variants");
+            return;
+        }
+        req.setAttribute("variant", variant);
+        ViewRouter.admin(req, resp, "warehouse/variant-edit", "Sửa biến thể", "warehouse");
+    }
+
+    private void handleCreateVariant(HttpServletRequest req, HttpServletResponse resp)
+            throws IOException {
+        String sku         = req.getParameter("sku");
+        String variantName = req.getParameter("variantName");
+        String color       = req.getParameter("color");
+        String material    = req.getParameter("material");
+        BigDecimal price   = parseBigDecimal(req.getParameter("price"));
+        int productId      = parseInt(req.getParameter("productId"));
+
+        boolean ok = repo.createVariant(sku, variantName, color, material, price, productId);
+        req.getSession().setAttribute("flashMessage",
+            ok ? "✅ Thêm biến thể thành công!" : "❌ Thêm biến thể thất bại!");
+        resp.sendRedirect(req.getContextPath() + "/manage/warehouse/variants");
+    }
+
+    private void handleUpdateVariant(HttpServletRequest req, HttpServletResponse resp)
+            throws IOException {
+        long id            = parseLong(req.getParameter("id"));
+        String variantName = req.getParameter("variantName");
+        String color       = req.getParameter("color");
+        String material    = req.getParameter("material");
+        BigDecimal price   = parseBigDecimal(req.getParameter("price"));
+        String status      = req.getParameter("status");
+
+        boolean ok = repo.updateVariant(id, variantName, color, material, price, status);
+        req.getSession().setAttribute("flashMessage",
+            ok ? "Cập nhật biến thể thành công!" : "Cập nhật thất bại!");
+        resp.sendRedirect(req.getContextPath() + "/manage/warehouse/variants");
+    }
+
+    private void handleDeleteVariant(HttpServletRequest req, HttpServletResponse resp)
+            throws IOException {
+        long id = parseLong(req.getParameter("id"));
+        boolean ok = repo.deleteVariant(id);
+        req.getSession().setAttribute("flashMessage",
+            ok ? "Đã xóa biến thể!" : "Không thể xóa biến thể còn hàng trong kho!");
+        resp.sendRedirect(req.getContextPath() + "/manage/warehouse/variants");
+    }
+
+    // =========================================================================
+    // HANDLER: THỐNG KÊ & IN PHIẼU
+    // =========================================================================
+
+    private void showStatistics(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
+        req.setAttribute("receiptsThisMonth", repo.getReceiptsThisMonth());
+        req.setAttribute("exportsThisMonth",  repo.getExportsThisMonth());
+        req.setAttribute("outOfStockCount",   repo.getOutOfStockCount());
+        req.setAttribute("lowStockCount",     repo.getLowStockCount());
+        req.setAttribute("recentReceipts",    repo.findRecentReceipts());
+        req.setAttribute("recentExports",     repo.findRecentExports());
+        ViewRouter.admin(req, resp, "warehouse/statistics", "Thống kê kho", "warehouse");
+    }
+
+    private void showReceiptPrint(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
+        long id = parseLong(req.getParameter("id"));
+        StockReceipt receipt = repo.findReceiptById(id);
+        if (receipt == null) {
+            resp.sendRedirect(req.getContextPath() + "/manage/warehouse/receipts");
+            return;
+        }
+        req.setAttribute("receipt", receipt);
+        // Forward thẳng JSP in, không qua layout
+        req.getRequestDispatcher("/views/warehouse/receipt-print.jsp").forward(req, resp);
+    }
+
+    private void showExportPrint(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
+        long id = parseLong(req.getParameter("id"));
+        StockExport export = repo.findExportById(id);
+        if (export == null) {
+            resp.sendRedirect(req.getContextPath() + "/manage/warehouse/exports");
+            return;
+        }
+        req.setAttribute("export", export);
+        req.getRequestDispatcher("/views/warehouse/export-print.jsp").forward(req, resp);
     }
 
     // =========================================================================

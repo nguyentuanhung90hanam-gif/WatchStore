@@ -79,6 +79,13 @@
                                        href="${pageContext.request.contextPath}/manage/warehouse/receipt-edit?id=${r.receiptID}">
                                         ✎ Sửa
                                     </a>
+                                    &nbsp;|&nbsp;
+                                    <%-- Nút in phiếu: mở tab mới để in --%>
+                                    <a class="table-action"
+                                       href="${pageContext.request.contextPath}/manage/warehouse/receipt-print?id=${r.receiptID}"
+                                       target="_blank">
+                                        🖨️ In
+                                    </a>
                                     
                                     <c:choose>
                                         <c:when test="${r.status != 'COMPLETED'}">
