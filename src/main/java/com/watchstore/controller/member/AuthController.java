@@ -33,7 +33,7 @@ public class AuthController extends HttpServlet {
         }
         String email = value(req.getParameter("email"), "customer@watchstore.vn").toLowerCase();
         Role role = email.startsWith("admin") ? Role.ADMIN : email.startsWith("sales") ? Role.SALES : email.startsWith("warehouse") ? Role.WAREHOUSE : Role.CUSTOMER;
-        String name = role == Role.ADMIN ? "Thạch Như Thuận" : role == Role.SALES ? "Nhân viên bán hàng" : role == Role.WAREHOUSE ? "Nhân viên kho" : "Khách hàng WatchStore";
+        String name = role == Role.ADMIN ? "Tân Tân" : role == Role.SALES ? "Nhân viên bán hàng" : role == Role.WAREHOUSE ? "Nhân viên kho" : "Khách hàng WatchStore";
         req.getSession().setAttribute("user", new User(1, name, email, "0988 686 868", role));
         req.getSession().setAttribute("flash", "Đăng nhập thành công");
         if (role == Role.ADMIN) resp.sendRedirect(req.getContextPath() + "/manage/admin/dashboard");

@@ -1,1 +1,10 @@
-<%@ page contentType="text/html;charset=UTF-8" %><%@ taglib prefix="c" uri="jakarta.tags.core" %><c:set var="moduleKicker" value="VAI TRÒ HỆ THỐNG"/><c:set var="moduleDescription" value="Nhóm quyền cho quản trị, bán hàng, kho và khách hàng."/><c:set var="moduleItemName" value="Vai trò nghiệp vụ"/><c:set var="moduleIcon" value="♜"/><c:set var="primaryAction" value="Thêm vai trò"/><jsp:include page="/views/shared/management-module.jsp"/>
+<%@ page contentType="text/html;charset=UTF-8" %>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+
+<c:set var="moduleKicker" value="VAI TRÒ HỆ THỐNG"/>
+<c:set var="moduleDescription" value="Nhóm quyền cho quản trị, bán hàng, kho và khách hàng."/>
+<c:set var="moduleItemName" value="Vai trò"/>
+<c:set var="moduleIcon" value="👤"/>
+<c:set var="primaryAction" value="Thêm vai trò"/>
+
+<jsp:include page="/views/shared/management-module.jsp"/>
