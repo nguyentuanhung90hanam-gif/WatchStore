@@ -40,11 +40,23 @@
     );
 
   const sidebar = document.querySelector("[data-sidebar]");
+  function setSidebar(open) {
+    sidebar?.classList.toggle("open", open);
+    document.body.classList.toggle("sidebar-open", open);
+  }
   document
     .querySelectorAll("[data-sidebar-toggle]")
     .forEach((btn) =>
-      btn.addEventListener("click", () => sidebar?.classList.toggle("open")),
+      btn.addEventListener("click", () =>
+        setSidebar(!sidebar?.classList.contains("open")),
+      ),
     );
+  document
+    .querySelectorAll("[data-sidebar-close]")
+    .forEach((btn) => btn.addEventListener("click", () => setSidebar(false)));
+  window.addEventListener("resize", () => {
+    if (window.innerWidth > 920) setSidebar(false);
+  });
 
   document.querySelectorAll("[data-hero-carousel]").forEach((carousel) => {
     const slides = Array.from(carousel.querySelectorAll(".hero-slide"));
@@ -211,6 +223,90 @@
       toast("Đã sao chép mã " + btn.dataset.copy);
     }),
   );
+
+  document.querySelectorAll("[data-confirm-delete]").forEach((link) => {
+    link.addEventListener("click", (event) => {
+      const name = link.dataset.confirmDelete || "thương hiệu này";
+      if (
+        !window.confirm(
+          `Bạn có chắc muốn xóa “${name}”? Thao tác này không thể hoàn tác.`,
+        )
+      ) {
+        event.preventDefault();
+      }
+    });
+  });
+
+  document.querySelectorAll("[data-brand-form]").forEach((form) => {
+    const nameInput = form.querySelector("[data-brand-name]");
+    const codeInput = form.querySelector("[data-code-input]");
+    const slugInput = form.querySelector("[data-slug-input]");
+    const logoInput = form.querySelector("[data-logo-input]");
+    const previewImage = form.querySelector("[data-logo-preview] img");
+    const previewFallback = form.querySelector("[data-logo-fallback]");
+    const previewName = form.querySelector("[data-name-preview]");
+    const previewCode = form.querySelector("[data-code-preview]");
+    const description = form.querySelector("[data-description-input]");
+    const descriptionCount = form.querySelector("[data-description-count]");
+
+    const slugify = (value) =>
+      value
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/đ/g, "d")
+        .replace(/Đ/g, "D")
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+
+    if (slugInput)
+      slugInput.dataset.manuallyEdited = slugInput.value ? "true" : "false";
+    slugInput?.addEventListener("input", () => {
+      slugInput.dataset.manuallyEdited = "true";
+    });
+
+    nameInput?.addEventListener("input", () => {
+      const value = nameInput.value.trim();
+      if (previewName) previewName.textContent = value || "Tên thương hiệu";
+      if (previewFallback)
+        previewFallback.textContent = value.charAt(0).toUpperCase() || "W";
+      if (slugInput?.dataset.manuallyEdited !== "true")
+        slugInput.value = slugify(value);
+    });
+
+    codeInput?.addEventListener("input", () => {
+      const caret = codeInput.selectionStart;
+      codeInput.value = codeInput.value.toUpperCase().replace(/\s+/g, "-");
+      codeInput.setSelectionRange(caret, caret);
+      if (previewCode)
+        previewCode.textContent = codeInput.value || "MÃ THƯƠNG HIỆU";
+    });
+
+    function updateLogo() {
+      if (!previewImage) return;
+      const value = logoInput?.value.trim();
+      if (!value) {
+        previewImage.hidden = true;
+        previewImage.removeAttribute("src");
+        return;
+      }
+      previewImage.hidden = false;
+      previewImage.src = value;
+    }
+    previewImage?.addEventListener("error", () => {
+      previewImage.hidden = true;
+    });
+    logoInput?.addEventListener("input", updateLogo);
+
+    function updateCount() {
+      if (descriptionCount)
+        descriptionCount.textContent = String(description?.value.length || 0);
+    }
+    description?.addEventListener("input", updateCount);
+    updateCount();
+  });
+
   setTimeout(
     () => document.querySelector(".toast.show:not(.dynamic)")?.remove(),
     2600,
