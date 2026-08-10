@@ -1,11 +1,14 @@
 package com.watchstore.controller.warehouse;
 
+import com.watchstore.model.Product;
+import com.watchstore.repository.MockDataStore;
 import com.watchstore.repository.ProductRepository;
 import com.watchstore.util.ViewRouter;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 @WebServlet("/manage/warehouse/*")
@@ -22,11 +25,21 @@ public class WarehouseController extends HttpServlet {
         Map.entry("/variants", new String[]{"variant", "Biến thể sản phẩm"}),
         Map.entry("/alerts", new String[]{"stock-alert", "Cảnh báo tồn kho"})
     );
-    @Override public void init() { products = (ProductRepository) getServletContext().getAttribute("productRepository"); }
+
+    @Override public void init() { 
+        products = (ProductRepository) getServletContext().getAttribute("productRepository"); 
+    }
+
     @Override protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         String path = req.getPathInfo() == null ? "/dashboard" : req.getPathInfo();
         String[] page = PAGES.getOrDefault(path, PAGES.get("/dashboard"));
-        req.setAttribute("products", products.findAll());
+
+        List<Product> productList = (products != null && !products.findAll().isEmpty()) ? products.findAll() : MockDataStore.products();
+        req.setAttribute("products", productList);
+        req.setAttribute("inventory", productList);
+        req.setAttribute("variants", productList);
+        req.setAttribute("alerts", productList.stream().filter(p -> p.getStock() < 10).toList());
+
         req.setAttribute("moduleTitle", page[1]);
         ViewRouter.admin(req, resp, "warehouse/" + page[0], page[1], "warehouse");
     }

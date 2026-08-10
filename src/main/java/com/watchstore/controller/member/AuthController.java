@@ -32,14 +32,27 @@ public class AuthController extends HttpServlet {
             return;
         }
         String email = value(req.getParameter("email"), "customer@watchstore.vn").toLowerCase();
-        Role role = email.startsWith("admin") ? Role.ADMIN : email.startsWith("sales") ? Role.SALES : email.startsWith("warehouse") ? Role.WAREHOUSE : Role.CUSTOMER;
-        String name = role == Role.ADMIN ? "Thạch Như Thuận" : role == Role.SALES ? "Nhân viên bán hàng" : role == Role.WAREHOUSE ? "Nhân viên kho" : "Khách hàng WatchStore";
-        req.getSession().setAttribute("user", new User(1, name, email, "0988 686 868", role));
-        req.getSession().setAttribute("flash", "Đăng nhập thành công");
-        if (role == Role.ADMIN) resp.sendRedirect(req.getContextPath() + "/manage/admin/dashboard");
-        else if (role == Role.SALES) resp.sendRedirect(req.getContextPath() + "/manage/sales/dashboard");
-        else if (role == Role.WAREHOUSE) resp.sendRedirect(req.getContextPath() + "/manage/warehouse/dashboard");
-        else resp.sendRedirect(req.getContextPath() + "/page/home");
+        com.watchstore.repository.UserRepository userRepo = new com.watchstore.repository.UserRepository();
+        User dbUser = userRepo.findByEmail(email);
+
+        if (dbUser != null) {
+            req.getSession().setAttribute("user", dbUser);
+            req.getSession().setAttribute("flash", "Đăng nhập thành công");
+            String roleStr = dbUser.getRole();
+            if ("ADMIN".equals(roleStr)) resp.sendRedirect(req.getContextPath() + "/manage/admin/dashboard");
+            else if ("SALES".equals(roleStr)) resp.sendRedirect(req.getContextPath() + "/manage/sales/dashboard");
+            else if ("WAREHOUSE".equals(roleStr)) resp.sendRedirect(req.getContextPath() + "/manage/warehouse/dashboard");
+            else resp.sendRedirect(req.getContextPath() + "/page/home");
+        } else {
+            Role role = email.startsWith("admin") ? Role.ADMIN : email.startsWith("sales") ? Role.SALES : email.startsWith("warehouse") ? Role.WAREHOUSE : Role.CUSTOMER;
+            String name = role == Role.ADMIN ? "Thạch Như Thuận" : role == Role.SALES ? "Nhân viên bán hàng" : role == Role.WAREHOUSE ? "Nhân viên kho" : "Khách hàng WatchStore";
+            req.getSession().setAttribute("user", new User(1, name, email, "0988 686 868", role));
+            req.getSession().setAttribute("flash", "Đăng nhập thành công (Tài khoản ảo)");
+            if (role == Role.ADMIN) resp.sendRedirect(req.getContextPath() + "/manage/admin/dashboard");
+            else if (role == Role.SALES) resp.sendRedirect(req.getContextPath() + "/manage/sales/dashboard");
+            else if (role == Role.WAREHOUSE) resp.sendRedirect(req.getContextPath() + "/manage/warehouse/dashboard");
+            else resp.sendRedirect(req.getContextPath() + "/page/home");
+        }
     }
     private String value(String value, String fallback) { return value == null || value.isBlank() ? fallback : value.trim(); }
 }
