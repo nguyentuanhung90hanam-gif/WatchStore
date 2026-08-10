@@ -17,7 +17,12 @@ public class Order {
     public String getCode() { return code; }
     public String getCustomerName() { return customerName; }
     public LocalDateTime getCreatedAt() { return createdAt; }
+    public String getFormattedCreatedAt() {
+        if (createdAt == null) return "";
+        return createdAt.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
+    }
     public BigDecimal getTotal() { return total; }
     public OrderStatus getStatus() { return status; }
     public void setStatus(OrderStatus status) { this.status = status; }
 }
+

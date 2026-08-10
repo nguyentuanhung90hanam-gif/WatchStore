@@ -11,9 +11,15 @@ public interface RoleRepository {
 
     Role findById(int id);
 
-    void save(Role role);
+    boolean insert(Role role);
 
-    void update(Role role);
+    boolean update(Role role);
 
-    void delete(int id);
+    boolean delete(int id);
+
+    boolean deleteById(int roleId);
+
+    boolean isRoleInUse(int roleId);
+
+    boolean existsByCode(String code, Integer excludeId);
 }

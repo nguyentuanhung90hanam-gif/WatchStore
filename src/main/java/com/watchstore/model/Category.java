@@ -3,19 +3,29 @@ package com.watchstore.model;
 public class Category {
 
     private Integer categoryId;
-    private Integer parentId;
+    private Integer parentCategoryId;
     private String categoryCode;
     private String categoryName;
     private String slug;
     private String description;
-    private String image;
-    private Integer sortOrder;
+    private String imageUrl;
+    private Integer displayOrder;
     private String status;
-
 
     public Category() {
     }
 
+    public Category(Integer categoryId, Integer parentCategoryId, String categoryCode, String categoryName, String slug, String description, String imageUrl, Integer displayOrder, String status) {
+        this.categoryId = categoryId;
+        this.parentCategoryId = parentCategoryId;
+        this.categoryCode = categoryCode;
+        this.categoryName = categoryName;
+        this.slug = slug;
+        this.description = description;
+        this.imageUrl = imageUrl;
+        this.displayOrder = displayOrder;
+        this.status = status;
+    }
 
     public Integer getCategoryId() {
         return categoryId;
@@ -25,15 +35,22 @@ public class Category {
         this.categoryId = categoryId;
     }
 
+    public Integer getParentCategoryId() {
+        return parentCategoryId;
+    }
 
+    public void setParentCategoryId(Integer parentCategoryId) {
+        this.parentCategoryId = parentCategoryId;
+    }
+
+    // Alias for backward compatibility
     public Integer getParentId() {
-        return parentId;
+        return parentCategoryId;
     }
 
     public void setParentId(Integer parentId) {
-        this.parentId = parentId;
+        this.parentCategoryId = parentId;
     }
-
 
     public String getCategoryCode() {
         return categoryCode;
@@ -43,7 +60,6 @@ public class Category {
         this.categoryCode = categoryCode;
     }
 
-
     public String getCategoryName() {
         return categoryName;
     }
@@ -51,7 +67,6 @@ public class Category {
     public void setCategoryName(String categoryName) {
         this.categoryName = categoryName;
     }
-
 
     public String getSlug() {
         return slug;
@@ -61,7 +76,6 @@ public class Category {
         this.slug = slug;
     }
 
-
     public String getDescription() {
         return description;
     }
@@ -70,24 +84,39 @@ public class Category {
         this.description = description;
     }
 
+    public String getImageUrl() {
+        return imageUrl;
+    }
 
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
+    }
+
+    // Alias for backward compatibility
     public String getImage() {
-        return image;
+        return imageUrl;
     }
 
     public void setImage(String image) {
-        this.image = image;
+        this.imageUrl = image;
     }
 
+    public Integer getDisplayOrder() {
+        return displayOrder;
+    }
 
+    public void setDisplayOrder(Integer displayOrder) {
+        this.displayOrder = displayOrder;
+    }
+
+    // Alias for backward compatibility
     public Integer getSortOrder() {
-        return sortOrder;
+        return displayOrder;
     }
 
     public void setSortOrder(Integer sortOrder) {
-        this.sortOrder = sortOrder;
+        this.displayOrder = sortOrder;
     }
-
 
     public String getStatus() {
         return status;

@@ -11,6 +11,10 @@ public interface BrandRepository {
 
     List<Brand> search(String keyword);
 
+    boolean existsByCode(String code, Integer excludeId);
+
+    boolean existsBySlug(String slug, Integer excludeId);
+
     boolean insert(Brand brand);
 
     boolean update(Brand brand);

@@ -10,6 +10,10 @@ public interface CategoryRepository {
 
     Category findById(Integer id);
 
+    boolean existsByCode(String code, Integer excludeId);
+
+    boolean existsBySlug(String slug, Integer excludeId);
+
     void save(Category category);
 
     void update(Category category);

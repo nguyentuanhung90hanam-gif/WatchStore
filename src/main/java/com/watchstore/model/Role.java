@@ -1,66 +1,88 @@
 package com.watchstore.model;
 
+import java.time.LocalDateTime;
+
+/**
+ * Model khớp 100% bảng dbo.Roles.
+ * userCount là trường hiển thị (transient), tính qua COUNT(UserRoles).
+ */
 public class Role {
 
-    private Integer id;
-    private String code;
-    private String name;
-    private Integer userCount;
-    private Boolean status;
+    // ─── Columns from dbo.Roles ──────────────────────────────────────────────
+    private int roleId;                 // INT IDENTITY(1,1) PRIMARY KEY
+    private String roleCode;            // VARCHAR(30) NOT NULL, UNIQUE
+    private String roleName;            // NVARCHAR(100) NOT NULL
+    private String description;         // NVARCHAR(500) NULL
+    private boolean isSystem;           // BIT NOT NULL DEFAULT 0
+    private LocalDateTime createdAt;    // DATETIME2 NOT NULL DEFAULT SYSDATETIME()
+
+    // ─── Transient: số user đang gán role này ────────────────────────────────
+    private int userCount;
+
+    // ─── Constructors ────────────────────────────────────────────────────────
 
     public Role() {
     }
 
-    public Role(Integer id,
-                String code,
-                String name,
-                Integer userCount,
-                Boolean status) {
+    // ─── Getters / Setters ───────────────────────────────────────────────────
 
-        this.id = id;
-        this.code = code;
-        this.name = name;
-        this.userCount = userCount;
-        this.status = status;
+    public int getRoleId() {
+        return roleId;
     }
 
-    public Integer getId() {
-        return id;
+    public void setRoleId(int roleId) {
+        this.roleId = roleId;
     }
 
-    public void setId(Integer id) {
-        this.id = id;
+    public String getRoleCode() {
+        return roleCode;
     }
 
-    public String getCode() {
-        return code;
+    public void setRoleCode(String roleCode) {
+        this.roleCode = roleCode;
     }
 
-    public void setCode(String code) {
-        this.code = code;
+    public String getRoleName() {
+        return roleName;
     }
 
-    public String getName() {
-        return name;
+    public void setRoleName(String roleName) {
+        this.roleName = roleName;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public String getDescription() {
+        return description;
     }
 
-    public Integer getUserCount() {
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public boolean isSystem() {
+        return isSystem;
+    }
+
+    public boolean getIsSystem() {
+        return isSystem;
+    }
+
+    public void setIsSystem(boolean isSystem) {
+        this.isSystem = isSystem;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public int getUserCount() {
         return userCount;
     }
 
-    public void setUserCount(Integer userCount) {
+    public void setUserCount(int userCount) {
         this.userCount = userCount;
-    }
-
-    public Boolean getStatus() {
-        return status;
-    }
-
-    public void setStatus(Boolean status) {
-        this.status = status;
     }
 }

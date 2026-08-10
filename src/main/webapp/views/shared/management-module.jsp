@@ -48,7 +48,53 @@
                </a>
 
            </c:when>
+           <c:when test="${tableKind == 'vouchers'}">
 
+               <a class="button button-gold"
+                  href="${pageContext.request.contextPath}/manage/admin/vouchers/add">
+                   Tạo voucher
+               </a>
+
+           </c:when>
+
+           <c:when test="${tableKind == 'categories'}">
+
+               <a class="button button-gold"
+                  href="${pageContext.request.contextPath}/manage/admin/categories/add">
+                   Thêm danh mục
+               </a>
+
+           </c:when>
+
+           <c:when test="${tableKind == 'brands'}">
+
+               <a class="button button-gold"
+                  href="${pageContext.request.contextPath}/manage/admin/brands/add">
+                   Thêm thương hiệu
+               </a>
+
+           </c:when>
+
+           <c:when test="${tableKind == 'banners'}">
+               <a class="button button-gold"
+                  href="${pageContext.request.contextPath}/manage/admin/banners/add">
+                   Thêm banner
+               </a>
+           </c:when>
+
+           <c:when test="${tableKind == 'posts'}">
+               <a class="button button-gold"
+                  href="${pageContext.request.contextPath}/manage/admin/posts/add">
+                   Thêm bài viết
+               </a>
+           </c:when>
+
+           <c:when test="${tableKind == 'notifications'}">
+               <a class="button button-gold"
+                  href="${pageContext.request.contextPath}/manage/admin/notifications/add">
+                   Tạo thông báo
+               </a>
+           </c:when>
 
            <c:otherwise>
 
@@ -70,9 +116,7 @@
 
 <div class="module-toolbar">
 
-    <form method="get"
-          action="${pageContext.request.contextPath}/manage/admin/${tableKind == 'roles' ? 'roles' : tableKind == 'accounts' ? 'accounts' : tableKind == 'brands' ? 'brands' : 'products'}">
-
+    <form method="get" action="${pageContext.request.contextPath}/manage/admin/${empty tableKind ? 'dashboard' : tableKind}/search">
         <div class="search-box">
 
             <input
@@ -88,7 +132,7 @@
 
            <c:if test="${not empty param.keyword}">
               <a class="reset-btn"
-                 href="${pageContext.request.contextPath}/manage/admin/${tableKind == 'roles' ? 'roles' : tableKind == 'accounts' ? 'accounts' : tableKind == 'brands' ? 'brands' : 'products'}">
+                 href="${pageContext.request.contextPath}/manage/admin/${empty tableKind ? 'dashboard' : tableKind}">
                   ↻ Đặt lại
               </a>
            </c:if>
@@ -181,373 +225,763 @@
 
     <c:when test="${tableKind == 'products'}">
 
+        <c:if test="${not empty errorMessage}">
+            <div style="background:#fff3cd;color:#856404;border:1px solid #ffc107;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:0.95em;">
+                ⚠ ${errorMessage}
+            </div>
+        </c:if>
 
         <div class="dashboard-card">
-
             <div class="table-wrap">
-
                 <table>
-
                     <thead>
                     <tr>
+                        <th>ID</th>
                         <th>Sản phẩm</th>
-                        <th>SKU</th>
+                        <th>Mã / SKU</th>
                         <th>Giá bán</th>
-                        <th>Tồn kho</th>
                         <th>Trạng thái</th>
-                        <th></th>
+                        <th>Thao tác</th>
                     </tr>
                     </thead>
-
-
                     <tbody>
-
-
-                    <c:forEach items="${products}" var="product">
-
+                    <c:forEach items="${products}" var="p">
                         <tr>
-
+                            <td>#${p.id}</td>
                             <td>
-
-                                <div class="table-product">
-
-                                    <img src="${cp}/assets/images/${product.image}" alt="">
-
-                                    <span>
-                                        <b>${product.name}</b>
-                                        <small>${product.brand}</small>
-                                    </span>
-
+                                <div>
+                                    <b>${p.name}</b>
+                                    <br><small style="color:#666;">Hãng: ${not empty p.brand ? p.brand : 'Chưa phân loại'}</small>
                                 </div>
-
                             </td>
-
-
-                            <td>${product.sku}</td>
-
-
+                            <td><b style="font-family:monospace;color:var(--gold-dark,#b8860b);">${p.sku}</b></td>
                             <td>
-                                <fmt:formatNumber value="${product.price}" pattern="#,##0"/>₫
+                                <b><fmt:formatNumber value="${p.price}" pattern="#,##0"/>₫</b>
+                                <c:if test="${not empty p.oldPrice && p.oldPrice > 0}">
+                                    <br><small style="color:#999;text-decoration:line-through;"><fmt:formatNumber value="${p.oldPrice}" pattern="#,##0"/>₫</small>
+                                </c:if>
                             </td>
-
-
                             <td>
-                                <b>${product.stock}</b>
+                                <c:choose>
+                                    <c:when test="${p.status == 'ACTIVE'}">
+                                        <span class="status-badge success">Đang bán</span>
+                                    </c:when>
+                                    <c:when test="${p.status == 'DRAFT'}">
+                                        <span class="status-badge warning">Nháp</span>
+                                    </c:when>
+                                    <c:when test="${p.status == 'DISCONTINUED'}">
+                                        <span class="status-badge danger">Ngừng sản xuất</span>
+                                    </c:when>
+                                    <c:otherwise>
+                                        <span class="status-badge" style="background:#eee;color:#666;">${p.status}</span>
+                                    </c:otherwise>
+                                </c:choose>
                             </td>
-
-
                             <td>
-
-                                <span class="status-badge success">
-                                    Đang bán
-                                </span>
-
+                                <a class="table-action"
+                                   href="${pageContext.request.contextPath}/manage/admin/products/edit?id=${p.id}">
+                                    Sửa
+                                </a>
+                                <a class="table-action"
+                                   href="${pageContext.request.contextPath}/manage/admin/products/delete?id=${p.id}"
+                                   onclick="return confirm('Bạn có chắc muốn xóa sản phẩm này?')"
+                                   style="color:#e74c3c;">
+                                    Xóa
+                                </a>
                             </td>
-
-
-                            <td>
-                                <button class="table-action">
-                                    Chỉnh sửa
-                                </button>
-                            </td>
-
-
                         </tr>
-
-
                     </c:forEach>
-
-
+                    <c:if test="${empty products}">
+                        <tr>
+                            <td colspan="6" style="text-align:center;color:#888;padding:20px;">
+                                Chưa có sản phẩm nào trong hệ thống.
+                            </td>
+                        </tr>
+                    </c:if>
                     </tbody>
-
-
                 </table>
-
-
             </div>
-
-
         </div>
-
 
     </c:when>
 
 
 
     <c:when test="${tableKind == 'permissions'}">
-
-
-        <div class="dashboard-card permission-matrix">
-
-            <table>
-
-                <thead>
-
-                <tr>
-                    <th>Module</th>
-                    <th>Xem</th>
-                    <th>Thêm</th>
-                    <th>Sửa</th>
-                    <th>Duyệt</th>
-                    <th>Xuất báo cáo</th>
-                </tr>
-
-                </thead>
-
-
-                <tbody>
-
-
-                <c:forTokens items="Sản phẩm,Đơn hàng,Khách hàng,Kho hàng,Voucher,Báo cáo"
-                             delims=","
-                             var="item">
-
-
+        <div class="dashboard-card">
+            <div class="table-wrap">
+                <table>
+                    <thead>
                     <tr>
-
-                        <td>
-                            <b>${item}</b>
-                        </td>
-
-                        <td><input type="checkbox" checked></td>
-                        <td><input type="checkbox" checked></td>
-                        <td><input type="checkbox" checked></td>
-                        <td><input type="checkbox"></td>
-                        <td><input type="checkbox"></td>
-
+                        <th>ID</th>
+                        <th>Mã quyền</th>
+                        <th>Tên quyền hạn</th>
+                        <th>Module</th>
+                        <th>Mô tả</th>
                     </tr>
-
-
-                </c:forTokens>
-
-
-                </tbody>
-
-            </table>
-
-
+                    </thead>
+                    <tbody>
+                    <c:forEach items="${permissions}" var="perm">
+                        <tr>
+                            <td>#${perm.permissionId}</td>
+                            <td><b style="font-family:monospace;color:var(--gold-dark,#b8860b);">${perm.permissionCode}</b></td>
+                            <td><b>${perm.permissionName}</b></td>
+                            <td><span class="status-badge" style="background:#e3f2fd;color:#0d47a1;">${perm.moduleCode}</span></td>
+                            <td><small style="color:#555;">${not empty perm.description ? perm.description : '—'}</small></td>
+                        </tr>
+                    </c:forEach>
+                    <c:if test="${empty permissions}">
+                        <tr>
+                            <td colspan="5" style="text-align:center;color:#888;padding:20px;">
+                                Chưa có quyền hạn nào trong hệ thống.
+                            </td>
+                        </tr>
+                    </c:if>
+                    </tbody>
+                </table>
+            </div>
         </div>
-
-
     </c:when>
 
     <c:when test="${tableKind == 'accounts'}">
 
+    <c:if test="${not empty errorMessage}">
+        <div style="background:#fff3cd;color:#856404;border:1px solid #ffc107;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:0.95em;">
+            ⚠ ${errorMessage}
+        </div>
+    </c:if>
 
     <div class="dashboard-card">
-
-    <div class="table-wrap">
-
-    <table>
-
-    <thead>
-
-    <tr>
-        <th>ID</th>
-        <th>Họ tên</th>
-        <th>Email</th>
-        <th>Số điện thoại</th>
-        <th>Vai trò</th>
-        <th></th>
-    </tr>
-
-    </thead>
-
-
-    <tbody>
-
-
-    <c:forEach items="${users}" var="user">
-
-    <tr>
-
-    <td>
-        ${user.id}
-    </td>
-
-
-    <td>
-        <b>${user.fullName}</b>
-    </td>
-
-
-    <td>
-        ${user.email}
-    </td>
-
-
-    <td>
-        ${user.phone}
-    </td>
-
-
-    <td>
-
-    <span class="status-badge success">
-        ${user.role.label}
-    </span>
-
-    </td>
-
-
-    <td>
-
-        <a class="table-action"
-           href="${pageContext.request.contextPath}/manage/admin/accounts/edit?id=${user.id}">
-            Sửa
-        </a>
-
-        <a class="table-action"
-           href="${pageContext.request.contextPath}/manage/admin/accounts/delete?id=${user.id}"
-           onclick="return confirm('Bạn có chắc muốn xóa tài khoản này?')">
-            Xóa
-        </a>
-
-    </td>
-
-
-    </tr>
-
-
-    </c:forEach>
-
-
-    </tbody>
-
-
-    </table>
-
+        <div class="table-wrap">
+            <table>
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Họ tên</th>
+                    <th>Email</th>
+                    <th>Số điện thoại</th>
+                    <th>Vai trò</th>
+                    <th>Trạng thái</th>
+                    <th>Thao tác</th>
+                </tr>
+                </thead>
+                <tbody>
+                <c:forEach items="${users}" var="user">
+                    <tr>
+                        <td>#${user.userId}</td>
+                        <td><b>${user.fullName}</b></td>
+                        <td>${user.email}</td>
+                        <td>${not empty user.phone ? user.phone : '—'}</td>
+                        <td>
+                            <c:choose>
+                                <c:when test="${not empty user.roleNames}">
+                                    <span class="status-badge success">${user.roleNames}</span>
+                                </c:when>
+                                <c:otherwise>
+                                    <span style="color:#aaa;font-size:0.85em;">—</span>
+                                </c:otherwise>
+                            </c:choose>
+                        </td>
+                        <td>
+                            <c:choose>
+                                <c:when test="${user.status == 'ACTIVE'}">
+                                    <span class="status-badge success">Hoạt động</span>
+                                </c:when>
+                                <c:when test="${user.status == 'LOCKED'}">
+                                    <span class="status-badge danger">Đã khóa</span>
+                                </c:when>
+                                <c:otherwise>
+                                    <span class="status-badge warning">Tạm ngưng</span>
+                                </c:otherwise>
+                            </c:choose>
+                        </td>
+                        <td>
+                            <a class="table-action"
+                               href="${pageContext.request.contextPath}/manage/admin/accounts/edit?id=${user.userId}">
+                                Sửa
+                            </a>
+                            <a class="table-action"
+                               href="${pageContext.request.contextPath}/manage/admin/accounts/delete?id=${user.userId}"
+                               onclick="return confirm('Bạn có chắc muốn xóa tài khoản này?')"
+                               style="color:#e74c3c;">
+                                Xóa
+                            </a>
+                        </td>
+                    </tr>
+                </c:forEach>
+                <c:if test="${empty users}">
+                    <tr>
+                        <td colspan="7" style="text-align:center;color:#888;padding:20px;">
+                            Chưa có tài khoản nào trong hệ thống.
+                        </td>
+                    </tr>
+                </c:if>
+                </tbody>
+            </table>
+        </div>
     </div>
-
-    </div>
-
 
     </c:when>
 <c:when test="${tableKind == 'roles'}">
 
+    <c:choose>
+        <c:when test="${not empty requestScope.errorMessage}">
+            <div style="background:#fff3cd;color:#856404;border:1px solid #ffc107;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:0.95em;">
+                ⚠ ${requestScope.errorMessage}
+            </div>
+        </c:when>
+        <c:when test="${not empty sessionScope.errorMessage}">
+            <div style="background:#fff3cd;color:#856404;border:1px solid #ffc107;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:0.95em;">
+                ⚠ ${sessionScope.errorMessage}
+            </div>
+            <c:remove var="errorMessage" scope="session"/>
+        </c:when>
+    </c:choose>
+
+    <c:choose>
+        <c:when test="${not empty requestScope.successMessage}">
+            <div style="background:#d4edda;color:#155724;border:1px solid #c3e6cb;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:0.95em;">
+                ✓ ${requestScope.successMessage}
+            </div>
+        </c:when>
+        <c:when test="${not empty sessionScope.successMessage}">
+            <div style="background:#d4edda;color:#155724;border:1px solid #c3e6cb;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:0.95em;">
+                ✓ ${sessionScope.successMessage}
+            </div>
+            <c:remove var="successMessage" scope="session"/>
+        </c:when>
+    </c:choose>
+
     <div class="dashboard-card">
-
         <div class="table-wrap">
-
             <table>
-
                 <thead>
                 <tr>
                     <th>ID</th>
                     <th>Mã</th>
                     <th>Tên vai trò</th>
+                    <th>Mô tả</th>
+                    <th>Hệ thống</th>
                     <th>Số người</th>
-                    <th>Trạng thái</th>
                     <th>Thao tác</th>
                 </tr>
                 </thead>
-
                 <tbody>
-
                 <c:forEach items="${roles}" var="role">
-
                     <tr>
-
-                        <td>${role.id}</td>
-
-                        <td>${role.code}</td>
-
-                        <td>${role.name}</td>
-
-                        <td>${role.userCount}</td>
-
+                        <td>#${role.roleId}</td>
                         <td>
-
-                            <span class="status-badge ${role.status ? 'success' : 'danger'}">
-                                ${role.status ? 'Hoạt động' : 'Khóa'}
-                            </span>
-
+                            <b style="font-family:monospace;color:var(--gold-dark,#b8860b);">${role.roleCode}</b>
                         </td>
-
+                        <td><b>${role.roleName}</b></td>
                         <td>
-
-                          <a class="table-action"
-                             href="${pageContext.request.contextPath}/manage/admin/roles/edit?id=${role.id}">
-                              Sửa
-                          </a>
-
-                          <a class="table-action"
-                             href="${pageContext.request.contextPath}/manage/admin/roles/delete?id=${role.id}"
-                             onclick="return confirm('Bạn có chắc muốn xóa vai trò này?')">
-                              Xóa
-                          </a>
-
+                            <c:choose>
+                                <c:when test="${not empty role.description}">
+                                    <small style="color:#555;">${role.description}</small>
+                                </c:when>
+                                <c:otherwise>
+                                    <span style="color:#aaa;font-size:0.85em;">—</span>
+                                </c:otherwise>
+                            </c:choose>
                         </td>
-
+                        <td>
+                            <c:choose>
+                                <c:when test="${role.isSystem}">
+                                    <span class="status-badge" style="background:#e3f2fd;color:#0d47a1;">🔒 Hệ thống</span>
+                                </c:when>
+                                <c:otherwise>
+                                    <span style="color:#aaa;font-size:0.85em;">—</span>
+                                </c:otherwise>
+                            </c:choose>
+                        </td>
+                        <td style="text-align:center;"><b>${role.userCount}</b></td>
+                        <td>
+                            <a class="table-action"
+                               href="${pageContext.request.contextPath}/manage/admin/roles/edit?id=${role.roleId}">
+                                Sửa
+                            </a>
+                            <a class="table-action"
+                               href="${pageContext.request.contextPath}/manage/admin/roles/delete?id=${role.roleId}"
+                               onclick="return confirm('Bạn có chắc chắn muốn xóa vai trò này không?')"
+                               style="color:#e74c3c;">
+                                Xóa
+                            </a>
+                        </td>
                     </tr>
-
                 </c:forEach>
-
+                <c:if test="${empty roles}">
+                    <tr>
+                        <td colspan="7" style="text-align:center;color:#888;padding:20px;">
+                            Chưa có vai trò nào trong hệ thống.
+                        </td>
+                    </tr>
+                </c:if>
                 </tbody>
-
             </table>
-
         </div>
-
     </div>
 
 </c:when>
+<c:when test="${tableKind == 'vouchers'}">
 
-    <c:otherwise>
+     <div class="dashboard-card">
 
+         <div class="table-wrap">
 
-        <div class="brand-grid">
+             <table>
 
+                 <thead>
+                 <tr>
+                     <th>ID</th>
+                     <th>Mã</th>
+                     <th>Tên voucher</th>
+                     <th>Loại</th>
+                     <th>Giá trị</th>
+                     <th>Đơn tối thiểu</th>
+                     <th>Lượt dùng</th>
+                     <th>Trạng thái</th>
+                     <th>Thao tác</th>
+                 </tr>
+                 </thead>
 
-            <c:forEach begin="1" end="6" var="i">
+                 <tbody>
 
+                 <c:forEach items="${vouchers}" var="voucher">
 
-                <article class="brand-card">
+                     <tr>
 
+                         <td>#${voucher.voucherId}</td>
 
-                    <div class="module-card-icon">
-                        ${moduleIcon}
-                    </div>
+                         <td>
+                             <b style="color: var(--gold-dark, #b8860b); font-family: monospace; font-size: 1.05em;">${voucher.voucherCode}</b>
+                         </td>
 
+                         <td>${voucher.voucherName}</td>
 
-                    <span class="status-badge success">
-                        Đang hoạt động
-                    </span>
+                         <td>
+                             <c:choose>
+                                 <c:when test="${voucher.discountType == 'PERCENT'}">
+                                     <span class="status-badge" style="background:#e3f2fd;color:#0d47a1;">% Phần trăm</span>
+                                 </c:when>
+                                 <c:when test="${voucher.discountType == 'FREESHIP'}">
+                                     <span class="status-badge" style="background:#e8f5e9;color:#1b5e20;">🚚 Freeship</span>
+                                 </c:when>
+                                 <c:otherwise>
+                                     <span class="status-badge" style="background:#fff3e0;color:#e65100;">💵 Tiền mặt</span>
+                                 </c:otherwise>
+                             </c:choose>
+                         </td>
 
+                         <td>
+                             <c:choose>
+                                 <c:when test="${voucher.discountType == 'PERCENT'}">
+                                     <b><fmt:formatNumber value="${voucher.discountValue}" pattern="#,##0.##"/>%</b>
+                                     <c:if test="${not empty voucher.maximumDiscount}">
+                                         <br><small style="color:#777;">Tối đa <fmt:formatNumber value="${voucher.maximumDiscount}" pattern="#,##0"/>₫</small>
+                                     </c:if>
+                                 </c:when>
+                                 <c:when test="${voucher.discountType == 'FREESHIP'}">
+                                     <b>Miễn phí SP</b>
+                                 </c:when>
+                                 <c:otherwise>
+                                     <b><fmt:formatNumber value="${voucher.discountValue}" pattern="#,##0"/>₫</b>
+                                 </c:otherwise>
+                             </c:choose>
+                         </td>
 
-                    <h3>
-                        ${moduleItemName} ${i}
-                    </h3>
+                         <td>
+                             <fmt:formatNumber value="${voucher.minimumOrderValue}" pattern="#,##0"/>₫
+                         </td>
 
+                         <td>
+                             <b>${voucher.usedCount}</b> / ${empty voucher.usageLimit || voucher.usageLimit == 0 ? '∞' : voucher.usageLimit}
+                         </td>
 
-                    <p>
-                        Dữ liệu mẫu phục vụ phát triển giao diện và luồng nghiệp vụ.
-                    </p>
+                         <td>
+                             <c:choose>
+                                 <c:when test="${voucher.status == 'ACTIVE'}">
+                                     <span class="status-badge success">Hoạt động</span>
+                                 </c:when>
+                                 <c:when test="${voucher.status == 'INACTIVE'}">
+                                     <span class="status-badge danger">Tạm ngưng</span>
+                                 </c:when>
+                                 <c:when test="${voucher.status == 'DRAFT'}">
+                                     <span class="status-badge warning">Nháp</span>
+                                 </c:when>
+                                 <c:otherwise>
+                                     <span class="status-badge" style="background:#eee;color:#666;">${voucher.status}</span>
+                                 </c:otherwise>
+                             </c:choose>
+                         </td>
 
+                         <td>
+                             <a class="table-action"
+                                href="${pageContext.request.contextPath}/manage/admin/vouchers/edit?id=${voucher.voucherId}">
+                                 Sửa
+                             </a>
 
-                    <div>
+                             <a class="table-action"
+                                href="${pageContext.request.contextPath}/manage/admin/vouchers/delete?id=${voucher.voucherId}"
+                                onclick="return confirm('Bạn có chắc muốn xóa voucher này?')">
+                                 Xóa
+                             </a>
+                         </td>
 
-                        <button>
-                            Chi tiết
-                        </button>
+                     </tr>
 
-                        <button>
-                            Chỉnh sửa
-                        </button>
+                 </c:forEach>
 
-                    </div>
+                 <c:if test="${empty vouchers}">
+                     <tr>
+                         <td colspan="9" style="text-align: center; color: #888; padding: 20px;">
+                             Chưa có voucher nào trong hệ thống.
+                         </td>
+                     </tr>
+                 </c:if>
 
+                 </tbody>
 
-                </article>
+             </table>
 
+         </div>
 
-            </c:forEach>
+     </div>
 
+ </c:when>
 
-        </div>
+ <c:when test="${tableKind == 'categories'}">
 
+     <div class="dashboard-card">
+         <div class="table-wrap">
+             <table>
+                 <thead>
+                 <tr>
+                     <th>STT</th>
+                     <th>Mã</th>
+                     <th>Tên danh mục</th>
+                     <th>Slug</th>
+                     <th>Danh mục cha</th>
+                     <th>Thứ tự</th>
+                     <th>Trạng thái</th>
+                     <th>Thao tác</th>
+                 </tr>
+                 </thead>
+                 <tbody>
+                 <c:forEach items="${categories}" var="cat" varStatus="status">
+                     <tr>
+                         <td>${status.index + 1}</td>
+                         <td>
+                             <b style="font-family:monospace;color:var(--gold-dark,#b8860b);">${cat.categoryCode}</b>
+                         </td>
+                         <td><b>${cat.categoryName}</b></td>
+                         <td><small style="color:#777;">${cat.slug}</small></td>
+                         <td>
+                             <c:choose>
+                                 <c:when test="${not empty cat.parentCategoryId}">
+                                     <c:forEach items="${allCategories}" var="p">
+                                         <c:if test="${p.categoryId == cat.parentCategoryId}">
+                                             <span style="font-size:0.9em;color:#555;">${p.categoryName}</span>
+                                         </c:if>
+                                     </c:forEach>
+                                 </c:when>
+                                 <c:otherwise>
+                                     <span style="color:#aaa;font-size:0.85em;">—</span>
+                                 </c:otherwise>
+                             </c:choose>
+                         </td>
+                         <td style="text-align:center;">${cat.displayOrder}</td>
+                         <td>
+                             <c:choose>
+                                 <c:when test="${cat.status == 'ACTIVE'}">
+                                     <span class="status-badge success">Hoạt động</span>
+                                 </c:when>
+                                 <c:otherwise>
+                                     <span class="status-badge danger">Tạm ngưng</span>
+                                 </c:otherwise>
+                             </c:choose>
+                         </td>
+                         <td>
+                             <a class="table-action"
+                                href="${pageContext.request.contextPath}/manage/admin/categories/edit?id=${cat.categoryId}">
+                                 Sửa
+                             </a>
+                             <a class="table-action"
+                                href="${pageContext.request.contextPath}/manage/admin/categories/delete?id=${cat.categoryId}"
+                                onclick="return confirm('Bạn có chắc muốn xóa danh mục này?')"
+                                style="color:#e74c3c;">
+                                 Xóa
+                             </a>
+                         </td>
+                     </tr>
+                 </c:forEach>
+                 <c:if test="${empty categories}">
+                     <tr>
+                         <td colspan="8" style="text-align:center;color:#888;padding:20px;">
+                             Chưa có danh mục nào trong hệ thống.
+                         </td>
+                     </tr>
+                 </c:if>
+                 </tbody>
+             </table>
+         </div>
+     </div>
 
-    </c:otherwise>
+ </c:when>
+
+ <c:when test="${tableKind == 'brands'}">
+
+     <div class="dashboard-card">
+         <div class="table-wrap">
+             <table>
+                 <thead>
+                 <tr>
+                     <th>ID</th>
+                     <th>Mã</th>
+                     <th>Tên thương hiệu</th>
+                     <th>Slug</th>
+                     <th>Quốc gia</th>
+                     <th>Trạng thái</th>
+                     <th>Thao tác</th>
+                 </tr>
+                 </thead>
+                 <tbody>
+                 <c:forEach items="${brands}" var="b">
+                     <tr>
+                         <td>#${b.brandID}</td>
+                         <td>
+                             <b style="font-family:monospace;color:var(--gold-dark,#b8860b);">${b.brandCode}</b>
+                         </td>
+                         <td>
+                             <b>${b.brandName}</b>
+                             <c:if test="${not empty b.logoUrl}">
+                                 <br><img src="${b.logoUrl}" alt="${b.brandName}" style="height:24px;margin-top:4px;object-fit:contain;" onerror="this.style.display='none'">
+                             </c:if>
+                         </td>
+                         <td><small style="color:#777;">${b.slug}</small></td>
+                         <td>
+                             <c:choose>
+                                 <c:when test="${not empty b.originCountry}">
+                                     🌎 ${b.originCountry}
+                                 </c:when>
+                                 <c:otherwise><span style="color:#aaa;">—</span></c:otherwise>
+                             </c:choose>
+                         </td>
+                         <td>
+                             <c:choose>
+                                 <c:when test="${b.status == 'ACTIVE'}">
+                                     <span class="status-badge success">Hoạt động</span>
+                                 </c:when>
+                                 <c:otherwise>
+                                     <span class="status-badge danger">Tạm ngưng</span>
+                                 </c:otherwise>
+                             </c:choose>
+                         </td>
+                         <td>
+                             <a class="table-action"
+                                href="${pageContext.request.contextPath}/manage/admin/brands/edit?id=${b.brandID}">
+                                 Sửa
+                             </a>
+                             <a class="table-action"
+                                href="${pageContext.request.contextPath}/manage/admin/brands/delete?id=${b.brandID}"
+                                onclick="return confirm('Bạn có chắc muốn xóa thương hiệu này?')"
+                                style="color:#e74c3c;">
+                                 Xóa
+                             </a>
+                         </td>
+                     </tr>
+                 </c:forEach>
+                 <c:if test="${empty brands}">
+                     <tr>
+                         <td colspan="7" style="text-align:center;color:#888;padding:20px;">
+                             Chưa có thương hiệu nào trong hệ thống.
+                         </td>
+                     </tr>
+                 </c:if>
+                 </tbody>
+             </table>
+         </div>
+     </div>
+
+ </c:when>
+
+ <c:when test="${tableKind == 'banners'}">
+     <div class="dashboard-card">
+         <div class="table-wrap">
+             <table>
+                 <thead>
+                 <tr>
+                     <th>ID</th>
+                     <th>Tên Banner</th>
+                     <th>Tiêu đề chính</th>
+                     <th>Vị trí</th>
+                     <th>Thứ tự</th>
+                     <th>Trạng thái</th>
+                     <th>Thao tác</th>
+                 </tr>
+                 </thead>
+                 <tbody>
+                 <c:forEach items="${banners}" var="b">
+                     <tr>
+                         <td>#${b.bannerId}</td>
+                         <td><b>${b.bannerName}</b></td>
+                         <td>${b.title}</td>
+                         <td><span class="status-badge" style="background:#e3f2fd;color:#0d47a1;">${b.positionCode}</span></td>
+                         <td style="text-align:center;">${b.displayOrder}</td>
+                         <td>
+                             <c:choose>
+                                 <c:when test="${b.status == 'ACTIVE'}">
+                                     <span class="status-badge success">Hiển thị</span>
+                                 </c:when>
+                                 <c:when test="${b.status == 'DRAFT'}">
+                                     <span class="status-badge warning">Nháp</span>
+                                 </c:when>
+                                 <c:otherwise>
+                                     <span class="status-badge danger">Tạm ngưng</span>
+                                 </c:otherwise>
+                             </c:choose>
+                         </td>
+                         <td>
+                             <a class="table-action"
+                                href="${pageContext.request.contextPath}/manage/admin/banners/edit?id=${b.bannerId}">
+                                 Sửa
+                             </a>
+                             <a class="table-action"
+                                href="${pageContext.request.contextPath}/manage/admin/banners/delete?id=${b.bannerId}"
+                                onclick="return confirm('Bạn có chắc muốn xóa banner này?')"
+                                style="color:#e74c3c;">
+                                 Xóa
+                             </a>
+                         </td>
+                     </tr>
+                 </c:forEach>
+                 <c:if test="${empty banners}">
+                     <tr>
+                         <td colspan="7" style="text-align:center;color:#888;padding:20px;">
+                             Chưa có banner nào trong hệ thống.
+                         </td>
+                     </tr>
+                 </c:if>
+                 </tbody>
+             </table>
+         </div>
+     </div>
+ </c:when>
+
+ <c:when test="${tableKind == 'posts'}">
+     <div class="dashboard-card">
+         <div class="table-wrap">
+             <table>
+                 <thead>
+                 <tr>
+                     <th>ID</th>
+                     <th>Tiêu đề bài viết</th>
+                     <th>Loại</th>
+                     <th>Tác giả</th>
+                     <th>Trạng thái</th>
+                     <th>Thao tác</th>
+                 </tr>
+                 </thead>
+                 <tbody>
+                 <c:forEach items="${posts}" var="p">
+                     <tr>
+                         <td>#${p.postId}</td>
+                         <td><b>${p.title}</b><br><small style="color:#777;">${p.slug}</small></td>
+                         <td><span class="status-badge" style="background:#f3e5f5;color:#4a148c;">${p.postType}</span></td>
+                         <td>${not empty p.authorName ? p.authorName : 'Admin'}</td>
+                         <td>
+                             <c:choose>
+                                 <c:when test="${p.status == 'PUBLISHED'}">
+                                     <span class="status-badge success">Xuất bản</span>
+                                 </c:when>
+                                 <c:when test="${p.status == 'DRAFT'}">
+                                     <span class="status-badge warning">Bản nháp</span>
+                                 </c:when>
+                                 <c:otherwise>
+                                     <span class="status-badge danger">Ẩn</span>
+                                 </c:otherwise>
+                             </c:choose>
+                         </td>
+                         <td>
+                             <a class="table-action"
+                                href="${pageContext.request.contextPath}/manage/admin/posts/edit?id=${p.postId}">
+                                 Sửa
+                             </a>
+                             <a class="table-action"
+                                href="${pageContext.request.contextPath}/manage/admin/posts/delete?id=${p.postId}"
+                                onclick="return confirm('Bạn có chắc muốn xóa bài viết này?')"
+                                style="color:#e74c3c;">
+                                 Xóa
+                             </a>
+                         </td>
+                     </tr>
+                 </c:forEach>
+                 <c:if test="${empty posts}">
+                     <tr>
+                         <td colspan="6" style="text-align:center;color:#888;padding:20px;">
+                             Chưa có bài viết nào trong hệ thống.
+                         </td>
+                     </tr>
+                 </c:if>
+                 </tbody>
+             </table>
+         </div>
+     </div>
+ </c:when>
+
+ <c:when test="${tableKind == 'notifications'}">
+     <div class="dashboard-card">
+         <div class="table-wrap">
+             <table>
+                 <thead>
+                 <tr>
+                     <th>ID</th>
+                     <th>Tiêu đề</th>
+                     <th>Nội dung</th>
+                     <th>Loại</th>
+                     <th>Người tạo</th>
+                     <th>Thao tác</th>
+                 </tr>
+                 </thead>
+                 <tbody>
+                 <c:forEach items="${notifications}" var="n">
+                     <tr>
+                         <td>#${n.notificationId}</td>
+                         <td><b>${n.title}</b></td>
+                         <td><small style="color:#555;">${n.message}</small></td>
+                         <td><span class="status-badge" style="background:#e8f5e9;color:#1b5e20;">${n.notificationType}</span></td>
+                         <td>${not empty n.createdByName ? n.createdByName : 'Hệ thống'}</td>
+                         <td>
+                             <a class="table-action"
+                                href="${pageContext.request.contextPath}/manage/admin/notifications/edit?id=${n.notificationId}">
+                                 Sửa
+                             </a>
+                             <a class="table-action"
+                                href="${pageContext.request.contextPath}/manage/admin/notifications/delete?id=${n.notificationId}"
+                                onclick="return confirm('Bạn có chắc muốn xóa thông báo này?')"
+                                style="color:#e74c3c;">
+                                 Xóa
+                             </a>
+                         </td>
+                     </tr>
+                 </c:forEach>
+                 <c:if test="${empty notifications}">
+                     <tr>
+                         <td colspan="6" style="text-align:center;color:#888;padding:20px;">
+                             Chưa có thông báo nào trong hệ thống.
+                         </td>
+                     </tr>
+                 </c:if>
+                 </tbody>
+             </table>
+         </div>
+     </div>
+ </c:when>
+
+ <c:otherwise>
+     <div class="dashboard-card" style="text-align:center;padding:40px;color:#888;">
+         <p style="font-size:1.1em;margin:0;">Chưa có dữ liệu trong hệ thống.</p>
+     </div>
+ </c:otherwise>
 
 
 </c:choose>

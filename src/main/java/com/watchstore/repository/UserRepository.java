@@ -11,10 +11,13 @@ public interface UserRepository {
 
     User findById(int id);
 
-    void save(User user);
+    boolean insert(User user, List<Integer> roleIds);
 
-    void update(User user);
+    boolean update(User user, List<Integer> roleIds);
 
-    void delete(int id);
+    boolean delete(int id);
 
+    boolean existsByEmail(String email, Integer excludeId);
+
+    boolean existsByPhone(String phone, Integer excludeId);
 }

@@ -2,12 +2,13 @@ package com.watchstore.repository;
 
 import com.watchstore.model.Product;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
 public class MockProductRepository implements ProductRepository {
-    private static final List<Product> PRODUCTS = List.of(
+    private static final List<Product> PRODUCTS = new ArrayList<>(List.of(
         new Product(1, "CASIO", "Edifice Sapphire EFR-S108D", "CAS-EFR-108", new BigDecimal("3450000"), new BigDecimal("4290000"), "watch-1.png", "BÁN CHẠY", 18, 4.8),
         new Product(2, "ORIENT", "Bambino Open Heart Classic", "ORI-BAM-210", new BigDecimal("6790000"), new BigDecimal("7990000"), "watch-2.png", "-15%", 9, 4.9),
         new Product(3, "SEIKO", "Prospex Diver Automatic", "SEI-PRO-510", new BigDecimal("9890000"), new BigDecimal("11200000"), "watch-3.png", "MỚI", 5, 4.7),
@@ -16,14 +17,34 @@ public class MockProductRepository implements ProductRepository {
         new Product(6, "TISSOT", "Le Locle Powermatic 80", "TIS-LEL-080", new BigDecimal("16800000"), new BigDecimal("18500000"), "watch-2.png", "CAO CẤP", 3, 5.0),
         new Product(7, "G-SHOCK", "GA-B2100 Carbon Core", "GSH-GAB-210", new BigDecimal("3990000"), new BigDecimal("4590000"), "watch-3.png", "THỂ THAO", 26, 4.8),
         new Product(8, "FOSSIL", "Machine Chronograph", "FOS-MAC-420", new BigDecimal("5190000"), new BigDecimal("5890000"), "watch-4.png", "ƯU ĐÃI", 14, 4.6)
-    );
+    ));
 
     @Override public List<Product> findAll() { return PRODUCTS; }
-    @Override public List<Product> findFeatured() { return PRODUCTS.subList(0, 4); }
+    @Override public List<Product> findFeatured() { return PRODUCTS.subList(0, Math.min(4, PRODUCTS.size())); }
     @Override public Optional<Product> findById(int id) { return PRODUCTS.stream().filter(p -> p.getId() == id).findFirst(); }
     @Override public List<Product> search(String keyword) {
         if (keyword == null || keyword.isBlank()) return PRODUCTS;
         String value = keyword.toLowerCase(Locale.ROOT);
         return PRODUCTS.stream().filter(p -> (p.getName() + " " + p.getBrand()).toLowerCase(Locale.ROOT).contains(value)).toList();
+    }
+
+    @Override public boolean insert(Product product) { PRODUCTS.add(product); return true; }
+    @Override public boolean update(Product product) {
+        for (int i = 0; i < PRODUCTS.size(); i++) {
+            if (PRODUCTS.get(i).getId() == product.getId()) {
+                PRODUCTS.set(i, product);
+                return true;
+            }
+        }
+        return false;
+    }
+    @Override public boolean delete(int id) { return PRODUCTS.removeIf(p -> p.getId() == id); }
+    @Override public boolean existsByCode(String code, Integer excludeId) {
+        if (code == null || code.isBlank()) return false;
+        return PRODUCTS.stream().anyMatch(p -> p.getProductCode() != null && p.getProductCode().equalsIgnoreCase(code.trim()) && (excludeId == null || p.getId() != excludeId));
+    }
+    @Override public boolean existsBySlug(String slug, Integer excludeId) {
+        if (slug == null || slug.isBlank()) return false;
+        return PRODUCTS.stream().anyMatch(p -> p.getSlug() != null && p.getSlug().equalsIgnoreCase(slug.trim()) && (excludeId == null || p.getId() != excludeId));
     }
 }
