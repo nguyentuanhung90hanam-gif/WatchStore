@@ -9,4 +9,12 @@ public interface ProductRepository {
     List<Product> findFeatured();
     Optional<Product> findById(int id);
     List<Product> search(String keyword);
+
+    boolean insert(Product product);
+    boolean update(Product product);
+    boolean delete(int id);
+    boolean existsByCode(String code, Integer excludeId);
+    boolean existsBySlug(String slug, Integer excludeId);
+    boolean existsBySku(String sku, Integer excludeId);
+    boolean isProductInUse(int productId);
 }

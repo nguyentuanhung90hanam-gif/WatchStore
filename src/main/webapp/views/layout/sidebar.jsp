@@ -13,7 +13,7 @@
                 <a href="${cp}/manage/warehouse/dashboard">▦ Tổng quan</a><a href="${cp}/manage/warehouse/receipts">⇩ Phiếu nhập</a><a href="${cp}/manage/warehouse/exports">⇧ Phiếu xuất</a><a href="${cp}/manage/warehouse/inventory">▣ Tồn kho</a><a href="${cp}/manage/warehouse/stocktake">✓ Kiểm kê</a><a href="${cp}/manage/warehouse/variants">◇ Biến thể</a><a href="${cp}/manage/warehouse/alerts">! Cảnh báo</a>
             </c:when>
             <c:otherwise>
-                <a href="${cp}/manage/admin/dashboard">▦ Tổng quan</a><a href="${cp}/manage/admin/accounts">♙ Tài khoản</a><a href="${cp}/manage/admin/roles">♜ Vai trò</a><a href="${cp}/manage/admin/products">▣ Sản phẩm</a><a href="${cp}/manage/admin/categories">⌘ Danh mục</a><a href="${cp}/manage/admin/brands">◆ Thương hiệu</a><a href="${cp}/manage/admin/vouchers">% Voucher</a><a href="${cp}/manage/admin/posts">▤ Bài viết</a><a href="${cp}/manage/admin/statistics">◫ Thống kê</a>
+                <a href="${cp}/manage/admin/dashboard">▦ Tổng quan</a><a href="${cp}/manage/admin/accounts">♙ Tài khoản</a><a href="${cp}/manage/admin/roles">♜ Vai trò</a><a href="${cp}/manage/admin/permissions">⚡ Phân quyền</a><a href="${cp}/manage/admin/products">▣ Sản phẩm</a><a href="${cp}/manage/admin/categories">⌘ Danh mục</a><a href="${cp}/manage/admin/brands">◆ Thương hiệu</a><a href="${cp}/manage/admin/vouchers">% Voucher</a><a href="${cp}/manage/admin/banners">🖼 Banner</a><a href="${cp}/manage/admin/posts">▤ Bài viết</a><a href="${cp}/manage/admin/notifications">🔔 Thông báo</a><a href="${cp}/manage/admin/statistics">◫ Thống kê</a><a href="${cp}/manage/admin/reports">📋 Báo cáo</a>
             </c:otherwise>
         </c:choose>
     </nav>
