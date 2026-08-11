@@ -45,6 +45,9 @@ public class SalesController extends HttpServlet {
         customerRepository = (CustomerRepository) getServletContext().getAttribute("customerRepository");
         orderRepository = (OrderRepository) getServletContext().getAttribute("orderRepository");
         warrantyRepository = (WarrantyRepository) getServletContext().getAttribute("warrantyRepository");
+        if (warrantyRepository != null) {
+            warrantyRepository.ensureTable();
+        }
     }
 
     @Override
@@ -79,6 +82,17 @@ public class SalesController extends HttpServlet {
             return;
         }
 
+        if ("/order-add".equals(path)) {
+            req.setAttribute("moduleTitle", "Thêm đơn hàng");
+            ViewRouter.admin(req, resp, "sales/order-add", "Thêm đơn hàng", "sales");
+            return;
+        }
+
+        if ("/order-edit".equals(path)) {
+            showOrderEdit(req, resp);
+            return;
+        }
+
         if ("/order-detail".equals(path)) {
             showOrderDetail(req, resp);
             return;
@@ -102,10 +116,7 @@ public class SalesController extends HttpServlet {
         }
 
         if ("/delivery".equals(path)) {
-            List<Order> orders = orderRepository != null ? orderRepository.findAll() : MockDataStore.orders();
-            req.setAttribute("orders", orders);
-            req.setAttribute("moduleTitle", "Vận chuyển");
-            ViewRouter.admin(req, resp, "sales/delivery", "Vận chuyển", "sales");
+            showDelivery(req, resp);
             return;
         }
 
@@ -144,20 +155,35 @@ public class SalesController extends HttpServlet {
                 .filter(o -> "COMPLETED".equalsIgnoreCase(o.getStatus()))
                 .count();
 
+        long pendingConfirmCount = orders.stream()
+                .filter(o -> "PENDING".equalsIgnoreCase(o.getStatus()))
+                .count();
+
         long processingCount = orders.stream()
-                .filter(o -> "PENDING".equalsIgnoreCase(o.getStatus()) || "CONFIRMED".equalsIgnoreCase(o.getStatus()) || "PACKING".equalsIgnoreCase(o.getStatus()))
+                .filter(o -> "CONFIRMED".equalsIgnoreCase(o.getStatus()) || "PACKING".equalsIgnoreCase(o.getStatus()))
                 .count();
 
         long shippingCount = orders.stream()
                 .filter(o -> "SHIPPING".equalsIgnoreCase(o.getStatus()) || "DELIVERED".equalsIgnoreCase(o.getStatus()))
                 .count();
 
+        List<Map<String, Object>> warranties = warrantyRepository != null ? warrantyRepository.findAll() : new java.util.ArrayList<>();
+        long pendingWarrantyCount = warranties.stream()
+                .filter(w -> {
+                    String st = String.valueOf(w.get("status"));
+                    return "Đang bảo hành".equalsIgnoreCase(st) || "ACTIVE".equalsIgnoreCase(st) ||
+                           "Đang sửa chữa".equalsIgnoreCase(st) || "REPAIR".equalsIgnoreCase(st) ||
+                           "Đã sửa xong".equalsIgnoreCase(st);
+                })
+                .count();
+
         req.setAttribute("orders", orders);
         req.setAttribute("revenue", totalRevenue);
         req.setAttribute("completedOrders", completedCount);
+        req.setAttribute("pendingConfirmOrders", pendingConfirmCount);
         req.setAttribute("processingOrders", processingCount);
         req.setAttribute("shippingOrders", shippingCount);
-        req.setAttribute("warrantyCount", warrantyRepository != null ? warrantyRepository.countAll() : 0);
+        req.setAttribute("warrantyCount", pendingWarrantyCount);
         req.setAttribute("moduleTitle", "Tổng quan bán hàng");
 
         ViewRouter.admin(req, resp, "sales/dashboard", "Tổng quan bán hàng", "sales");
@@ -177,6 +203,31 @@ public class SalesController extends HttpServlet {
 
         if ("/customer-detail".equals(path)) {
             updateCustomer(req, resp);
+            return;
+        }
+
+        if ("/order-add".equals(path)) {
+            createOrder(req, resp);
+            return;
+        }
+
+        if ("/order-edit".equals(path)) {
+            updateOrderDetails(req, resp);
+            return;
+        }
+
+        if ("/order-update-shipping".equals(path)) {
+            updateOrderShipping(req, resp);
+            return;
+        }
+
+        if ("/order-confirm".equals(path)) {
+            confirmOrder(req, resp);
+            return;
+        }
+
+        if ("/order-cancel".equals(path)) {
+            cancelOrder(req, resp);
             return;
         }
 
@@ -257,8 +308,16 @@ public class SalesController extends HttpServlet {
 
             List<Order> customerOrders = orderRepository != null ? orderRepository.findByCustomerId(id) : new ArrayList<>();
 
+            long totalOrdersCount = customerOrders.size();
+            java.math.BigDecimal totalAmountSpent = customerOrders.stream()
+                .filter(o -> !"CANCELLED".equalsIgnoreCase(o.getStatus()))
+                .map(Order::getTotalPrice)
+                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+
             req.setAttribute("customer", customer);
             req.setAttribute("customerOrders", customerOrders);
+            req.setAttribute("totalOrdersCount", totalOrdersCount);
+            req.setAttribute("totalAmountSpent", totalAmountSpent);
             req.setAttribute("moduleTitle", "Chi tiết khách hàng");
 
             ViewRouter.admin(req, resp, "sales/customer-detail", "Chi tiết khách hàng", "sales");
@@ -398,8 +457,41 @@ public class SalesController extends HttpServlet {
             String serial    = req.getParameter("serial");
             int months       = Integer.parseInt(req.getParameter("months"));
             String note      = req.getParameter("note");
+
+            // 1. Kiểm tra đơn hàng có tồn tại
+            if (orderRepository == null) {
+                req.getSession().setAttribute("flash", "Lỗi hệ thống: Không thể kết nối cơ sở dữ liệu đơn hàng.");
+                resp.sendRedirect(req.getContextPath() + "/manage/sales/warranty");
+                return;
+            }
+            Order order = orderRepository.findById(orderId);
+            if (order == null) {
+                req.getSession().setAttribute("flash", "Lỗi: Đơn hàng #" + orderId + " không tồn tại!");
+                resp.sendRedirect(req.getContextPath() + "/manage/sales/warranty");
+                return;
+            }
+
+            // 2. Kiểm tra sản phẩm có trong đơn hàng
+            List<Map<String, Object>> items = orderRepository.getOrderItems(orderId);
+            boolean exists = items.stream().anyMatch(item -> {
+                String pName = String.valueOf(item.get("ProductName"));
+                String vName = String.valueOf(item.get("VariantName"));
+                return productName.equalsIgnoreCase(pName) || productName.equalsIgnoreCase(vName) ||
+                       pName.toLowerCase().contains(productName.toLowerCase()) ||
+                       vName.toLowerCase().contains(productName.toLowerCase());
+            });
+
+            if (!exists) {
+                req.getSession().setAttribute("flash", "Lỗi: Sản phẩm '" + productName + "' không có trong đơn hàng #" + orderId + "!");
+                resp.sendRedirect(req.getContextPath() + "/manage/sales/warranty");
+                return;
+            }
+
+            // 3. Tiến hành tạo phiếu
             warrantyRepository.insert(orderId, productName, serial, months, note);
             req.getSession().setAttribute("flash", "Đã tạo phiếu bảo hành thành công!");
+        } catch (NumberFormatException e) {
+            req.getSession().setAttribute("flash", "Lỗi: Định dạng mã đơn hàng hoặc thời hạn không hợp lệ.");
         } catch (Exception e) {
             req.getSession().setAttribute("flash", "Lỗi khi tạo phiếu bảo hành: " + e.getMessage());
         }
@@ -410,11 +502,40 @@ public class SalesController extends HttpServlet {
             throws IOException {
         String idParam = req.getParameter("id");
         String status  = req.getParameter("status");
-        if (warrantyRepository != null && idParam != null && status != null) {
+        String action  = req.getParameter("action");
+
+        if (warrantyRepository != null && idParam != null) {
             try {
-                warrantyRepository.updateStatus(Integer.parseInt(idParam), status);
-                req.getSession().setAttribute("flash", "Đã cập nhật trạng thái bảo hành!");
-            } catch (Exception ignored) {}
+                int id = Integer.parseInt(idParam);
+                if ("receive".equalsIgnoreCase(action)) {
+                    String receiveDateStr = req.getParameter("receiveDate");
+                    String receiveNote = req.getParameter("receiveNote");
+                    java.sql.Date receiveDate = java.sql.Date.valueOf(receiveDateStr);
+                    warrantyRepository.updateReceive(id, receiveDate, receiveNote);
+                    req.getSession().setAttribute("flash", "Đã tiếp nhận sản phẩm bảo hành thành công!");
+                } 
+                else if ("repair".equalsIgnoreCase(action)) {
+                    String repairContent = req.getParameter("repairContent");
+                    String componentReplaced = req.getParameter("componentReplaced");
+                    String repairNote = req.getParameter("repairNote");
+                    String completeDateStr = req.getParameter("completeDate");
+                    java.sql.Date completeDate = java.sql.Date.valueOf(completeDateStr);
+                    warrantyRepository.updateRepair(id, repairContent, componentReplaced, repairNote, completeDate);
+                    req.getSession().setAttribute("flash", "Đã ghi nhận kết quả sửa chữa thành công!");
+                } 
+                else if ("return".equalsIgnoreCase(action)) {
+                    String returnDateStr = req.getParameter("returnDate");
+                    java.sql.Date returnDate = java.sql.Date.valueOf(returnDateStr);
+                    warrantyRepository.updateReturn(id, returnDate);
+                    req.getSession().setAttribute("flash", "Đã xác nhận trả máy cho khách thành công!");
+                } 
+                else if (status != null) {
+                    warrantyRepository.updateStatus(id, status);
+                    req.getSession().setAttribute("flash", "Đã cập nhật trạng thái bảo hành!");
+                }
+            } catch (Exception e) {
+                req.getSession().setAttribute("flash", "Lỗi thao tác bảo hành: " + e.getMessage());
+            }
         }
         resp.sendRedirect(req.getContextPath() + "/manage/sales/warranty");
     }
@@ -423,12 +544,28 @@ public class SalesController extends HttpServlet {
             throws ServletException, IOException {
         String keyword = req.getParameter("keyword");
         String status  = req.getParameter("status");
+        String fromDate = req.getParameter("fromDate");
+        String toDate   = req.getParameter("toDate");
 
-        List<Order> orders = orderRepository != null ? orderRepository.search(keyword, status) : MockDataStore.orders();
+        List<Order> orders = orderRepository != null ? orderRepository.search(keyword, status, fromDate, toDate) : MockDataStore.orders();
+        List<Order> allOrders = orderRepository != null ? orderRepository.findAll() : MockDataStore.orders();
+
+        long totalCount = allOrders.size();
+        long pendingCount = allOrders.stream().filter(o -> "PENDING".equalsIgnoreCase(o.getStatus())).count();
+        long shippingCount = allOrders.stream().filter(o -> "SHIPPING".equalsIgnoreCase(o.getStatus())).count();
+        long completedCount = allOrders.stream().filter(o -> "COMPLETED".equalsIgnoreCase(o.getStatus())).count();
+        long cancelledCount = allOrders.stream().filter(o -> "CANCELLED".equalsIgnoreCase(o.getStatus())).count();
 
         req.setAttribute("orders", orders);
         req.setAttribute("keyword", keyword);
         req.setAttribute("status", status);
+        req.setAttribute("fromDate", fromDate);
+        req.setAttribute("toDate", toDate);
+        req.setAttribute("totalCount", totalCount);
+        req.setAttribute("pendingCount", pendingCount);
+        req.setAttribute("shippingCount", shippingCount);
+        req.setAttribute("completedCount", completedCount);
+        req.setAttribute("cancelledCount", cancelledCount);
         req.setAttribute("moduleTitle", "Quản lý đơn hàng");
 
         ViewRouter.admin(req, resp, "sales/order-list", "Quản lý đơn hàng", "sales");
@@ -443,6 +580,7 @@ public class SalesController extends HttpServlet {
         List<Order> allOrders = orderRepository != null ? orderRepository.findAll() : MockDataStore.orders();
         List<Order> filtered  = new ArrayList<>(allOrders);
 
+        // 1. Lọc theo trạng thái
         if (status != null && !status.isBlank()) {
             String st = status.trim().toUpperCase();
             filtered = filtered.stream().filter(o -> {
@@ -455,23 +593,53 @@ public class SalesController extends HttpServlet {
             }).toList();
         }
 
+        // 2. Lọc theo ngày
+        if (fromDate != null && !fromDate.isBlank()) {
+            try {
+                java.time.LocalDate fd = java.time.LocalDate.parse(fromDate);
+                filtered = filtered.stream().filter(o -> {
+                    if (o.getCreatedAt() == null) return false;
+                    java.time.LocalDate od = o.getCreatedAt().toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate();
+                    return !od.isBefore(fd);
+                }).toList();
+            } catch (Exception ignored) {}
+        }
+        if (toDate != null && !toDate.isBlank()) {
+            try {
+                java.time.LocalDate td = java.time.LocalDate.parse(toDate);
+                filtered = filtered.stream().filter(o -> {
+                    if (o.getCreatedAt() == null) return false;
+                    java.time.LocalDate od = o.getCreatedAt().toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate();
+                    return !od.isAfter(td);
+                }).toList();
+            } catch (Exception ignored) {}
+        }
+
+        // 3. Tính toán các chỉ số
+        long totalOrders = filtered.size();
+        long pendingOrders = filtered.stream()
+                .filter(o -> "PENDING".equalsIgnoreCase(o.getStatus()) || "CONFIRMED".equalsIgnoreCase(o.getStatus()) || "PACKING".equalsIgnoreCase(o.getStatus()) || "ĐANG XỬ LÝ".equalsIgnoreCase(o.getStatus()))
+                .count();
+        long shippingOrders = filtered.stream()
+                .filter(o -> "SHIPPING".equalsIgnoreCase(o.getStatus()) || "DELIVERED".equalsIgnoreCase(o.getStatus()) || "ĐANG GIAO".equalsIgnoreCase(o.getStatus()))
+                .count();
+        long completedOrders = filtered.stream()
+                .filter(o -> "COMPLETED".equalsIgnoreCase(o.getStatus()) || "HOÀN THÀNH".equalsIgnoreCase(o.getStatus()))
+                .count();
+        long cancelledOrders = filtered.stream()
+                .filter(o -> "CANCELLED".equalsIgnoreCase(o.getStatus()) || "ĐÃ HỦY".equalsIgnoreCase(o.getStatus()))
+                .count();
         double totalRevenue = filtered.stream()
                 .filter(o -> "COMPLETED".equalsIgnoreCase(o.getStatus()) || "HOÀN THÀNH".equalsIgnoreCase(o.getStatus()))
                 .mapToDouble(o -> o.getTotal() != null ? o.getTotal().doubleValue() : 0.0)
                 .sum();
 
-        long completedCount = filtered.stream()
-                .filter(o -> "COMPLETED".equalsIgnoreCase(o.getStatus()) || "HOÀN THÀNH".equalsIgnoreCase(o.getStatus()))
-                .count();
-
-        long shippingCount = filtered.stream()
-                .filter(o -> "SHIPPING".equalsIgnoreCase(o.getStatus()) || "DELIVERED".equalsIgnoreCase(o.getStatus()) || "ĐANG GIAO".equalsIgnoreCase(o.getStatus()))
-                .count();
-
         req.setAttribute("reportOrders", filtered);
-        req.setAttribute("totalOrders", filtered.size());
-        req.setAttribute("completedOrders", completedCount);
-        req.setAttribute("shippingOrders", shippingCount);
+        req.setAttribute("totalOrders", totalOrders);
+        req.setAttribute("pendingOrders", pendingOrders);
+        req.setAttribute("shippingOrders", shippingOrders);
+        req.setAttribute("completedOrders", completedOrders);
+        req.setAttribute("cancelledOrders", cancelledOrders);
         req.setAttribute("totalRevenue", String.format("%,.0f", totalRevenue));
         req.setAttribute("status", status);
         req.setAttribute("fromDate", fromDate);
@@ -483,10 +651,58 @@ public class SalesController extends HttpServlet {
 
     private List<Map<String, Object>> getSampleReviews() {
         List<Map<String, Object>> list = new ArrayList<>();
-        list.add(Map.of("id", 1, "customerName", "Lê Thành Công", "productName", "Rolex Datejust 41", "rating", 5, "content", "Đồng hồ chạy cực chuẩn, mẫu đẹp hơn mong đợi!", "status", "APPROVED", "createdAt", "2026-08-05"));
-        list.add(Map.of("id", 2, "customerName", "Trần Minh Đức", "productName", "Casio G-Shock GA-2100", "rating", 4, "content", "Giao hàng nhanh, đóng gói chắc chắn.", "status", "PENDING", "createdAt", "2026-08-04"));
-        list.add(Map.of("id", 3, "customerName", "Nguyễn Văn An", "productName", "Seiko 5 Sports Automatic", "rating", 5, "content", "Máy cơ bền bỉ, tích cót lâu.", "status", "APPROVED", "createdAt", "2026-08-02"));
-        list.add(Map.of("id", 4, "customerName", "Phạm Quốc Bảo", "productName", "Citizen Eco-Drive", "rating", 1, "content", "Hàng bị trầy xước nhẹ ở mặt kính.", "status", "REJECTED", "createdAt", "2026-08-01"));
+        list.add(new HashMap<>(Map.ofEntries(
+            Map.entry("id", 1), 
+            Map.entry("customerName", "Lê Thành Công"), 
+            Map.entry("email", "cong.le@example.com"),
+            Map.entry("phone", "0988000007"),
+            Map.entry("productName", "Rolex Datejust 41"), 
+            Map.entry("rating", 5), 
+            Map.entry("content", "Đồng hồ chạy cực chuẩn, mẫu đẹp hơn mong đợi!"), 
+            Map.entry("status", "APPROVED"), 
+            Map.entry("createdAt", "2026-08-05"),
+            Map.entry("orderCode", "WS8504"),
+            Map.entry("reply", "Cảm ơn anh Lê Thành Công đã tin tưởng lựa chọn Rolex tại WatchStore. Rất mong được phục vụ anh trong các đơn hàng tới!")
+        )));
+        list.add(new HashMap<>(Map.ofEntries(
+            Map.entry("id", 2), 
+            Map.entry("customerName", "Trần Minh Đức"), 
+            Map.entry("email", "duc.tran@example.com"),
+            Map.entry("phone", "0988000006"),
+            Map.entry("productName", "Casio G-Shock GA-2100"), 
+            Map.entry("rating", 4), 
+            Map.entry("content", "Giao hàng nhanh, đóng gói chắc chắn."), 
+            Map.entry("status", "PENDING"), 
+            Map.entry("createdAt", "2026-08-04"),
+            Map.entry("orderCode", "WS8503"),
+            Map.entry("reply", "")
+        )));
+        list.add(new HashMap<>(Map.ofEntries(
+            Map.entry("id", 3), 
+            Map.entry("customerName", "Nguyễn Văn An"), 
+            Map.entry("email", "an.nguyen@example.com"),
+            Map.entry("phone", "0988000005"),
+            Map.entry("productName", "Seiko 5 Sports Automatic"), 
+            Map.entry("rating", 5), 
+            Map.entry("content", "Máy cơ bền bỉ, tích cót lâu."), 
+            Map.entry("status", "APPROVED"), 
+            Map.entry("createdAt", "2026-08-02"),
+            Map.entry("orderCode", "WS8502"),
+            Map.entry("reply", "")
+        )));
+        list.add(new HashMap<>(Map.ofEntries(
+            Map.entry("id", 4), 
+            Map.entry("customerName", "Phạm Quốc Bảo"), 
+            Map.entry("email", "bao.pham@example.com"),
+            Map.entry("phone", "0988000004"),
+            Map.entry("productName", "Citizen Eco-Drive"), 
+            Map.entry("rating", 1), 
+            Map.entry("content", "Hàng bị trầy xước nhẹ ở mặt kính."), 
+            Map.entry("status", "REJECTED"), 
+            Map.entry("createdAt", "2026-08-01"),
+            Map.entry("orderCode", "WS8501"),
+            Map.entry("reply", "")
+        )));
         return list;
     }
 
@@ -503,6 +719,7 @@ public class SalesController extends HttpServlet {
             throws ServletException, IOException {
         String keyword = req.getParameter("keyword");
         String status  = req.getParameter("status");
+        String ratingParam = req.getParameter("rating");
 
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> reviews = (List<Map<String, Object>>) req.getSession().getAttribute("sampleReviews");
@@ -532,9 +749,19 @@ public class SalesController extends HttpServlet {
             ).toList();
         }
 
+        if (ratingParam != null && !ratingParam.trim().isEmpty()) {
+            try {
+                int rVal = Integer.parseInt(ratingParam.trim());
+                filtered = filtered.stream().filter(r ->
+                    Integer.valueOf(rVal).equals(r.get("rating"))
+                ).toList();
+            } catch (NumberFormatException ignored) {}
+        }
+
         req.setAttribute("reviews", filtered);
         req.setAttribute("keyword", keyword);
         req.setAttribute("status", status);
+        req.setAttribute("rating", ratingParam);
         req.setAttribute("moduleTitle", "Kiểm duyệt đánh giá");
         ViewRouter.admin(req, resp, "sales/review", "Kiểm duyệt đánh giá", "sales");
     }
@@ -581,8 +808,44 @@ public class SalesController extends HttpServlet {
 
     private List<Map<String, Object>> getSampleReturns() {
         List<Map<String, Object>> list = new ArrayList<>();
-        list.add(Map.of("id", 1, "orderId", 4, "customerName", "Lê Thành Công", "reason", "Kích thước dây đeo không vừa", "requestDate", "2026-08-05", "status", "Chờ xử lý"));
-        list.add(Map.of("id", 2, "orderId", 2, "customerName", "Nguyễn Văn An", "reason", "Đổi sang màu mặt số xanh navy", "requestDate", "2026-08-03", "status", "Đã duyệt"));
+        list.add(new HashMap<>(Map.ofEntries(
+            Map.entry("id", 1), 
+            Map.entry("orderId", 4), 
+            Map.entry("orderCode", "WS8504"),
+            Map.entry("customerName", "Lê Thành Công"), 
+            Map.entry("customerPhone", "0988000007"),
+            Map.entry("customerEmail", "cong.le@example.com"),
+            Map.entry("reason", "Kích thước dây đeo không vừa"), 
+            Map.entry("requestDate", "2026-08-05"), 
+            Map.entry("status", "Chờ xử lý"),
+            Map.entry("productName", "Rolex Datejust 41"),
+            Map.entry("quantity", 1),
+            Map.entry("evidenceImg", "Ảnh chụp dây đeo bị rộng"),
+            Map.entry("orderDate", "2026-08-03"),
+            Map.entry("totalPrice", "9,940,000"),
+            Map.entry("isWithinPeriod", "Còn trong thời hạn (2 ngày từ khi mua, tối đa 7 ngày)"),
+            Map.entry("isCorrectCondition", "Đúng điều kiện (Hàng còn nguyên tem mác, hộp đựng)"),
+            Map.entry("isStoreError", "Không (Lỗi chọn nhầm size của khách)")
+        )));
+        list.add(new HashMap<>(Map.ofEntries(
+            Map.entry("id", 2), 
+            Map.entry("orderId", 2), 
+            Map.entry("orderCode", "WS8502"),
+            Map.entry("customerName", "Nguyễn Văn An"), 
+            Map.entry("customerPhone", "0988000005"),
+            Map.entry("customerEmail", "an.nguyen@example.com"),
+            Map.entry("reason", "Đổi sang màu mặt số xanh navy"), 
+            Map.entry("requestDate", "2026-08-03"), 
+            Map.entry("status", "Đã duyệt"),
+            Map.entry("productName", "Seiko 5 Sports Automatic"),
+            Map.entry("quantity", 1),
+            Map.entry("evidenceImg", "Ảnh chụp mặt số nguyên bản"),
+            Map.entry("orderDate", "2026-07-28"),
+            Map.entry("totalPrice", "4,250,000"),
+            Map.entry("isWithinPeriod", "Còn trong thời hạn (6 ngày từ khi mua, tối đa 7 ngày)"),
+            Map.entry("isCorrectCondition", "Đúng điều kiện (Chưa qua sử dụng, còn seal)"),
+            Map.entry("isStoreError", "Không (Khách thay đổi ý định)")
+        )));
         return list;
     }
 
@@ -612,7 +875,13 @@ public class SalesController extends HttpServlet {
         if (status != null && !status.trim().isEmpty()) {
             String st = status.trim();
             filtered = filtered.stream().filter(r ->
-                st.equalsIgnoreCase(r.get("status").toString())
+                st.equalsIgnoreCase(r.get("status").toString()) ||
+                (st.equals("PENDING") && "Chờ xử lý".equalsIgnoreCase(r.get("status").toString())) ||
+                (st.equals("APPROVED") && "Đã duyệt".equalsIgnoreCase(r.get("status").toString())) ||
+                (st.equals("RECEIVED") && "Đã nhận hàng".equalsIgnoreCase(r.get("status").toString())) ||
+                (st.equals("REPLACED") && "Đã đổi hàng".equalsIgnoreCase(r.get("status").toString())) ||
+                (st.equals("REFUNDED") && "Đã hoàn tiền".equalsIgnoreCase(r.get("status").toString())) ||
+                (st.equals("REJECTED") && "Từ chối".equalsIgnoreCase(r.get("status").toString()))
             ).toList();
         }
 
@@ -656,13 +925,14 @@ public class SalesController extends HttpServlet {
         String idParam = req.getParameter("id");
         String status  = req.getParameter("status");
         String action  = req.getParameter("action");
+        String replyContent = req.getParameter("replyContent");
 
         if (status == null && action != null) {
             if ("approve".equalsIgnoreCase(action)) status = "APPROVED";
             else if ("reject".equalsIgnoreCase(action)) status = "REJECTED";
         }
 
-        if (idParam != null && status != null) {
+        if (idParam != null) {
             try {
                 int id = Integer.parseInt(idParam);
                 @SuppressWarnings("unchecked")
@@ -674,13 +944,23 @@ public class SalesController extends HttpServlet {
                     Map<String, Object> r = reviews.get(i);
                     if (Integer.valueOf(id).equals(r.get("id"))) {
                         Map<String, Object> updated = new HashMap<>(r);
-                        updated.put("status", status);
+                        if (status != null) {
+                            updated.put("status", status);
+                        }
+                        if (replyContent != null) {
+                            updated.put("reply", replyContent.trim());
+                            updated.put("status", "APPROVED");
+                        }
                         reviews.set(i, updated);
                         break;
                     }
                 }
                 req.getSession().setAttribute("sampleReviews", reviews);
-                req.getSession().setAttribute("flash", "Đã xác nhận cập nhật trạng thái đánh giá thành công!");
+                if (replyContent != null) {
+                    req.getSession().setAttribute("flash", "Đã gửi phản hồi đánh giá thành công!");
+                } else {
+                    req.getSession().setAttribute("flash", "Đã cập nhật trạng thái đánh giá thành công!");
+                }
             } catch (Exception ignored) {}
         }
         resp.sendRedirect(req.getContextPath() + "/manage/sales/reviews");
@@ -712,5 +992,262 @@ public class SalesController extends HttpServlet {
             } catch (Exception ignored) {}
         }
         resp.sendRedirect(req.getContextPath() + "/manage/sales/comments");
+    }
+
+    private void showOrderEdit(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
+        String idParam = req.getParameter("id");
+        if (idParam == null || idParam.trim().isEmpty()) {
+            resp.sendRedirect(req.getContextPath() + "/manage/sales/orders");
+            return;
+        }
+        try {
+            int id = Integer.parseInt(idParam);
+            Order order = orderRepository != null ? orderRepository.findById(id) : null;
+            if (order == null) {
+                resp.sendRedirect(req.getContextPath() + "/manage/sales/orders");
+                return;
+            }
+            if ("COMPLETED".equalsIgnoreCase(order.getStatus())) {
+                req.getSession().setAttribute("flash", "Lỗi: Không thể chỉnh sửa đơn hàng đã hoàn thành!");
+                resp.sendRedirect(req.getContextPath() + "/manage/sales/order-detail?id=" + id);
+                return;
+            }
+            req.setAttribute("order", order);
+            req.setAttribute("moduleTitle", "Sửa đơn hàng");
+            ViewRouter.admin(req, resp, "sales/order-edit", "Sửa đơn hàng", "sales");
+        } catch (NumberFormatException e) {
+            resp.sendRedirect(req.getContextPath() + "/manage/sales/orders");
+        }
+    }
+
+    private void createOrder(HttpServletRequest req, HttpServletResponse resp)
+            throws IOException {
+        String customerName = req.getParameter("customerName");
+        String phone = req.getParameter("phone");
+        String shippingAddress = req.getParameter("shippingAddress");
+        String totalPriceStr = req.getParameter("totalPrice");
+        String status = req.getParameter("status");
+        String paymentStatus = req.getParameter("paymentStatus");
+
+        try {
+            java.math.BigDecimal totalPrice = new java.math.BigDecimal(totalPriceStr);
+            String code = "WS" + (8500 + (orderRepository != null ? orderRepository.findAll().size() : 0) + 1);
+            
+            Order order = new Order();
+            order.setCode(code);
+            order.setCustomerName(customerName);
+            order.setPhone(phone);
+            order.setShippingAddress(shippingAddress);
+            order.setTotalPrice(totalPrice);
+            order.setStatus(status);
+            order.setPaymentStatus(paymentStatus != null ? paymentStatus : "UNPAID");
+            order.setUserId(4); // Default customer user
+            order.setCreatedAt(new java.util.Date());
+
+            if (orderRepository != null) {
+                orderRepository.add(order);
+                req.getSession().setAttribute("flash", "Thêm đơn hàng thành công! Mã đơn: " + code);
+            } else {
+                req.getSession().setAttribute("flash", "Lỗi: Không tìm thấy orderRepository.");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            req.getSession().setAttribute("flash", "Lỗi khi thêm đơn hàng: " + e.getMessage());
+        }
+        resp.sendRedirect(req.getContextPath() + "/manage/sales/orders");
+    }
+
+    private void updateOrderDetails(HttpServletRequest req, HttpServletResponse resp)
+            throws IOException {
+        String idParam = req.getParameter("id");
+        String customerName = req.getParameter("customerName");
+        String phone = req.getParameter("phone");
+        String shippingAddress = req.getParameter("shippingAddress");
+        String totalPriceStr = req.getParameter("totalPrice");
+        String status = req.getParameter("status");
+        String paymentStatus = req.getParameter("paymentStatus");
+
+        if (idParam == null || idParam.trim().isEmpty()) {
+            resp.sendRedirect(req.getContextPath() + "/manage/sales/orders");
+            return;
+        }
+
+        try {
+            int id = Integer.parseInt(idParam);
+            java.math.BigDecimal totalPrice = new java.math.BigDecimal(totalPriceStr);
+            
+            Order order = orderRepository != null ? orderRepository.findById(id) : null;
+            if (order != null) {
+                if ("COMPLETED".equalsIgnoreCase(order.getStatus())) {
+                    req.getSession().setAttribute("flash", "Lỗi: Không thể chỉnh sửa đơn hàng đã hoàn thành!");
+                    resp.sendRedirect(req.getContextPath() + "/manage/sales/order-detail?id=" + id);
+                    return;
+                }
+                order.setCustomerName(customerName);
+                order.setPhone(phone);
+                order.setShippingAddress(shippingAddress);
+                order.setTotalPrice(totalPrice);
+                order.setStatus(status);
+                if (paymentStatus != null) {
+                    order.setPaymentStatus(paymentStatus);
+                }
+                
+                orderRepository.update(order);
+                req.getSession().setAttribute("flash", "Cập nhật đơn hàng thành công!");
+                resp.sendRedirect(req.getContextPath() + "/manage/sales/order-detail?id=" + id);
+                return;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            req.getSession().setAttribute("flash", "Lỗi khi cập nhật đơn hàng: " + e.getMessage());
+        }
+        resp.sendRedirect(req.getContextPath() + "/manage/sales/orders");
+    }
+
+    private void deleteOrder(HttpServletRequest req, HttpServletResponse resp)
+            throws IOException {
+        String idParam = req.getParameter("id");
+        if (idParam != null) {
+            try {
+                int id = Integer.parseInt(idParam);
+                if (orderRepository != null && orderRepository.delete(id)) {
+                    req.getSession().setAttribute("flash", "Đã xóa đơn hàng thành công!");
+                } else {
+                    req.getSession().setAttribute("flash", "Lỗi khi xóa đơn hàng.");
+                }
+            } catch (NumberFormatException ignored) {}
+        }
+        resp.sendRedirect(req.getContextPath() + "/manage/sales/orders");
+    }
+
+    private void confirmOrder(HttpServletRequest req, HttpServletResponse resp)
+            throws IOException {
+        String idParam = req.getParameter("id");
+        if (idParam != null) {
+            try {
+                int id = Integer.parseInt(idParam);
+                if (orderRepository != null && orderRepository.updateStatus(id, "CONFIRMED")) {
+                    req.getSession().setAttribute("flash", "Đã xác nhận đơn hàng thành công!");
+                } else {
+                    req.getSession().setAttribute("flash", "Lỗi khi xác nhận đơn hàng.");
+                }
+            } catch (NumberFormatException ignored) {}
+        }
+        
+        // Redirect back to referring page or orders list
+        String referer = req.getHeader("referer");
+        if (referer != null && !referer.isEmpty()) {
+            resp.sendRedirect(referer);
+        } else {
+            resp.sendRedirect(req.getContextPath() + "/manage/sales/orders");
+        }
+    }
+
+    private void cancelOrder(HttpServletRequest req, HttpServletResponse resp)
+            throws IOException {
+        String idParam = req.getParameter("id");
+        if (idParam != null) {
+            try {
+                int id = Integer.parseInt(idParam);
+                if (orderRepository != null && orderRepository.updateStatus(id, "CANCELLED")) {
+                    req.getSession().setAttribute("flash", "Đã hủy đơn hàng thành công!");
+                } else {
+                    req.getSession().setAttribute("flash", "Lỗi khi hủy đơn hàng.");
+                }
+            } catch (NumberFormatException ignored) {}
+        }
+        
+        // Redirect back to referring page or orders list
+        String referer = req.getHeader("referer");
+        if (referer != null && !referer.isEmpty()) {
+            resp.sendRedirect(referer);
+        } else {
+            resp.sendRedirect(req.getContextPath() + "/manage/sales/orders");
+        }
+    }
+
+    private void updateOrderShipping(HttpServletRequest req, HttpServletResponse resp)
+            throws IOException {
+        String idParam = req.getParameter("id");
+        String customerName = req.getParameter("customerName");
+        String phone = req.getParameter("phone");
+        String shippingAddress = req.getParameter("shippingAddress");
+        String status = req.getParameter("status");
+        String redirect = req.getParameter("redirect");
+
+        if (idParam != null) {
+            try {
+                int id = Integer.parseInt(idParam);
+                Order order = orderRepository != null ? orderRepository.findById(id) : null;
+                if (order != null) {
+                    if ("COMPLETED".equalsIgnoreCase(order.getStatus())) {
+                        req.getSession().setAttribute("flash", "Lỗi: Không thể sửa thông tin giao hàng của đơn đã hoàn thành!");
+                    } else {
+                        if (customerName != null) order.setCustomerName(customerName);
+                        if (phone != null) order.setPhone(phone);
+                        if (shippingAddress != null) order.setShippingAddress(shippingAddress);
+                        
+                        if (status != null && !status.trim().isEmpty()) {
+                            order.setStatus(status.trim());
+                        }
+                        
+                        if (orderRepository != null && orderRepository.update(order)) {
+                            if (status != null && !status.trim().isEmpty()) {
+                                orderRepository.updateStatus(id, status.trim());
+                            }
+                            req.getSession().setAttribute("flash", "Cập nhật thông tin giao nhận thành công!");
+                        } else {
+                            req.getSession().setAttribute("flash", "Lỗi khi cập nhật thông tin giao hàng.");
+                        }
+                    }
+                    if ("delivery".equals(redirect)) {
+                        resp.sendRedirect(req.getContextPath() + "/manage/sales/delivery");
+                        return;
+                    }
+                    resp.sendRedirect(req.getContextPath() + "/manage/sales/order-detail?id=" + id);
+                    return;
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        resp.sendRedirect(req.getContextPath() + "/manage/sales/orders");
+    }
+
+    private void showDelivery(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
+        String keyword = req.getParameter("keyword");
+        String status = req.getParameter("status");
+
+        List<Order> orders = orderRepository != null ? orderRepository.findAll() : MockDataStore.orders();
+
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            String k = keyword.trim().toLowerCase();
+            orders = orders.stream().filter(o ->
+                (String.valueOf(o.getId()).contains(k)) ||
+                (o.getCode() != null && o.getCode().toLowerCase().contains(k)) ||
+                (o.getCustomerName() != null && o.getCustomerName().toLowerCase().contains(k)) ||
+                (o.getPhone() != null && o.getPhone().toLowerCase().contains(k)) ||
+                (o.getShippingAddress() != null && o.getShippingAddress().toLowerCase().contains(k))
+            ).toList();
+        }
+
+        if (status != null && !status.trim().isEmpty()) {
+            String st = status.trim();
+            orders = orders.stream().filter(o ->
+                st.equalsIgnoreCase(o.getStatus()) ||
+                (st.equals("Chờ giao") && "CONFIRMED".equalsIgnoreCase(o.getStatus())) ||
+                (st.equals("Đang giao") && "SHIPPING".equalsIgnoreCase(o.getStatus())) ||
+                (st.equals("Giao thành công") && "COMPLETED".equalsIgnoreCase(o.getStatus())) ||
+                (st.equals("Giao thất bại") && "CANCELLED".equalsIgnoreCase(o.getStatus()))
+            ).toList();
+        }
+
+        req.setAttribute("orders", orders);
+        req.setAttribute("keyword", keyword);
+        req.setAttribute("status", status);
+        req.setAttribute("moduleTitle", "Vận chuyển");
+        ViewRouter.admin(req, resp, "sales/delivery", "Vận chuyển", "sales");
     }
 }

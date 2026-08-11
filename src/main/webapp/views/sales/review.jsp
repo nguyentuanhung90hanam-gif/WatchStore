@@ -288,6 +288,15 @@
                 <option value="REJECTED" ${param.status == 'REJECTED' or status == 'REJECTED' or status == 'Đã từ chối' ? 'selected' : ''}>Đã từ chối</option>
             </select>
 
+            <select name="rating">
+                <option value="">-- Tất cả số sao --</option>
+                <option value="5" ${param.rating == '5' or rating == '5' ? 'selected' : ''}>⭐⭐⭐⭐⭐ 5 sao</option>
+                <option value="4" ${param.rating == '4' or rating == '4' ? 'selected' : ''}>⭐⭐⭐⭐ 4 sao</option>
+                <option value="3" ${param.rating == '3' or rating == '3' ? 'selected' : ''}>⭐⭐⭐ 3 sao</option>
+                <option value="2" ${param.rating == '2' or rating == '2' ? 'selected' : ''}>⭐⭐ 2 sao</option>
+                <option value="1" ${param.rating == '1' or rating == '1' ? 'selected' : ''}>⭐ 1 sao</option>
+            </select>
+
 
             <button type="submit"
                     class="btn btn-search">
@@ -460,13 +469,9 @@
 
 
                             <!-- NGÀY -->
-
                             <td>
-
-                                ${review.reviewDate}
-
+                                ${not empty review.createdAt ? review.createdAt : review.reviewDate}
                             </td>
-
 
                             <!-- TRẠNG THÁI -->
                             <td>
@@ -488,15 +493,64 @@
 
                             <!-- THAO TÁC -->
                             <td>
-                                <form method="post" action="${pageContext.request.contextPath}/manage/sales/reviews" style="display:flex;gap:8px;align-items:center;">
-                                    <input type="hidden" name="id" value="${review.id}">
-                                    <select name="status" style="padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;outline:none;background:white;color:#1e293b;">
-                                        <option value="APPROVED" ${review.status == 'APPROVED' or review.status == 'Đã duyệt' ? 'selected' : ''}>Đã duyệt</option>
-                                        <option value="PENDING" ${review.status == 'PENDING' or review.status == 'Chờ duyệt' ? 'selected' : ''}>Chờ duyệt</option>
-                                        <option value="REJECTED" ${review.status == 'REJECTED' or review.status == 'Đã từ chối' ? 'selected' : ''}>Đã từ chối</option>
-                                    </select>
-                                    <button type="submit" style="padding:6px 14px;background:#2563eb;color:white;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;">Xác nhận</button>
-                                </form>
+                                <div style="display:flex; gap:8px;">
+                                    <c:choose>
+                                        <c:when test="${review.status == 'PENDING' or review.status == 'Chờ duyệt'}">
+                                            <button type="button" class="btn" style="background:#059669; color:white; padding:6px 12px; font-size:13px; font-weight:600; cursor:pointer;" onclick="submitReviewAction(${review.id}, 'APPROVED')">
+                                                Duyệt
+                                            </button>
+                                            <button type="button" class="btn" style="background:#dc2626; color:white; padding:6px 12px; font-size:13px; font-weight:600; cursor:pointer;" onclick="submitReviewAction(${review.id}, 'REJECTED')">
+                                                Từ chối
+                                            </button>
+                                        </c:when>
+                                        <c:when test="${review.status == 'APPROVED' or review.status == 'Đã duyệt'}">
+                                            <button type="button" class="btn" style="background:#d97706; color:white; padding:6px 12px; font-size:13px; font-weight:600; cursor:pointer;" 
+                                                    data-id="${review.id}"
+                                                    data-customer="${review.customerName}"
+                                                    data-email="${review.email}"
+                                                    data-phone="${review.phone}"
+                                                    data-product="${review.productName}"
+                                                    data-rating="${review.rating}"
+                                                    data-content="${review.content}"
+                                                    data-date="${not empty review.createdAt ? review.createdAt : review.reviewDate}"
+                                                    data-order="${review.orderCode}"
+                                                    data-reply="${review.reply}"
+                                                    onclick="openReplyModal(event)">
+                                                Phản hồi
+                                            </button>
+                                            <button type="button" class="btn" style="background:#2563eb; color:white; padding:6px 12px; font-size:13px; font-weight:600; cursor:pointer;" 
+                                                    data-id="${review.id}"
+                                                    data-customer="${review.customerName}"
+                                                    data-email="${review.email}"
+                                                    data-phone="${review.phone}"
+                                                    data-product="${review.productName}"
+                                                    data-rating="${review.rating}"
+                                                    data-content="${review.content}"
+                                                    data-date="${not empty review.createdAt ? review.createdAt : review.reviewDate}"
+                                                    data-order="${review.orderCode}"
+                                                    data-reply="${review.reply}"
+                                                    onclick="openDetailModal(event)">
+                                                Xem chi tiết
+                                            </button>
+                                        </c:when>
+                                        <c:when test="${review.status == 'REJECTED' or review.status == 'Đã từ chối'}">
+                                            <button type="button" class="btn" style="background:#4b5563; color:white; padding:6px 12px; font-size:13px; font-weight:600; cursor:pointer;" 
+                                                    data-id="${review.id}"
+                                                    data-customer="${review.customerName}"
+                                                    data-email="${review.email}"
+                                                    data-phone="${review.phone}"
+                                                    data-product="${review.productName}"
+                                                    data-rating="${review.rating}"
+                                                    data-content="${review.content}"
+                                                    data-date="${not empty review.createdAt ? review.createdAt : review.reviewDate}"
+                                                    data-order="${review.orderCode}"
+                                                    data-reply="${review.reply}"
+                                                    onclick="openDetailModal(event)">
+                                                Xem chi tiết
+                                            </button>
+                                        </c:when>
+                                    </c:choose>
+                                </div>
                             </td>
 
                         </tr>
@@ -528,6 +582,129 @@
         </table>
 
     </div>
+
+    <!-- ================= MODAL XEM CHI TIẾT & PHẢN HỒI ================= -->
+    <div id="detail-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; justify-content:center; align-items:center; padding:15px;">
+        <div style="background:white; border-radius:12px; max-width:550px; width:100%; box-shadow:0 10px 25px rgba(0,0,0,0.25); padding:25px; position:relative;">
+            <span style="position:absolute; top:15px; right:15px; font-size:24px; color:#aaa; cursor:pointer; font-weight:bold;" onclick="closeModal()">&times;</span>
+            <h2 style="margin-top:0; margin-bottom:20px; font-size:20px; color:#1e293b; border-bottom:1px solid #e2e8f0; padding-bottom:12px;">Chi tiết đánh giá <span id="modal-id-text" style="color:#2563eb;"></span></h2>
+            
+            <div style="display:grid; grid-template-columns:1fr; gap:12px; margin-bottom:20px; font-size:14px; text-align:left;">
+                <div>
+                    <span style="color:#64748b; font-weight:600; display:block; margin-bottom:2px;">Khách hàng:</span>
+                    <span id="modal-customer" style="font-weight:bold; color:#1e293b;"></span>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                    <div>
+                        <span style="color:#64748b; font-weight:600; display:block; margin-bottom:2px;">Sản phẩm:</span>
+                        <span id="modal-product" style="font-weight:bold; color:#1e293b;"></span>
+                    </div>
+                    <div>
+                        <span style="color:#64748b; font-weight:600; display:block; margin-bottom:2px;">Đơn hàng:</span>
+                        <span id="modal-order" style="font-weight:bold; color:#2563eb;"></span>
+                    </div>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                    <div>
+                        <span style="color:#64748b; font-weight:600; display:block; margin-bottom:2px;">Ngày đăng:</span>
+                        <span id="modal-date" style="color:#1e293b;"></span>
+                    </div>
+                    <div>
+                        <span style="color:#64748b; font-weight:600; display:block; margin-bottom:2px;">Đánh giá:</span>
+                        <span id="modal-stars" style="color:#d97706; font-size:16px;"></span>
+                    </div>
+                </div>
+                <div>
+                    <span style="color:#64748b; font-weight:600; display:block; margin-bottom:2px;">Nội dung đánh giá:</span>
+                    <p id="modal-content" style="margin:0; background:#f8fafc; padding:12px; border-radius:8px; border:1px solid #e2e8f0; line-height:1.5; color:#334155; font-style:italic;"></p>
+                </div>
+                <div id="modal-reply-display-container">
+                    <span style="color:#64748b; font-weight:600; display:block; margin-bottom:4px;">Phản hồi hiện tại:</span>
+                    <div id="modal-reply-display" style="font-size:13px;"></div>
+                </div>
+            </div>
+            
+            <!-- FORM PHẢN HỒI -->
+            <form method="post" action="${pageContext.request.contextPath}/manage/sales/reviews" style="border-top:1px solid #e2e8f0; padding-top:15px; text-align:left;">
+                <input type="hidden" name="id" id="modal-reply-id">
+                <div style="margin-bottom:15px;">
+                    <label for="modal-reply-input" style="font-weight:600; display:block; margin-bottom:6px; font-size:14px; color:#1e293b;">Nhập/Chỉnh sửa phản hồi của bạn:</label>
+                    <textarea name="replyContent" id="modal-reply-input" placeholder="Nhập câu trả lời cho đánh giá..." style="width:100%; height:80px; padding:10px; border:1px solid #cbd5e1; border-radius:6px; font-family:inherit; font-size:13px; resize:vertical; outline:none;"></textarea>
+                </div>
+                <div style="display:flex; justify-content:flex-end; gap:10px;">
+                    <button type="submit" class="btn" style="background:#2563eb; color:white; height:36px; padding:0 18px; font-weight:bold; cursor:pointer; border:none; border-radius:6px;">💾 Gửi phản hồi</button>
+                    <button type="button" class="btn" style="background:#e2e8f0; color:#334155; height:36px; padding:0 18px; cursor:pointer; border:none; border-radius:6px;" onclick="closeModal()">Đóng</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- HIDDEN FORM FOR APPROVE/REJECT -->
+    <form id="action-form" method="post" action="${pageContext.request.contextPath}/manage/sales/reviews" style="display:none;">
+        <input type="hidden" name="id" id="action-id">
+        <input type="hidden" name="status" id="action-status">
+    </form>
+
+    <script>
+        function submitReviewAction(id, status) {
+            let message = status === 'APPROVED' ? 'Bạn có chắc chắn muốn DUYỆT đánh giá này?' : 'Bạn có chắc chắn muốn TỪ CHỐI đánh giá này?';
+            if (confirm(message)) {
+                document.getElementById('action-id').value = id;
+                document.getElementById('action-status').value = status;
+                document.getElementById('action-form').submit();
+            }
+        }
+        
+        function openDetailModal(event) {
+            var btn = event.currentTarget;
+            populateModal(btn);
+            document.getElementById('detail-modal').style.display = 'flex';
+        }
+        
+        function openReplyModal(event) {
+            var btn = event.currentTarget;
+            populateModal(btn);
+            document.getElementById('detail-modal').style.display = 'flex';
+            setTimeout(function() {
+                document.getElementById('modal-reply-input').focus();
+            }, 100);
+        }
+        
+        function populateModal(btn) {
+            var id = btn.getAttribute('data-id');
+            var customer = btn.getAttribute('data-customer');
+            var email = btn.getAttribute('data-email');
+            var phone = btn.getAttribute('data-phone');
+            var product = btn.getAttribute('data-product');
+            var rating = parseInt(btn.getAttribute('data-rating') || '5');
+            var content = btn.getAttribute('data-content');
+            var date = btn.getAttribute('data-date');
+            var order = btn.getAttribute('data-order');
+            var reply = btn.getAttribute('data-reply');
+            
+            document.getElementById('modal-id-text').innerText = '#' + id;
+            document.getElementById('modal-customer').innerText = customer + ' (' + phone + ' - ' + email + ')';
+            document.getElementById('modal-product').innerText = product;
+            document.getElementById('modal-order').innerText = order ? '#' + order : 'Chưa rõ';
+            document.getElementById('modal-date').innerText = date;
+            document.getElementById('modal-stars').innerText = '★'.repeat(rating) + '☆'.repeat(5 - rating);
+            document.getElementById('modal-content').innerText = content;
+            
+            document.getElementById('modal-reply-id').value = id;
+            document.getElementById('modal-reply-input').value = reply || '';
+            
+            var replyDisplay = document.getElementById('modal-reply-display');
+            if (reply && reply.trim() !== '') {
+                replyDisplay.innerHTML = '<p style="margin:0; background:#f0fdf4; padding:10px; border-radius:6px; border:1px solid #bbf7d0; color:#166534; line-height:1.4;">' + reply + '</p>';
+            } else {
+                replyDisplay.innerHTML = '<p style="margin:0; color:#94a3b8; font-style:italic;">Chưa có phản hồi nào từ cửa hàng.</p>';
+            }
+        }
+        
+        function closeModal() {
+            document.getElementById('detail-modal').style.display = 'none';
+        }
+    </script>
 
 </div>
 

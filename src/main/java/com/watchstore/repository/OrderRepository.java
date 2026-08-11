@@ -113,6 +113,10 @@ public class OrderRepository {
     }
 
     public List<Order> search(String keyword, String status) {
+        return search(keyword, status, null, null);
+    }
+
+    public List<Order> search(String keyword, String status, String fromDate, String toDate) {
         List<Order> list = new ArrayList<>();
         StringBuilder sql = new StringBuilder("SELECT * FROM Orders WHERE 1=1 ");
 
@@ -121,6 +125,12 @@ public class OrderRepository {
         }
         if (status != null && !status.trim().isEmpty()) {
             sql.append("AND OrderStatus = ? ");
+        }
+        if (fromDate != null && !fromDate.trim().isEmpty()) {
+            sql.append("AND CreatedAt >= ? ");
+        }
+        if (toDate != null && !toDate.trim().isEmpty()) {
+            sql.append("AND CreatedAt <= ? ");
         }
         sql.append("ORDER BY OrderID DESC");
 
@@ -136,6 +146,12 @@ public class OrderRepository {
             }
             if (status != null && !status.trim().isEmpty()) {
                 ps.setString(paramIndex++, status.trim());
+            }
+            if (fromDate != null && !fromDate.trim().isEmpty()) {
+                ps.setString(paramIndex++, fromDate.trim() + " 00:00:00");
+            }
+            if (toDate != null && !toDate.trim().isEmpty()) {
+                ps.setString(paramIndex++, toDate.trim() + " 23:59:59");
             }
 
             try (ResultSet rs = ps.executeQuery()) {
@@ -153,7 +169,7 @@ public class OrderRepository {
         String sql = """
             INSERT INTO Orders 
             (OrderCode, CustomerID, RecipientName, RecipientPhone, ShippingAddress, SubtotalAmount, DiscountAmount, ShippingFee, TaxAmount, TotalAmount, OrderStatus, PaymentStatus) 
-            VALUES (?, ?, ?, ?, ?, ?, 0, 0, 0, ?, ?, 'UNPAID')
+            VALUES (?, ?, ?, ?, ?, ?, 0, 0, 0, ?, ?, ?)
             """;
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -166,6 +182,7 @@ public class OrderRepository {
             ps.setBigDecimal(6, order.getTotalPrice());
             ps.setBigDecimal(7, order.getTotalPrice());
             ps.setString(8, order.getStatus() != null ? order.getStatus() : "PENDING");
+            ps.setString(9, order.getPaymentStatus() != null ? order.getPaymentStatus() : "UNPAID");
 
             ps.executeUpdate();
         } catch (SQLException e) {
@@ -186,6 +203,54 @@ public class OrderRepository {
         }
     }
 
+    public boolean update(Order order) {
+        String sql = """
+            UPDATE Orders 
+            SET RecipientName = ?, RecipientPhone = ?, ShippingAddress = ?, TotalAmount = ?, OrderStatus = ?, PaymentStatus = ? 
+            WHERE OrderID = ?
+            """;
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, order.getCustomerName());
+            ps.setString(2, order.getPhone());
+            ps.setString(3, order.getShippingAddress());
+            ps.setBigDecimal(4, order.getTotalPrice());
+            ps.setString(5, order.getStatus());
+            ps.setString(6, order.getPaymentStatus());
+            ps.setInt(7, order.getId());
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public boolean delete(int id) {
+        String deleteItemsSql = "DELETE FROM OrderItems WHERE OrderID = ?";
+        String deleteOrderSql = "DELETE FROM Orders WHERE OrderID = ?";
+        try (Connection conn = DBContext.getConnection()) {
+            conn.setAutoCommit(false);
+            try (PreparedStatement psItems = conn.prepareStatement(deleteItemsSql);
+                 PreparedStatement psOrder = conn.prepareStatement(deleteOrderSql)) {
+                
+                psItems.setInt(1, id);
+                psItems.executeUpdate();
+                
+                psOrder.setInt(1, id);
+                int affectedRows = psOrder.executeUpdate();
+                
+                conn.commit();
+                return affectedRows > 0;
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     private Order mapResultSetToOrder(ResultSet rs) throws SQLException {
         Order order = new Order();
         order.setId(rs.getInt("OrderID"));
@@ -196,6 +261,7 @@ public class OrderRepository {
         order.setShippingAddress(rs.getString("ShippingAddress"));
         order.setTotalPrice(rs.getBigDecimal("TotalAmount"));
         order.setStatus(rs.getString("OrderStatus"));
+        order.setPaymentStatus(rs.getString("PaymentStatus"));
 
         Timestamp time = rs.getTimestamp("CreatedAt");
         if (time != null) {

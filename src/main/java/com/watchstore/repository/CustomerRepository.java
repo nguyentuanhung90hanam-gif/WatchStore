@@ -86,7 +86,7 @@ public class CustomerRepository {
             JOIN UserRoles ur ON u.UserID = ur.UserID
             JOIN Roles r ON ur.RoleID = r.RoleID
             WHERE r.RoleCode = 'CUSTOMER' 
-              AND (LOWER(u.FullName) LIKE ? OR u.Phone LIKE ?)
+              AND (LOWER(u.FullName) LIKE ? OR u.Phone LIKE ? OR LOWER(u.Email) LIKE ? OR CAST(u.UserID AS VARCHAR) LIKE ?)
             ORDER BY u.UserID DESC
             """;
         try (Connection con = DBContext.getConnection();
@@ -94,6 +94,8 @@ public class CustomerRepository {
             String pattern = "%" + keyword.trim().toLowerCase() + "%";
             ps.setString(1, pattern);
             ps.setString(2, pattern);
+            ps.setString(3, pattern);
+            ps.setString(4, pattern);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     result.add(mapResultSetToCustomer(rs));
@@ -109,7 +111,61 @@ public class CustomerRepository {
      * Cập nhật thông tin khách hàng
      */
     public void update(Customer customer) {
-        userRepository.update(customer);
+        String sqlUser = "UPDATE Users SET FullName = ?, Email = ?, Phone = ? WHERE UserID = ?";
+        String sqlCheckAddr = "SELECT AddressID FROM UserAddresses WHERE UserID = ? AND IsDefault = 1";
+        String sqlUpdateAddr = "UPDATE UserAddresses SET RecipientName = ?, RecipientPhone = ?, AddressLine = ? WHERE UserID = ? AND IsDefault = 1";
+        String sqlInsertAddr = "INSERT INTO UserAddresses (UserID, RecipientName, RecipientPhone, Province, District, Ward, AddressLine, IsDefault) VALUES (?, ?, ?, 'Hà Nội', 'Nam Từ Liêm', 'Mỹ Đình', ?, 1)";
+
+        try (Connection con = DBContext.getConnection()) {
+            con.setAutoCommit(false);
+            try {
+                // 1. Update User info
+                try (PreparedStatement ps = con.prepareStatement(sqlUser)) {
+                    ps.setString(1, customer.getFullName());
+                    ps.setString(2, customer.getEmail());
+                    ps.setString(3, customer.getPhone());
+                    ps.setInt(4, customer.getId());
+                    ps.executeUpdate();
+                }
+
+                // 2. Check address
+                boolean hasAddress = false;
+                try (PreparedStatement ps = con.prepareStatement(sqlCheckAddr)) {
+                    ps.setInt(1, customer.getId());
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) {
+                            hasAddress = true;
+                        }
+                    }
+                }
+
+                // 3. Update or Insert address
+                if (hasAddress) {
+                    try (PreparedStatement ps = con.prepareStatement(sqlUpdateAddr)) {
+                        ps.setString(1, customer.getFullName());
+                        ps.setString(2, customer.getPhone() != null ? customer.getPhone() : "");
+                        ps.setString(3, customer.getAddress());
+                        ps.setInt(4, customer.getId());
+                        ps.executeUpdate();
+                    }
+                } else {
+                    try (PreparedStatement ps = con.prepareStatement(sqlInsertAddr)) {
+                        ps.setInt(1, customer.getId());
+                        ps.setString(2, customer.getFullName());
+                        ps.setString(3, customer.getPhone() != null ? customer.getPhone() : "");
+                        ps.setString(4, customer.getAddress());
+                        ps.executeUpdate();
+                    }
+                }
+
+                con.commit();
+            } catch (SQLException ex) {
+                con.rollback();
+                ex.printStackTrace();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     /**

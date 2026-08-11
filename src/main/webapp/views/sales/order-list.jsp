@@ -216,9 +216,38 @@
 <div class="container">
 
     <!-- HEADER -->
-    <div class="header">
-        <h1>Quản lý đơn hàng</h1>
-        <p>Xem, tìm kiếm và theo dõi các đơn hàng của khách hàng.</p>
+    <div class="header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+        <div>
+            <h1 style="margin: 0;">Quản lý đơn hàng</h1>
+            <p style="margin: 8px 0 0 0; color: #777;">Xem, tìm kiếm và theo dõi các đơn hàng của khách hàng.</p>
+        </div>
+        <a href="${pageContext.request.contextPath}/manage/sales/order-add" class="btn btn-search" style="text-decoration: none; font-weight: bold; background: #2563eb; color: white;">
+            ➕ Thêm đơn hàng
+        </a>
+    </div>
+
+    <!-- STATS -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 25px;">
+        <div style="background: white; padding: 18px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); border-left: 4px solid #2563eb;">
+            <span style="color: #666; font-size: 13px; font-weight: 500;">Tổng đơn hàng</span>
+            <div style="font-size: 24px; font-weight: bold; margin-top: 8px; color: #2563eb;">${totalCount}</div>
+        </div>
+        <div style="background: white; padding: 18px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); border-left: 4px solid #d97706;">
+            <span style="color: #666; font-size: 13px; font-weight: 500;">Chờ xác nhận</span>
+            <div style="font-size: 24px; font-weight: bold; margin-top: 8px; color: #d97706;">${pendingCount}</div>
+        </div>
+        <div style="background: white; padding: 18px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); border-left: 4px solid #3b82f6;">
+            <span style="color: #666; font-size: 13px; font-weight: 500;">Đang giao</span>
+            <div style="font-size: 24px; font-weight: bold; margin-top: 8px; color: #3b82f6;">${shippingCount}</div>
+        </div>
+        <div style="background: white; padding: 18px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); border-left: 4px solid #059669;">
+            <span style="color: #666; font-size: 13px; font-weight: 500;">Hoàn thành</span>
+            <div style="font-size: 24px; font-weight: bold; margin-top: 8px; color: #059669;">${completedCount}</div>
+        </div>
+        <div style="background: white; padding: 18px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); border-left: 4px solid #dc2626;">
+            <span style="color: #666; font-size: 13px; font-weight: 500;">Đã hủy</span>
+            <div style="font-size: 24px; font-weight: bold; margin-top: 8px; color: #dc2626;">${cancelledCount}</div>
+        </div>
     </div>
 
     <!-- SEARCH -->
@@ -244,6 +273,14 @@
                 <option value="COMPLETED" ${param.status == 'COMPLETED' ? 'selected' : ''}>Hoàn thành</option>
                 <option value="CANCELLED" ${param.status == 'CANCELLED' ? 'selected' : ''}>Đã hủy</option>
             </select>
+
+            <!-- Lọc theo ngày -->
+            <div style="display: flex; gap: 8px; align-items: center; background: white; border: 1px solid #ddd; border-radius: 6px; padding: 0 10px; height: 42px;">
+                <span style="font-size: 13px; color: #666;">Từ:</span>
+                <input type="date" name="fromDate" value="${fromDate}" style="border: none; padding: 0; height: auto; width: 125px; font-size: 13px;">
+                <span style="font-size: 13px; color: #666;">Đến:</span>
+                <input type="date" name="toDate" value="${toDate}" style="border: none; padding: 0; height: auto; width: 125px; font-size: 13px;">
+            </div>
 
             <!-- Nút tìm kiếm & Đặt lại -->
             <button type="submit" class="btn btn-search">Tìm kiếm</button>
@@ -298,32 +335,44 @@
 
                             <!-- TRẠNG THÁI -->
                             <td>
-                                <c:choose>
-                                    <c:when test="${order.status == 'PENDING'}">
-                                        <span class="status processing">Chờ xử lý</span>
-                                    </c:when>
-                                    <c:when test="${order.status == 'CONFIRMED'}">
-                                        <span class="status processing">Đã xác nhận</span>
-                                    </c:when>
-                                    <c:when test="${order.status == 'PACKING'}">
-                                        <span class="status processing">Đang đóng gói</span>
-                                    </c:when>
-                                    <c:when test="${order.status == 'SHIPPING'}">
-                                        <span class="status shipping">Đang giao</span>
-                                    </c:when>
-                                    <c:when test="${order.status == 'DELIVERED'}">
-                                        <span class="status shipping">Đã giao</span>
-                                    </c:when>
-                                    <c:when test="${order.status == 'COMPLETED'}">
-                                        <span class="status completed">Hoàn thành</span>
-                                    </c:when>
-                                    <c:when test="${order.status == 'CANCELLED'}">
-                                        <span class="status cancelled">Đã hủy</span>
-                                    </c:when>
-                                    <c:otherwise>
-                                        <span class="status">${order.status}</span>
-                                    </c:otherwise>
-                                </c:choose>
+                                <div>
+                                    <c:choose>
+                                        <c:when test="${order.status == 'PENDING'}">
+                                            <span class="status processing">Chờ xử lý</span>
+                                        </c:when>
+                                        <c:when test="${order.status == 'CONFIRMED'}">
+                                            <span class="status processing">Đã xác nhận</span>
+                                        </c:when>
+                                        <c:when test="${order.status == 'PACKING'}">
+                                            <span class="status processing">Đang đóng gói</span>
+                                        </c:when>
+                                        <c:when test="${order.status == 'SHIPPING'}">
+                                            <span class="status shipping">Đang giao</span>
+                                        </c:when>
+                                        <c:when test="${order.status == 'DELIVERED'}">
+                                            <span class="status shipping">Đã giao</span>
+                                        </c:when>
+                                        <c:when test="${order.status == 'COMPLETED'}">
+                                            <span class="status completed">Hoàn thành</span>
+                                        </c:when>
+                                        <c:when test="${order.status == 'CANCELLED'}">
+                                            <span class="status cancelled">Đã hủy</span>
+                                        </c:when>
+                                        <c:otherwise>
+                                            <span class="status">${order.status}</span>
+                                        </c:otherwise>
+                                    </c:choose>
+                                </div>
+                                <div style="margin-top: 5px;">
+                                    <c:choose>
+                                        <c:when test="${order.paymentStatus == 'PAID'}">
+                                            <span style="background: #d1fae5; color: #065f46; padding: 3px 8px; border-radius: 10px; font-size: 11px; font-weight: 500; display: inline-block;">Đã thanh toán</span>
+                                        </c:when>
+                                        <c:otherwise>
+                                            <span style="background: #fee2e2; color: #991b1b; padding: 3px 8px; border-radius: 10px; font-size: 11px; font-weight: 500; display: inline-block;">Chưa thanh toán</span>
+                                        </c:otherwise>
+                                    </c:choose>
+                                </div>
                             </td>
 
                             <!-- NGÀY -->
@@ -331,9 +380,26 @@
 
                             <!-- THAO TÁC -->
                             <td>
-                                <a class="action" href="${pageContext.request.contextPath}/manage/sales/order-detail?id=${order.id}">
-                                    Xem chi tiết
-                                </a>
+                                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: nowrap;">
+                                    <a class="action" href="${pageContext.request.contextPath}/manage/sales/order-detail?id=${order.id}" style="color: #2563eb;">
+                                        Chi tiết
+                                    </a>
+                                    <c:if test="${order.status == 'PENDING'}">
+                                        <a class="action" href="javascript:void(0);" onclick="confirmAction(${order.id}, 'confirm')" style="color: #059669; font-weight: bold;">
+                                            | Xác nhận
+                                        </a>
+                                    </c:if>
+                                    <c:if test="${order.status != 'COMPLETED'}">
+                                        <a class="action" href="${pageContext.request.contextPath}/manage/sales/order-edit?id=${order.id}" style="color: #d97706;">
+                                            | Sửa
+                                        </a>
+                                    </c:if>
+                                    <c:if test="${order.status != 'COMPLETED' && order.status != 'CANCELLED'}">
+                                        <a class="action" href="javascript:void(0);" onclick="confirmAction(${order.id}, 'cancel')" style="color: #dc2626;">
+                                            | Hủy
+                                        </a>
+                                    </c:if>
+                                </div>
                             </td>
                         </tr>
                     </c:forEach>
@@ -350,6 +416,45 @@
     </div>
 
 </div>
+
+<c:if test="${not empty sessionScope.flash}">
+    <div style="position: fixed; bottom: 24px; right: 24px; background: #16a34a; color: #fff; padding: 14px 22px; border-radius: 8px; font-size: 14px; box-shadow: 0 4px 14px rgba(0,0,0,.15); z-index: 9999;">
+        ${sessionScope.flash}
+    </div>
+    <c:remove var="flash" scope="session"/>
+</c:if>
+
+<script>
+    function confirmAction(id, action) {
+        let message = '';
+        let url = '';
+        if (action === 'delete') {
+            message = 'Bạn có chắc chắn muốn xóa đơn hàng này? Thao tác này sẽ xóa toàn bộ chi tiết sản phẩm liên quan.';
+            url = '${pageContext.request.contextPath}/manage/sales/order-delete';
+        } else if (action === 'confirm') {
+            message = 'Bạn có chắc chắn muốn xác nhận đơn hàng này?';
+            url = '${pageContext.request.contextPath}/manage/sales/order-confirm';
+        } else if (action === 'cancel') {
+            message = 'Bạn có chắc chắn muốn hủy đơn hàng này?';
+            url = '${pageContext.request.contextPath}/manage/sales/order-cancel';
+        }
+        
+        if (confirm(message)) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = url;
+            
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'id';
+            input.value = id;
+            form.appendChild(input);
+            
+            document.body.appendChild(form);
+            form.submit();
+        }
+    }
+</script>
 
 </body>
 </html>

@@ -1,5 +1,6 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 
 <!DOCTYPE html>
 <html lang="vi">
@@ -267,6 +268,22 @@
                     ${customer.phone}
                 </div>
 
+            </div>
+
+            <!-- Tổng số đơn -->
+            <div class="info-item" style="background: #eff6ff; border-left: 4px solid #3b82f6;">
+                <div class="info-label" style="color: #1e3a8a; font-weight: bold;">Tổng số đơn hàng</div>
+                <div class="info-value" style="font-size: 18px; font-weight: bold; color: #1d4ed8; margin-top: 5px;">
+                    ${totalOrdersCount} đơn
+                </div>
+            </div>
+
+            <!-- Tổng chi tiêu -->
+            <div class="info-item" style="background: #ecfdf5; border-left: 4px solid #10b981;">
+                <div class="info-label" style="color: #064e3b; font-weight: bold;">Tổng chi tiêu tích lũy</div>
+                <div class="info-value" style="font-size: 18px; font-weight: bold; color: #047857; margin-top: 5px;">
+                    <fmt:formatNumber value="${totalAmountSpent}" pattern="#,##0" /> ₫
+                </div>
             </div>
 
         </div>

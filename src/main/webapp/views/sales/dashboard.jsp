@@ -46,35 +46,39 @@
 
         .cards {
             display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 16px;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 12px;
             margin-bottom: 30px;
         }
 
         .card {
             background: white;
             border-radius: 12px;
-            padding: 22px;
+            padding: 16px 12px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
 
         .card-title {
             color: #777;
-            font-size: 14px;
-            margin-bottom: 12px;
+            font-size: 13px;
+            margin-bottom: 8px;
+            font-weight: 600;
         }
 
         .card-value {
-            font-size: 27px;
+            font-size: 22px;
             font-weight: bold;
         }
 
         .card-link {
             display: inline-block;
-            margin-top: 15px;
+            margin-top: 10px;
             text-decoration: none;
             color: #2563eb;
-            font-size: 14px;
+            font-size: 12px;
         }
 
         .content {
@@ -122,6 +126,7 @@
             padding: 5px 10px;
             border-radius: 20px;
             font-size: 12px;
+            font-weight: 600;
         }
 
         .processing {
@@ -162,7 +167,13 @@
             background: #e9ecef;
         }
 
-        @media (max-width: 1000px) {
+        @media (max-width: 1200px) {
+            .cards {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
             .cards {
                 grid-template-columns: repeat(2, 1fr);
             }
@@ -172,13 +183,12 @@
             }
         }
 
-        @media (max-width: 600px) {
-            .container {
-                padding: 15px;
-            }
-
+        @media (max-width: 480px) {
             .cards {
                 grid-template-columns: 1fr;
+            }
+            .container {
+                padding: 15px;
             }
         }
     </style>
@@ -215,16 +225,16 @@
             </a>
         </div>
 
-        <!-- Đơn hoàn thành -->
-        <div class="card">
-            <div class="card-title">Đơn hoàn thành</div>
+        <!-- Đơn chờ xác nhận -->
+        <div class="card" style="border-left: 3px solid #d97706;">
+            <div class="card-title" style="color:#d97706;">⌛ Chờ xác nhận</div>
             <div class="card-value">
                 <c:choose>
-                    <c:when test="${completedOrders != null}">${completedOrders}</c:when>
+                    <c:when test="${pendingConfirmOrders != null}">${pendingConfirmOrders}</c:when>
                     <c:otherwise>0</c:otherwise>
                 </c:choose>
             </div>
-            <a class="card-link" href="${pageContext.request.contextPath}/manage/sales/orders?status=COMPLETED">
+            <a class="card-link" href="${pageContext.request.contextPath}/manage/sales/orders?status=PENDING">
                 Xem đơn hàng →
             </a>
         </div>
@@ -238,7 +248,7 @@
                     <c:otherwise>0</c:otherwise>
                 </c:choose>
             </div>
-            <a class="card-link" href="${pageContext.request.contextPath}/manage/sales/orders?status=PENDING">
+            <a class="card-link" href="${pageContext.request.contextPath}/manage/sales/orders?status=CONFIRMED">
                 Xem đơn hàng →
             </a>
         </div>
@@ -257,9 +267,23 @@
             </a>
         </div>
 
-        <!-- Bảo hành -->
+        <!-- Đơn hoàn thành -->
+        <div class="card">
+            <div class="card-title">Đơn hoàn thành</div>
+            <div class="card-value">
+                <c:choose>
+                    <c:when test="${completedOrders != null}">${completedOrders}</c:when>
+                    <c:otherwise>0</c:otherwise>
+                </c:choose>
+            </div>
+            <a class="card-link" href="${pageContext.request.contextPath}/manage/sales/orders?status=COMPLETED">
+                Xem đơn hàng →
+            </a>
+        </div>
+
+        <!-- Bảo hành cần xử lý -->
         <div class="card" style="border-left:4px solid #7c3aed;">
-            <div class="card-title">🛡 Bảo hành</div>
+            <div class="card-title" style="color:#7c3aed;">🛡 Bảo hành cần xử lý</div>
             <div class="card-value" style="color:#7c3aed;">
                 <c:choose>
                     <c:when test="${warrantyCount != null}">${warrantyCount}</c:when>
@@ -285,6 +309,7 @@
                     <th>Mã đơn</th>
                     <th>Khách hàng</th>
                     <th>Tổng tiền</th>
+                    <th>Ngày đặt</th>
                     <th>Trạng thái</th>
                 </tr>
                 </thead>
@@ -295,13 +320,16 @@
                             <c:if test="${status.index < 5}">
                                 <tr>
                                     <td>
-                                        <a href="${pageContext.request.contextPath}/manage/sales/order-detail?id=${order.id}">
+                                        <a href="${pageContext.request.contextPath}/manage/sales/order-detail?id=${order.id}" style="color:#2563eb; font-weight:600; text-decoration:none;">
                                             #${order.id}
                                         </a>
                                     </td>
-                                    <td>${order.customerName}</td>
-                                    <td>
+                                    <td style="font-weight:500;">${order.customerName}</td>
+                                    <td style="font-weight:600;">
                                         <fmt:formatNumber value="${order.total}" pattern="#,##0" /> ₫
+                                    </td>
+                                    <td style="color:#666;">
+                                        <fmt:formatDate value="${order.createdAt}" pattern="dd/MM/yyyy HH:mm"/>
                                     </td>
                                     <td>
                                         <c:choose>
@@ -314,6 +342,9 @@
                                             <c:when test="${order.status == 'CANCELLED'}">
                                                 <span class="status" style="background:#fee2e2;color:#991b1b;">Đã hủy</span>
                                             </c:when>
+                                            <c:when test="${order.status == 'CONFIRMED'}">
+                                                <span class="status processing" style="background:#fef3c7;color:#d97706;">Đã xác nhận</span>
+                                            </c:when>
                                             <c:otherwise>
                                                 <span class="status processing">${order.status}</span>
                                             </c:otherwise>
@@ -325,7 +356,7 @@
                     </c:when>
                     <c:otherwise>
                         <tr>
-                            <td colspan="4" style="text-align: center; color: #888;">
+                            <td colspan="5" style="text-align: center; color: #888; padding: 30px;">
                                 Chưa có đơn hàng.
                             </td>
                         </tr>

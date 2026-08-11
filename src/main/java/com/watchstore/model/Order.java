@@ -16,10 +16,12 @@ public class Order {
     private String shippingAddress;
     private BigDecimal totalPrice;
     private String status;
+    private String paymentStatus;
     private Date createdAt;
 
     public Order() {
         this.createdAt = new Date();
+        this.paymentStatus = "UNPAID";
     }
 
     public Order(String code, String customerName, LocalDateTime createdAt, BigDecimal totalPrice, OrderStatus status) {
@@ -91,6 +93,29 @@ public class Order {
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public OrderStatus getStatusEnum() {
+        if (status == null) return OrderStatus.PENDING;
+        try {
+            return OrderStatus.valueOf(status.toUpperCase().trim());
+        } catch (Exception e) {
+            String s = status.trim().toUpperCase();
+            if (s.contains("CHỜ") || s.contains("XỬ LÝ") || s.contains("PENDING")) return OrderStatus.PENDING;
+            if (s.contains("XÁC NHẬN") || s.contains("CONFIRMED")) return OrderStatus.CONFIRMED;
+            if (s.contains("GIAO") || s.contains("SHIPPING") || s.contains("DELIVERED")) return OrderStatus.SHIPPING;
+            if (s.contains("HOÀN THÀNH") || s.contains("COMPLETED")) return OrderStatus.COMPLETED;
+            if (s.contains("HỦY") || s.contains("CANCELLED")) return OrderStatus.CANCELLED;
+            if (s.contains("ĐỔI") || s.contains("TRẢ") || s.contains("RETURNED")) return OrderStatus.RETURNED;
+            return OrderStatus.PENDING;
+        }
+    }
+
+    public String getPaymentStatus() {
+        return paymentStatus != null ? paymentStatus : "UNPAID";
+    }
+    public void setPaymentStatus(String paymentStatus) {
+        this.paymentStatus = paymentStatus;
+    }
 
     public Date getCreatedAt() { return createdAt; }
     public void setCreatedAt(Date createdAt) { this.createdAt = createdAt; }

@@ -218,7 +218,7 @@
             <input type="text"
                    name="keyword"
                    value="${keyword}"
-                   placeholder="Nhập tên khách hàng...">
+                    placeholder="Nhập tên, số điện thoại, email hoặc mã KH...">
 
             <button type="submit"
                     class="btn btn-search">

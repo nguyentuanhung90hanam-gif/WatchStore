@@ -253,30 +253,15 @@
             <input type="text"
                    name="keyword"
                    value="${keyword}"
-                   placeholder="Nhập mã đơn hoặc tên khách hàng...">
+                   placeholder="Nhập mã đơn, tên KH, SĐT, địa chỉ...">
 
 
             <select name="status">
-
-                <option value="">
-                    -- Tất cả --
-                </option>
-
-                <option value="Đang xử lý"
-                    ${status == 'Đang xử lý' ? 'selected' : ''}>
-                    Đang xử lý
-                </option>
-
-                <option value="Đang giao"
-                    ${status == 'Đang giao' ? 'selected' : ''}>
-                    Đang giao
-                </option>
-
-                <option value="Hoàn thành"
-                    ${status == 'Hoàn thành' ? 'selected' : ''}>
-                    Hoàn thành
-                </option>
-
+                <option value="">-- Tất cả trạng thái --</option>
+                <option value="Chờ giao" ${status == 'Chờ giao' ? 'selected' : ''}>Chờ giao</option>
+                <option value="Đang giao" ${status == 'Đang giao' ? 'selected' : ''}>Đang giao</option>
+                <option value="Giao thành công" ${status == 'Giao thành công' ? 'selected' : ''}>Giao thành công</option>
+                <option value="Giao thất bại" ${status == 'Giao thất bại' ? 'selected' : ''}>Giao thất bại</option>
             </select>
 
 
@@ -421,58 +406,24 @@
 
                                 <c:choose>
 
-                                    <c:when test="${order.status == 'Đang xử lý'}">
-
-                                        <span class="status processing">
-
-                                            ${order.status}
-
-                                        </span>
-
+                                    <c:when test="${order.status == 'CONFIRMED' or order.status == 'Chờ giao'}">
+                                        <span class="status pending" style="display:inline-block;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600;background:#fef3c7;color:#92400e;">Chờ giao</span>
                                     </c:when>
 
-
-                                    <c:when test="${order.status == 'Đang giao'}">
-
-                                        <span class="status shipping">
-
-                                            ${order.status}
-
-                                        </span>
-
+                                    <c:when test="${order.status == 'SHIPPING' or order.status == 'Đang giao'}">
+                                        <span class="status shipping" style="display:inline-block;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600;background:#dbeafe;color:#1e40af;">Đang giao</span>
                                     </c:when>
 
-
-                                    <c:when test="${order.status == 'Hoàn thành'}">
-
-                                        <span class="status completed">
-
-                                            ${order.status}
-
-                                        </span>
-
+                                    <c:when test="${order.status == 'COMPLETED' or order.status == 'Giao thành công' or order.status == 'Hoàn thành'}">
+                                        <span class="status completed" style="display:inline-block;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600;background:#d1fae5;color:#065f46;">Giao thành công</span>
                                     </c:when>
 
-
-                                    <c:when test="${order.status == 'Đã hủy'}">
-
-                                        <span class="status cancelled">
-
-                                            ${order.status}
-
-                                        </span>
-
+                                    <c:when test="${order.status == 'CANCELLED' or order.status == 'Giao thất bại' or order.status == 'Đã hủy'}">
+                                        <span class="status cancelled" style="display:inline-block;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600;background:#fee2e2;color:#991b1b;">Giao thất bại</span>
                                     </c:when>
-
 
                                     <c:otherwise>
-
-                                        <span class="status">
-
-                                            ${order.status}
-
-                                        </span>
-
+                                        <span class="status" style="display:inline-block;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600;background:#f1f5f9;color:#64748b;">${order.status}</span>
                                     </c:otherwise>
 
                                 </c:choose>
@@ -484,12 +435,49 @@
 
                             <td>
 
-                                <a class="action"
-                                   href="${pageContext.request.contextPath}/manage/sales/order-detail?id=${order.id}">
-
-                                    Xem đơn hàng
-
-                                </a>
+                                <div style="display:flex; gap:8px; align-items:center;">
+                                    <a class="btn" style="background:#f1f5f9; color:#334155; padding:0 12px; font-size:13px; font-weight:600; text-decoration:none; border-radius:6px; border:1px solid #cbd5e1; display:inline-flex; align-items:center; height:32px;"
+                                       href="${pageContext.request.contextPath}/manage/sales/order-detail?id=${order.id}">
+                                        Xem đơn
+                                    </a>
+                                    
+                                    <c:choose>
+                                        <c:when test="${order.status == 'CONFIRMED' or order.status == 'Chờ giao'}">
+                                            <button type="button" class="btn" style="background:#e2e8f0; color:#1e293b; padding:0 12px; font-size:13px; font-weight:600; cursor:pointer; border:none; border-radius:6px; height:32px;"
+                                                    data-id="${order.id}"
+                                                    data-code="${order.code}"
+                                                    data-customer="${order.customerName}"
+                                                    data-phone="${order.customerPhone}"
+                                                    data-address="${order.shippingAddress}"
+                                                    data-status="${order.status}"
+                                                    data-total="${order.total}"
+                                                    onclick="openUpdateModal(event)">
+                                                Cập nhật
+                                            </button>
+                                            <button type="button" class="btn" style="background:#2563eb; color:white; padding:0 12px; font-size:13px; font-weight:600; cursor:pointer; border:none; border-radius:6px; height:32px;"
+                                                    onclick="quickUpdateStatus(${order.id}, 'SHIPPING')">
+                                                Bắt đầu giao
+                                            </button>
+                                        </c:when>
+                                        <c:when test="${order.status == 'SHIPPING' or order.status == 'Đang giao'}">
+                                            <button type="button" class="btn" style="background:#e2e8f0; color:#1e293b; padding:0 12px; font-size:13px; font-weight:600; cursor:pointer; border:none; border-radius:6px; height:32px;"
+                                                    data-id="${order.id}"
+                                                    data-code="${order.code}"
+                                                    data-customer="${order.customerName}"
+                                                    data-phone="${order.customerPhone}"
+                                                    data-address="${order.shippingAddress}"
+                                                    data-status="${order.status}"
+                                                    data-total="${order.total}"
+                                                    onclick="openUpdateModal(event)">
+                                                Cập nhật
+                                            </button>
+                                            <button type="button" class="btn" style="background:#16a34a; color:white; padding:0 12px; font-size:13px; font-weight:600; cursor:pointer; border:none; border-radius:6px; height:32px;"
+                                                    onclick="quickUpdateStatus(${order.id}, 'COMPLETED')">
+                                                Xác nhận giao thành công
+                                            </button>
+                                        </c:when>
+                                    </c:choose>
+                                </div>
 
                             </td>
 
@@ -522,6 +510,96 @@
         </table>
 
     </div>
+
+    <!-- ================= MODAL CẬP NHẬT GIAO HÀNG ================= -->
+    <div id="update-delivery-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; justify-content:center; align-items:center; padding:15px;">
+        <div style="background:white; border-radius:12px; max-width:500px; width:100%; box-shadow:0 10px 25px rgba(0,0,0,0.25); padding:25px; position:relative;">
+            <span style="position:absolute; top:15px; right:15px; font-size:24px; color:#aaa; cursor:pointer; font-weight:bold;" onclick="closeUpdateModal()">&times;</span>
+            <h2 style="margin-top:0; margin-bottom:20px; font-size:20px; color:#1e293b; border-bottom:1px solid #e2e8f0; padding-bottom:12px;">Cập nhật vận chuyển <span id="modal-order-code" style="color:#2563eb;"></span></h2>
+            
+            <form method="post" action="${pageContext.request.contextPath}/manage/sales/order-update-shipping" style="text-align:left;">
+                <input type="hidden" name="id" id="modal-order-id">
+                <input type="hidden" name="redirect" value="delivery">
+                
+                <div style="margin-bottom:12px;">
+                    <label style="font-weight:600; display:block; margin-bottom:5px; font-size:14px;">Người nhận:</label>
+                    <input type="text" name="customerName" id="modal-customer-input" required style="width:100%; height:38px; padding:0 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:14px; outline:none;">
+                </div>
+                
+                <div style="margin-bottom:12px;">
+                    <label style="font-weight:600; display:block; margin-bottom:5px; font-size:14px;">Số điện thoại:</label>
+                    <input type="text" name="phone" id="modal-phone-input" required style="width:100%; height:38px; padding:0 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:14px; outline:none;">
+                </div>
+                
+                <div style="margin-bottom:12px;">
+                    <label style="font-weight:600; display:block; margin-bottom:5px; font-size:14px;">Địa chỉ:</label>
+                    <input type="text" name="shippingAddress" id="modal-address-input" required style="width:100%; height:38px; padding:0 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:14px; outline:none;">
+                </div>
+                
+                <div style="margin-bottom:20px;">
+                    <label style="font-weight:600; display:block; margin-bottom:5px; font-size:14px;">Trạng thái vận chuyển:</label>
+                    <select name="status" id="modal-status-input" style="width:100%; height:38px; padding:0 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:14px; outline:none; background:white;">
+                        <option value="CONFIRMED">Chờ giao</option>
+                        <option value="SHIPPING">Đang giao</option>
+                        <option value="COMPLETED">Giao thành công</option>
+                        <option value="CANCELLED">Giao thất bại</option>
+                    </select>
+                </div>
+                
+                <div style="display:flex; justify-content:flex-end; gap:10px; border-top:1px solid #e2e8f0; padding-top:15px;">
+                    <button type="submit" class="btn" style="background:#2563eb; color:white; height:36px; padding:0 18px; font-weight:bold; cursor:pointer; border:none; border-radius:6px;">💾 Lưu thay đổi</button>
+                    <button type="button" class="btn" style="background:#e2e8f0; color:#334155; height:36px; padding:0 18px; cursor:pointer; border:none; border-radius:6px;" onclick="closeUpdateModal()">Đóng</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- HIDDEN FORM FOR QUICK STATE UPDATE -->
+    <form id="quick-update-form" method="post" action="${pageContext.request.contextPath}/manage/sales/order-update-shipping" style="display:none;">
+        <input type="hidden" name="id" id="quick-order-id">
+        <input type="hidden" name="status" id="quick-order-status">
+        <input type="hidden" name="redirect" value="delivery">
+    </form>
+
+    <script>
+        function openUpdateModal(event) {
+            var btn = event.currentTarget;
+            var id = btn.getAttribute('data-id');
+            var code = btn.getAttribute('data-code');
+            var customer = btn.getAttribute('data-customer');
+            var phone = btn.getAttribute('data-phone');
+            var address = btn.getAttribute('data-address');
+            var status = btn.getAttribute('data-status');
+            
+            document.getElementById('modal-order-id').value = id;
+            document.getElementById('modal-order-code').innerText = code ? '#' + code : '#' + id;
+            document.getElementById('modal-customer-input').value = customer || '';
+            document.getElementById('modal-phone-input').value = phone || '';
+            document.getElementById('modal-address-input').value = address || '';
+            document.getElementById('modal-status-input').value = status || 'CONFIRMED';
+            
+            document.getElementById('update-delivery-modal').style.display = 'flex';
+        }
+        
+        function closeUpdateModal() {
+            document.getElementById('update-delivery-modal').style.display = 'none';
+        }
+        
+        function quickUpdateStatus(id, newStatus) {
+            let msg = '';
+            if (newStatus === 'SHIPPING') {
+                msg = 'Bắt đầu giao đơn hàng này?';
+            } else if (newStatus === 'COMPLETED') {
+                msg = 'Xác nhận đơn hàng đã được giao thành công?';
+            }
+            
+            if (confirm(msg)) {
+                document.getElementById('quick-order-id').value = id;
+                document.getElementById('quick-order-status').value = newStatus;
+                document.getElementById('quick-update-form').submit();
+            }
+        }
+    </script>
 
 </div>
 
