@@ -77,7 +77,7 @@
 
             <tr>
 
-                <th>ID</th>
+                <th>STT</th>
 
                 <th>Mã</th>
 
@@ -101,14 +101,14 @@
             <tbody>
 
 
-            <c:forEach items="${categories}" var="c">
+            <c:forEach items="${categories}" var="c" varStatus="status">
 
 
                 <tr>
 
 
                     <td>
-                        ${c.categoryId}
+                        ${status.index + 1}
                     </td>
 
 

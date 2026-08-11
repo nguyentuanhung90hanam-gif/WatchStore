@@ -127,8 +127,20 @@ public class AccountController extends HttpServlet {
                 String idStr = req.getParameter("id");
                 if (idStr != null && !idStr.isBlank()) {
                     try {
-                        userRepository.delete(Integer.parseInt(idStr));
-                    } catch (NumberFormatException ignored) {}
+                        int id = Integer.parseInt(idStr);
+                        if (userRepository.isUserInUse(id)) {
+                            req.getSession().setAttribute("errorMessage", "Không thể xóa tài khoản này vì đã có dữ liệu liên quan (đơn hàng, bài viết, đánh giá...).");
+                        } else {
+                            boolean deleted = userRepository.delete(id);
+                            if (deleted) {
+                                req.getSession().setAttribute("successMessage", "Xóa tài khoản thành công.");
+                            } else {
+                                req.getSession().setAttribute("errorMessage", "Không thể xóa tài khoản.");
+                            }
+                        }
+                    } catch (Exception e) {
+                        req.getSession().setAttribute("errorMessage", "Không thể xóa tài khoản.");
+                    }
                 }
                 resp.sendRedirect(req.getContextPath() + "/manage/admin/accounts");
                 break;
@@ -186,7 +198,7 @@ public class AccountController extends HttpServlet {
         List<Integer> roleIds = parseRoleIds(roleIdStrs);
 
         // Validation
-        String error = validateUser(email, fullName, password, true);
+        String error = validateUser(email, fullName, password, phone, dobStr, status, true);
         if (error == null && userRepository.existsByEmail(email, null)) {
             error = "Email \"" + email + "\" đã tồn tại trong hệ thống.";
         }
@@ -229,7 +241,7 @@ public class AccountController extends HttpServlet {
         List<Integer> roleIds = parseRoleIds(roleIdStrs);
 
         // Validation — password không bắt buộc khi update
-        String error = validateUser(email, fullName, password, false);
+        String error = validateUser(email, fullName, password, phone, dobStr, status, false);
         if (error == null && userRepository.existsByEmail(email, id)) {
             error = "Email \"" + email + "\" đã được dùng bởi tài khoản khác.";
         }
@@ -275,10 +287,45 @@ public class AccountController extends HttpServlet {
         return (s == null) ? "" : s.trim();
     }
 
-    private String validateUser(String email, String fullName, String password, boolean isNew) {
-        if (email.isEmpty())    return "Email không được để trống.";
-        if (fullName.isEmpty()) return "Họ và tên không được để trống.";
-        if (isNew && password.isEmpty()) return "Mật khẩu không được để trống khi tạo mới.";
+    private String validateUser(String email, String fullName, String password, String phone, String dobStr, String status, boolean isNew) {
+        if (email.isBlank())    return "Tên đăng nhập / Email không được để trống.";
+        if (email.length() > 150) return "Email không được vượt quá 150 ký tự.";
+        if (!email.matches("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")) {
+            return "Email không đúng định dạng.";
+        }
+        if (fullName.isBlank()) return "Họ và tên không được để trống.";
+        if (fullName.length() > 150) return "Họ và tên không được vượt quá 150 ký tự.";
+        
+        if (isNew && password.isBlank()) {
+            return "Mật khẩu không được để trống khi tạo mới.";
+        }
+        if (!password.isEmpty()) {
+            if (password.isBlank()) return "Mật khẩu không được chỉ chứa khoảng trắng.";
+            if (password.length() < 6) return "Mật khẩu phải chứa ít nhất 6 ký tự.";
+            if (password.length() > 255) return "Mật khẩu không được vượt quá 255 ký tự.";
+        }
+
+        if (!phone.isBlank()) {
+            if (phone.length() > 20) return "Số điện thoại không được vượt quá 20 ký tự.";
+            if (!phone.matches("^(0|\\+84)[0-9]{9}$")) {
+                return "Số điện thoại phải gồm 10 chữ số (VD: 0912345678 hoặc +84912345678).";
+            }
+        }
+
+        if (!dobStr.isBlank()) {
+            try {
+                LocalDate dob = LocalDate.parse(dobStr);
+                if (dob.isAfter(LocalDate.now())) {
+                    return "Ngày sinh không được lớn hơn ngày hiện tại.";
+                }
+            } catch (Exception e) {
+                return "Ngày sinh không đúng định dạng.";
+            }
+        }
+
+        if (!status.isEmpty() && !"ACTIVE".equals(status) && !"INACTIVE".equals(status) && !"LOCKED".equals(status)) {
+            return "Trạng thái tài khoản không hợp lệ (chỉ chấp nhận ACTIVE, INACTIVE, LOCKED).";
+        }
         return null;
     }
 

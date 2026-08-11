@@ -108,6 +108,7 @@
                 <input type="datetime-local"
                        name="startAt"
                        value="${startAtFormatted}"
+                       min="${minDateTimeFormatted}"
                        required>
             </div>
 
@@ -116,6 +117,7 @@
                 <input type="datetime-local"
                        name="endAt"
                        value="${endAtFormatted}"
+                       min="${minDateTimeFormatted}"
                        required>
             </div>
         </div>

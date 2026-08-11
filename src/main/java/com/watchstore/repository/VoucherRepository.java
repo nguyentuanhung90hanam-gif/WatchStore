@@ -19,4 +19,6 @@ public interface VoucherRepository {
 
     boolean delete(Integer id);
 
+    boolean isVoucherInUse(Integer id);
+
 }

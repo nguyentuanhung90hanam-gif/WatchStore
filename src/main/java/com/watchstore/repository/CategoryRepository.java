@@ -21,4 +21,6 @@ public interface CategoryRepository {
     void delete(Integer id);
 
     List<Category> search(String keyword);
+
+    boolean isCategoryInUse(Integer id);
 }

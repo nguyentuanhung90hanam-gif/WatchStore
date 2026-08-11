@@ -228,6 +228,22 @@ public class BrandRepositoryImpl implements BrandRepository {
         return false;
     }
 
+    @Override
+    public boolean isBrandInUse(int brandId) {
+        String sql = "SELECT COUNT(*) FROM Products WHERE BrandID = ?";
+        try (Connection con = getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, brandId);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
     // ─── helper ──────────────────────────────────────────────────────────────
 
     private String nullIfBlank(String s) {

@@ -15,4 +15,6 @@ public interface ProductRepository {
     boolean delete(int id);
     boolean existsByCode(String code, Integer excludeId);
     boolean existsBySlug(String slug, Integer excludeId);
+    boolean existsBySku(String sku, Integer excludeId);
+    boolean isProductInUse(int productId);
 }

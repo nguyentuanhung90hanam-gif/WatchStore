@@ -133,7 +133,7 @@ public class NotificationController extends HttpServlet {
         String notificationType = trim(req.getParameter("notificationType"));
         String targetUrl = trim(req.getParameter("targetUrl"));
 
-        String error = validate(title, message);
+        String error = validate(title, message, notificationType, targetUrl);
 
         User user = (User) req.getSession().getAttribute("user");
         Integer createdBy = (user != null && user.getUserId() > 0) ? user.getUserId() : null;
@@ -161,7 +161,7 @@ public class NotificationController extends HttpServlet {
         String targetUrl = trim(req.getParameter("targetUrl"));
 
         long id = parseLong(idStr, 0);
-        String error = validate(title, message);
+        String error = validate(title, message, notificationType, targetUrl);
 
         User user = (User) req.getSession().getAttribute("user");
         Integer createdBy = (user != null && user.getUserId() > 0) ? user.getUserId() : null;
@@ -182,9 +182,13 @@ public class NotificationController extends HttpServlet {
     private String trim(String s) { return s == null ? "" : s.trim(); }
     private long parseLong(String s, long def) { try { return Long.parseLong(s); } catch (Exception e) { return def; } }
 
-    private String validate(String title, String message) {
-        if (title.isEmpty()) return "Tiêu đề thông báo không được để trống.";
-        if (message.isEmpty()) return "Nội dung thông báo không được để trống.";
+    private String validate(String title, String message, String notificationType, String targetUrl) {
+        if (title.isBlank()) return "Tiêu đề thông báo không được để trống.";
+        if (title.length() > 250) return "Tiêu đề không được vượt quá 250 ký tự.";
+        if (message.isBlank()) return "Nội dung thông báo không được để trống.";
+        if (message.length() > 1500) return "Nội dung thông báo không được vượt quá 1500 ký tự.";
+        if (!notificationType.isEmpty() && notificationType.length() > 40) return "Loại thông báo không được vượt quá 40 ký tự.";
+        if (!targetUrl.isEmpty() && targetUrl.length() > 500) return "Link liên kết (target URL) không được vượt quá 500 ký tự.";
         return null;
     }
 

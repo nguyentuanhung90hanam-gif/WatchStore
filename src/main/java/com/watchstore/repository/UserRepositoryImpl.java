@@ -357,6 +357,42 @@ public class UserRepositoryImpl implements UserRepository {
         return false;
     }
 
+    @Override
+    public boolean isUserInUse(int userId) {
+        String sql = """
+                SELECT (
+                    (SELECT COUNT(*) FROM Orders WHERE CustomerID = ? OR SalesStaffID = ?) +
+                    (SELECT COUNT(*) FROM Reviews WHERE UserID = ?) +
+                    (SELECT COUNT(*) FROM Posts WHERE AuthorID = ?) +
+                    (SELECT COUNT(*) FROM CustomerNotes WHERE CustomerID = ? OR StaffID = ?) +
+                    (SELECT COUNT(*) FROM StockReceipts WHERE CreatedBy = ? OR ApprovedBy = ?) +
+                    (SELECT COUNT(*) FROM StockExports WHERE CreatedBy = ? OR ApprovedBy = ?) +
+                    (SELECT COUNT(*) FROM VoucherUsages WHERE UserID = ?)
+                ) AS TotalRefs
+                """;
+        try (Connection con = getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            ps.setInt(2, userId);
+            ps.setInt(3, userId);
+            ps.setInt(4, userId);
+            ps.setInt(5, userId);
+            ps.setInt(6, userId);
+            ps.setInt(7, userId);
+            ps.setInt(8, userId);
+            ps.setInt(9, userId);
+            ps.setInt(10, userId);
+            ps.setInt(11, userId);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
     // ─── Private helpers ─────────────────────────────────────────────────────
 
     private void insertUserRoles(Connection con, int userId, List<Integer> roleIds) throws SQLException {

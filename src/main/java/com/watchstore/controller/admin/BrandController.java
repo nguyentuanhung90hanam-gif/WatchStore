@@ -90,9 +90,19 @@ public class BrandController extends HttpServlet {
                 String idStr = req.getParameter("id");
                 if (idStr != null && !idStr.isBlank()) {
                     try {
-                        brandRepository.delete(Integer.parseInt(idStr));
-                    } catch (NumberFormatException e) {
-                        e.printStackTrace();
+                        int id = Integer.parseInt(idStr);
+                        if (brandRepository.isBrandInUse(id)) {
+                            req.getSession().setAttribute("errorMessage", "Không thể xóa thương hiệu này vì đang có sản phẩm thuộc thương hiệu.");
+                        } else {
+                            boolean deleted = brandRepository.delete(id);
+                            if (deleted) {
+                                req.getSession().setAttribute("successMessage", "Xóa thương hiệu thành công.");
+                            } else {
+                                req.getSession().setAttribute("errorMessage", "Không thể xóa thương hiệu.");
+                            }
+                        }
+                    } catch (Exception e) {
+                        req.getSession().setAttribute("errorMessage", "Không thể xóa thương hiệu.");
                     }
                 }
                 resp.sendRedirect(req.getContextPath() + "/manage/admin/brands");
@@ -148,7 +158,7 @@ public class BrandController extends HttpServlet {
         String status       = trim(req.getParameter("status"));
 
         // Validation
-        String error = validateBrand(brandCode, brandName, slug, status);
+        String error = validateBrand(brandCode, brandName, slug, originCountry, logoUrl, status);
         if (error == null && brandRepository.existsByCode(brandCode, null)) {
             error = "Mã thương hiệu \"" + brandCode + "\" đã tồn tại trong hệ thống.";
         }
@@ -187,7 +197,7 @@ public class BrandController extends HttpServlet {
         } catch (NumberFormatException ignored) {}
 
         // Validation
-        String error = validateBrand(brandCode, brandName, slug, status);
+        String error = validateBrand(brandCode, brandName, slug, originCountry, logoUrl, status);
         if (error == null && brandRepository.existsByCode(brandCode, id)) {
             error = "Mã thương hiệu \"" + brandCode + "\" đã được dùng bởi thương hiệu khác.";
         }
@@ -223,10 +233,18 @@ public class BrandController extends HttpServlet {
         return (s == null) ? "" : s.trim();
     }
 
-    private String validateBrand(String code, String name, String slug, String status) {
-        if (code.isEmpty())  return "Mã thương hiệu không được để trống.";
-        if (name.isEmpty())  return "Tên thương hiệu không được để trống.";
-        if (slug.isEmpty())  return "Slug không được để trống.";
+    private String validateBrand(String code, String name, String slug, String country, String logo, String status) {
+        if (code.isBlank())  return "Mã thương hiệu không được để trống.";
+        if (code.length() > 40) return "Mã thương hiệu không được vượt quá 40 ký tự.";
+        if (name.isBlank())  return "Tên thương hiệu không được để trống.";
+        if (name.length() > 120) return "Tên thương hiệu không được vượt quá 120 ký tự.";
+        if (slug.isBlank())  return "Slug không được để trống.";
+        if (slug.length() > 150) return "Slug không được vượt quá 150 ký tự.";
+        if (!slug.matches("^[a-z0-9]+(?:-[a-z0-9]+)*$")) {
+            return "Slug không hợp lệ (chỉ gồm chữ cái viết thường, chữ số và dấu gạch ngang, VD: dong-ho-casio).";
+        }
+        if (!country.isEmpty() && country.length() > 100) return "Quốc gia xuất xứ không được vượt quá 100 ký tự.";
+        if (!logo.isEmpty() && logo.length() > 500) return "URL Logo không được vượt quá 500 ký tự.";
         if (!"ACTIVE".equals(status) && !"INACTIVE".equals(status)) {
             return "Trạng thái không hợp lệ (phải là ACTIVE hoặc INACTIVE).";
         }

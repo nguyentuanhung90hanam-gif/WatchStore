@@ -92,9 +92,14 @@ public class CategoryController extends HttpServlet {
                 if (idStr != null && !idStr.isBlank()) {
                     try {
                         int id = Integer.parseInt(idStr);
-                        categoryRepository.delete(id);
+                        if (categoryRepository.isCategoryInUse(id)) {
+                            req.getSession().setAttribute("errorMessage", "Không thể xóa danh mục này vì có danh mục con hoặc sản phẩm thuộc danh mục.");
+                        } else {
+                            categoryRepository.delete(id);
+                            req.getSession().setAttribute("successMessage", "Xóa danh mục thành công.");
+                        }
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        req.getSession().setAttribute("errorMessage", "Không thể xóa danh mục.");
                     }
                 }
                 resp.sendRedirect(req.getContextPath() + "/manage/admin/categories");
@@ -144,12 +149,11 @@ public class CategoryController extends HttpServlet {
         String slug         = trim(req.getParameter("slug"));
         String description  = trim(req.getParameter("description"));
         String imageUrl     = trim(req.getParameter("imageUrl"));
-        String sortStr      = trim(req.getParameter("displayOrder"));
         String status       = trim(req.getParameter("status"));
         String parentStr    = trim(req.getParameter("parentCategoryId"));
 
         // Validation
-        String error = validateCategory(categoryCode, categoryName, slug, sortStr, status, null);
+        String error = validateCategory(categoryCode, categoryName, slug, description, imageUrl, status, parentStr, null);
         if (error == null) {
             // Duplicate check
             if (categoryRepository.existsByCode(categoryCode, null)) {
@@ -165,14 +169,14 @@ public class CategoryController extends HttpServlet {
             req.setAttribute("errorMessage", error);
             req.setAttribute("allCategories", categoryRepository.findAll());
             // Preserve form data
-            Category draft = buildCategory(null, parentStr, categoryCode, categoryName, slug, description, imageUrl, sortStr, status);
+            Category draft = buildCategory(null, parentStr, categoryCode, categoryName, slug, description, imageUrl, status);
             req.setAttribute("category", draft);
             req.setAttribute("contentPage", "/views/admin/category-form.jsp");
             req.getRequestDispatcher("/views/layout/admin-layout.jsp").forward(req, resp);
             return;
         }
 
-        Category c = buildCategory(null, parentStr, categoryCode, categoryName, slug, description, imageUrl, sortStr, status);
+        Category c = buildCategory(null, parentStr, categoryCode, categoryName, slug, description, imageUrl, status);
         categoryRepository.save(c);
         resp.sendRedirect(req.getContextPath() + "/manage/admin/categories");
     }
@@ -188,7 +192,6 @@ public class CategoryController extends HttpServlet {
         String slug         = trim(req.getParameter("slug"));
         String description  = trim(req.getParameter("description"));
         String imageUrl     = trim(req.getParameter("imageUrl"));
-        String sortStr      = trim(req.getParameter("displayOrder"));
         String status       = trim(req.getParameter("status"));
         String parentStr    = trim(req.getParameter("parentCategoryId"));
 
@@ -198,7 +201,7 @@ public class CategoryController extends HttpServlet {
         } catch (NumberFormatException ignored) {}
 
         // Validation
-        String error = validateCategory(categoryCode, categoryName, slug, sortStr, status, id);
+        String error = validateCategory(categoryCode, categoryName, slug, description, imageUrl, status, parentStr, id);
         if (error == null) {
             if (categoryRepository.existsByCode(categoryCode, id)) {
                 error = "Mã danh mục \"" + categoryCode + "\" đã được sử dụng bởi danh mục khác.";
@@ -212,14 +215,14 @@ public class CategoryController extends HttpServlet {
             req.setAttribute("pageTitle", "Sửa danh mục");
             req.setAttribute("errorMessage", error);
             req.setAttribute("allCategories", categoryRepository.findAll());
-            Category draft = buildCategory(id, parentStr, categoryCode, categoryName, slug, description, imageUrl, sortStr, status);
+            Category draft = buildCategory(id, parentStr, categoryCode, categoryName, slug, description, imageUrl, status);
             req.setAttribute("category", draft);
             req.setAttribute("contentPage", "/views/admin/category-form.jsp");
             req.getRequestDispatcher("/views/layout/admin-layout.jsp").forward(req, resp);
             return;
         }
 
-        Category c = buildCategory(id, parentStr, categoryCode, categoryName, slug, description, imageUrl, sortStr, status);
+        Category c = buildCategory(id, parentStr, categoryCode, categoryName, slug, description, imageUrl, status);
         categoryRepository.update(c);
         resp.sendRedirect(req.getContextPath() + "/manage/admin/categories");
     }
@@ -230,14 +233,32 @@ public class CategoryController extends HttpServlet {
         return (s == null) ? "" : s.trim();
     }
 
-    private String validateCategory(String code, String name, String slug,
-                                    String sortStr, String status, Integer excludeId) {
-        if (code.isEmpty())   return "Mã danh mục không được để trống.";
-        if (name.isEmpty())   return "Tên danh mục không được để trống.";
-        if (slug.isEmpty())   return "Slug không được để trống.";
-        if (!sortStr.isEmpty()) {
-            try { Integer.parseInt(sortStr); } catch (NumberFormatException e) {
-                return "Thứ tự hiển thị phải là số nguyên.";
+    private String validateCategory(String code, String name, String slug, String description, String imageUrl,
+                                    String status, String parentStr, Integer excludeId) {
+        if (code.isBlank())   return "Mã danh mục không được để trống.";
+        if (code.length() > 40) return "Mã danh mục không được vượt quá 40 ký tự.";
+        if (name.isBlank())   return "Tên danh mục không được để trống.";
+        if (name.length() > 120) return "Tên danh mục không được vượt quá 120 ký tự.";
+        if (slug.isBlank())   return "Slug không được để trống.";
+        if (slug.length() > 150) return "Slug không được vượt quá 150 ký tự.";
+        if (!slug.matches("^[a-z0-9]+(?:-[a-z0-9]+)*$")) {
+            return "Slug không hợp lệ (chỉ gồm chữ cái viết thường, chữ số và dấu gạch ngang, VD: dong-ho-nam).";
+        }
+        if (!description.isEmpty() && description.length() > 1000) return "Mô tả danh mục không được vượt quá 1000 ký tự.";
+        if (!imageUrl.isEmpty() && imageUrl.length() > 500) return "URL Ảnh danh mục không được vượt quá 500 ký tự.";
+        if (!parentStr.isEmpty()) {
+            try {
+                int parentId = Integer.parseInt(parentStr);
+                if (parentId > 0) {
+                    if (excludeId != null && parentId == excludeId) {
+                        return "Danh mục cha không thể là chính danh mục đang sửa.";
+                    }
+                    if (categoryRepository.findById(parentId) == null) {
+                        return "Danh mục cha được chọn không tồn tại.";
+                    }
+                }
+            } catch (NumberFormatException e) {
+                return "Danh mục cha không hợp lệ.";
             }
         }
         if (!"ACTIVE".equals(status) && !"INACTIVE".equals(status)) {
@@ -248,7 +269,7 @@ public class CategoryController extends HttpServlet {
 
     private Category buildCategory(Integer id, String parentStr, String code, String name,
                                    String slug, String description, String imageUrl,
-                                   String sortStr, String status) {
+                                   String status) {
         Category c = new Category();
         c.setCategoryId(id);
         c.setCategoryCode(code);
@@ -256,15 +277,7 @@ public class CategoryController extends HttpServlet {
         c.setSlug(slug);
         c.setDescription(description.isEmpty() ? null : description);
         c.setImageUrl(imageUrl.isEmpty() ? null : imageUrl);
-        if (sortStr != null && !sortStr.isEmpty()) {
-            try {
-                c.setDisplayOrder(Integer.parseInt(sortStr));
-            } catch (NumberFormatException e) {
-                c.setDisplayOrder(null);
-            }
-        } else {
-            c.setDisplayOrder(null);
-        }
+        c.setDisplayOrder(0);
         c.setStatus(status.isEmpty() ? "ACTIVE" : status);
 
         if (parentStr != null && !parentStr.isEmpty()) {

@@ -286,4 +286,29 @@ public class CategoryRepositoryImpl implements CategoryRepository {
 
         return list;
     }
+
+    @Override
+    public boolean isCategoryInUse(Integer id) {
+        if (id == null || id <= 0) return false;
+        String sql = """
+                SELECT (
+                    (SELECT COUNT(*) FROM Categories WHERE ParentCategoryID = ?) +
+                    (SELECT COUNT(*) FROM Products WHERE CategoryID = ?) +
+                    (SELECT COUNT(*) FROM VoucherCategories WHERE CategoryID = ?)
+                ) AS TotalRefs
+                """;
+        try (Connection con = getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            ps.setInt(2, id);
+            ps.setInt(3, id);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
 }

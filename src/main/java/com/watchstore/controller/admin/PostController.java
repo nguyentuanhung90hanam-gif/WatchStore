@@ -136,13 +136,13 @@ public class PostController extends HttpServlet {
         String thumbnailUrl = trim(req.getParameter("thumbnailUrl"));
         String status = trim(req.getParameter("status"));
 
-        String error = validate(title, slug, content);
+        User user = (User) req.getSession().getAttribute("user");
+        int authorId = (user != null && user.getUserId() > 0) ? user.getUserId() : 1;
+
+        String error = validate(title, slug, summary, content, postType, thumbnailUrl, status, authorId);
         if (error == null && postRepository.existsBySlug(slug, null)) {
             error = "Slug \"" + slug + "\" đã tồn tại. Vui lòng chọn slug khác.";
         }
-
-        User user = (User) req.getSession().getAttribute("user");
-        int authorId = (user != null && user.getUserId() > 0) ? user.getUserId() : 1;
 
         if (error != null) {
             Post draft = build(0, postType, title, slug, summary, content, thumbnailUrl, status, authorId);
@@ -171,13 +171,13 @@ public class PostController extends HttpServlet {
 
         int id = parse(idStr, 0);
 
-        String error = validate(title, slug, content);
+        User user = (User) req.getSession().getAttribute("user");
+        int authorId = (user != null && user.getUserId() > 0) ? user.getUserId() : 1;
+
+        String error = validate(title, slug, summary, content, postType, thumbnailUrl, status, authorId);
         if (error == null && postRepository.existsBySlug(slug, id)) {
             error = "Slug \"" + slug + "\" đã tồn tại ở bài viết khác.";
         }
-
-        User user = (User) req.getSession().getAttribute("user");
-        int authorId = (user != null && user.getUserId() > 0) ? user.getUserId() : 1;
 
         if (error != null) {
             Post draft = build(id, postType, title, slug, summary, content, thumbnailUrl, status, authorId);
@@ -195,10 +195,24 @@ public class PostController extends HttpServlet {
     private String trim(String s) { return s == null ? "" : s.trim(); }
     private int parse(String s, int def) { try { return Integer.parseInt(s); } catch (Exception e) { return def; } }
 
-    private String validate(String title, String slug, String content) {
-        if (title.isEmpty()) return "Tiêu đề bài viết không được để trống.";
-        if (slug.isEmpty()) return "Slug không được để trống.";
-        if (content.isEmpty()) return "Nội dung bài viết không được để trống.";
+    private String validate(String title, String slug, String summary, String content, String postType, String thumbnailUrl, String status, int authorId) {
+        if (title.isBlank()) return "Tiêu đề bài viết không được để trống.";
+        if (title.length() > 300) return "Tiêu đề không được vượt quá 300 ký tự.";
+        if (slug.isBlank()) return "Slug không được để trống.";
+        if (slug.length() > 320) return "Slug không được vượt quá 320 ký tự.";
+        if (!slug.matches("^[a-z0-9]+(?:-[a-z0-9]+)*$")) {
+            return "Slug không hợp lệ (chỉ gồm chữ cái viết thường, chữ số và dấu gạch ngang).";
+        }
+        if (!summary.isEmpty() && summary.length() > 1000) return "Tóm tắt bài viết không được vượt quá 1000 ký tự.";
+        if (content.isBlank()) return "Nội dung bài viết không được để trống.";
+        if (!postType.isEmpty() && !"NEWS".equals(postType) && !"GUIDE".equals(postType) && !"PROMOTION".equals(postType) && !"POLICY".equals(postType)) {
+            return "Loại bài viết không hợp lệ (chấp nhận NEWS, GUIDE, PROMOTION, POLICY).";
+        }
+        if (!thumbnailUrl.isEmpty() && thumbnailUrl.length() > 500) return "URL ảnh đại diện không được vượt quá 500 ký tự.";
+        if (!status.isEmpty() && !"DRAFT".equals(status) && !"PUBLISHED".equals(status) && !"HIDDEN".equals(status)) {
+            return "Trạng thái bài viết không hợp lệ (chấp nhận DRAFT, PUBLISHED, HIDDEN).";
+        }
+        if (authorId <= 0) return "Tác giả bài viết không hợp lệ.";
         return null;
     }
 

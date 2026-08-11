@@ -21,4 +21,6 @@ public interface BrandRepository {
 
     boolean delete(int id);
 
+    boolean isBrandInUse(int brandId);
+
 }

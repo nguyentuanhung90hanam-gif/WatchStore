@@ -51,7 +51,6 @@ public class ProductRepositoryImpl implements ProductRepository {
         ts = rs.getTimestamp("UpdatedAt");
         if (ts != null) p.setUpdatedAt(ts.toLocalDateTime());
 
-        // Price & Stock mapping from ProductVariants/InventoryBalances
         try {
             BigDecimal price = rs.getBigDecimal("SalePrice");
             if (price != null) p.setPrice(price);
@@ -230,7 +229,6 @@ public class ProductRepositoryImpl implements ProductRepository {
                         int productId = rs.getInt(1);
                         product.setProductId(productId);
 
-                        // Insert default variant
                         String sku = product.getSku() != null && !product.getSku().isBlank() ? product.getSku() : product.getProductCode() + "-STD";
                         String sqlVariant = """
                             INSERT INTO ProductVariants (ProductID, SKU, VariantName, CostPrice, SalePrice, CompareAtPrice, Status)
@@ -299,7 +297,6 @@ public class ProductRepositoryImpl implements ProductRepository {
 
                 int affected = ps.executeUpdate();
                 if (affected > 0) {
-                    // Update variant price & SKU
                     String sku = product.getSku() != null && !product.getSku().isBlank() ? product.getSku() : product.getProductCode() + "-STD";
                     String sqlVariant = """
                         UPDATE ProductVariants
@@ -383,6 +380,58 @@ public class ProductRepositoryImpl implements ProductRepository {
             }
             ResultSet rs = ps.executeQuery();
             return rs.next() && rs.getInt(1) > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    @Override
+    public boolean existsBySku(String sku, Integer excludeId) {
+        if (sku == null || sku.isBlank()) return false;
+        String sql = (excludeId != null && excludeId > 0)
+                ? "SELECT COUNT(*) FROM ProductVariants WHERE LOWER(SKU) = LOWER(?) AND ProductID <> ?"
+                : "SELECT COUNT(*) FROM ProductVariants WHERE LOWER(SKU) = LOWER(?)";
+
+        try (Connection con = getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setString(1, sku.trim());
+            if (excludeId != null && excludeId > 0) {
+                ps.setInt(2, excludeId);
+            }
+            ResultSet rs = ps.executeQuery();
+            return rs.next() && rs.getInt(1) > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    @Override
+    public boolean isProductInUse(int productId) {
+        String sql = """
+                SELECT (
+                    (SELECT COUNT(*) FROM OrderItems oi INNER JOIN ProductVariants pv ON oi.VariantID = pv.VariantID WHERE pv.ProductID = ?) +
+                    (SELECT COUNT(*) FROM CartItems ci INNER JOIN ProductVariants pv ON ci.VariantID = pv.VariantID WHERE pv.ProductID = ?) +
+                    (SELECT COUNT(*) FROM WishlistItems WHERE ProductID = ?) +
+                    (SELECT COUNT(*) FROM Reviews WHERE ProductID = ?) +
+                    (SELECT COUNT(*) FROM VoucherProducts WHERE ProductID = ?) +
+                    (SELECT COUNT(*) FROM InventoryBalances ib INNER JOIN ProductVariants pv ON ib.VariantID = pv.VariantID WHERE pv.ProductID = ?)
+                ) AS TotalRefs
+                """;
+        try (Connection con = getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, productId);
+            ps.setInt(2, productId);
+            ps.setInt(3, productId);
+            ps.setInt(4, productId);
+            ps.setInt(5, productId);
+            ps.setInt(6, productId);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }

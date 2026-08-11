@@ -136,7 +136,7 @@ public class BannerController extends HttpServlet {
         String orderStr = trim(req.getParameter("displayOrder"));
         String status = trim(req.getParameter("status"));
 
-        String error = validate(bannerName, title, imageUrl);
+        String error = validate(bannerName, title, subtitle, imageUrl, targetUrl, positionCode, orderStr, status);
         if (error != null) {
             Banner draft = build(0, bannerName, title, subtitle, imageUrl, targetUrl, positionCode, parse(orderStr, 0), status);
             req.setAttribute("errorMessage", error);
@@ -165,7 +165,7 @@ public class BannerController extends HttpServlet {
 
         int id = parse(idStr, 0);
 
-        String error = validate(bannerName, title, imageUrl);
+        String error = validate(bannerName, title, subtitle, imageUrl, targetUrl, positionCode, orderStr, status);
         if (error != null) {
             Banner draft = build(id, bannerName, title, subtitle, imageUrl, targetUrl, positionCode, parse(orderStr, 0), status);
             req.setAttribute("errorMessage", error);
@@ -182,10 +182,29 @@ public class BannerController extends HttpServlet {
     private String trim(String s) { return s == null ? "" : s.trim(); }
     private int parse(String s, int def) { try { return Integer.parseInt(s); } catch (Exception e) { return def; } }
 
-    private String validate(String name, String title, String img) {
-        if (name.isEmpty()) return "Tên banner không được để trống.";
-        if (title.isEmpty()) return "Tiêu đề không được để trống.";
-        if (img.isEmpty()) return "Đường dẫn hình ảnh không được để trống.";
+    private String validate(String name, String title, String subtitle, String img, String targetUrl, String positionCode, String orderStr, String status) {
+        if (name.isBlank()) return "Tên banner không được để trống.";
+        if (name.length() > 150) return "Tên banner không được vượt quá 150 ký tự.";
+        if (title.isBlank()) return "Tiêu đề không được để trống.";
+        if (title.length() > 250) return "Tiêu đề không được vượt quá 250 ký tự.";
+        if (!subtitle.isEmpty() && subtitle.length() > 500) return "Tiêu đề phụ không được vượt quá 500 ký tự.";
+        if (img.isBlank()) return "Đường dẫn hình ảnh không được để trống.";
+        if (img.length() > 500) return "Đường dẫn hình ảnh không được vượt quá 500 ký tự.";
+        if (!targetUrl.isEmpty() && targetUrl.length() > 500) return "Link liên kết (target URL) không được vượt quá 500 ký tự.";
+        if (!positionCode.isEmpty() && positionCode.length() > 40) return "Mã vị trí không được vượt quá 40 ký tự.";
+        if (!orderStr.isEmpty()) {
+            try {
+                int order = Integer.parseInt(orderStr);
+                if (order < 0) {
+                    return "Thứ tự hiển thị không được là số âm.";
+                }
+            } catch (NumberFormatException e) {
+                return "Thứ tự hiển thị phải là số nguyên.";
+            }
+        }
+        if (!status.isEmpty() && !"DRAFT".equals(status) && !"ACTIVE".equals(status) && !"INACTIVE".equals(status)) {
+            return "Trạng thái không hợp lệ (chấp nhận DRAFT, ACTIVE, INACTIVE).";
+        }
         return null;
     }
 

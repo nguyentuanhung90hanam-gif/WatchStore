@@ -345,4 +345,33 @@ public class VoucherRepositoryImpl implements VoucherRepository {
 
         return false;
     }
+
+    @Override
+    public boolean isVoucherInUse(Integer id) {
+        if (id == null || id <= 0) return false;
+        String sql = """
+                SELECT (
+                    (SELECT COUNT(*) FROM Orders WHERE VoucherID = ?) +
+                    (SELECT COUNT(*) FROM VoucherUsages WHERE VoucherID = ?) +
+                    (SELECT COUNT(*) FROM VoucherUsers WHERE VoucherID = ?) +
+                    (SELECT COUNT(*) FROM VoucherProducts WHERE VoucherID = ?) +
+                    (SELECT COUNT(*) FROM VoucherCategories WHERE VoucherID = ?)
+                ) AS TotalRefs
+                """;
+        try (Connection con = DBContext.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            ps.setInt(2, id);
+            ps.setInt(3, id);
+            ps.setInt(4, id);
+            ps.setInt(5, id);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
 }

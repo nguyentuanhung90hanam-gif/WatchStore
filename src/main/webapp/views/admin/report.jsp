@@ -2,11 +2,16 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 
-<div class="module-heading">
+<div class="module-heading" style="display:flex;justify-content:space-between;align-items:flex-start;">
     <div class="module-title-area">
         <p class="eyebrow dark">${moduleKicker}</p>
         <h2>${moduleTitle}</h2>
         <p class="module-desc">${moduleDescription}</p>
+    </div>
+    <div style="margin-top:8px;">
+        <a href="${pageContext.request.contextPath}/manage/admin/reports/pdf" target="_blank" class="btn" style="display:inline-flex;align-items:center;gap:8px;padding:10px 18px;background:var(--gold-dark,#b8860b);color:#fff;border-radius:6px;text-decoration:none;font-weight:600;font-size:0.9em;box-shadow:0 2px 6px rgba(0,0,0,0.15);">
+            📄 Xuất PDF
+        </a>
     </div>
 </div>
 
@@ -38,7 +43,7 @@
         <table>
             <thead>
             <tr>
-                <th>ID</th>
+                <th>STT</th>
                 <th>Sản phẩm</th>
                 <th>SKU</th>
                 <th>Số lượng đã bán</th>
@@ -46,9 +51,9 @@
             </tr>
             </thead>
             <tbody>
-            <c:forEach items="${topSellingProducts}" var="p">
+            <c:forEach items="${topSellingProducts}" var="p" varStatus="st">
                 <tr>
-                    <td>#${p.productId}</td>
+                    <td>${st.index + 1}</td>
                     <td><b>${p.productName}</b> <c:if test="${not empty p.variantName}"><small style="color:#777;">(${p.variantName})</small></c:if></td>
                     <td><b style="font-family:monospace;color:var(--gold-dark,#b8860b);">${p.sku}</b></td>
                     <td><b>${p.quantitySold}</b> sản phẩm</td>
@@ -76,7 +81,7 @@
         <table>
             <thead>
             <tr>
-                <th>ID</th>
+                <th>STT</th>
                 <th>Họ tên</th>
                 <th>Email</th>
                 <th>Số điện thoại</th>
@@ -85,9 +90,9 @@
             </tr>
             </thead>
             <tbody>
-            <c:forEach items="${topCustomers}" var="c">
+            <c:forEach items="${topCustomers}" var="c" varStatus="st">
                 <tr>
-                    <td>#${c.customerId}</td>
+                    <td>${st.index + 1}</td>
                     <td><b>${c.fullName}</b></td>
                     <td>${c.email}</td>
                     <td>${not empty c.phone ? c.phone : '—'}</td>
@@ -116,7 +121,7 @@
         <table>
             <thead>
             <tr>
-                <th>ID</th>
+                <th>STT</th>
                 <th>Sản phẩm</th>
                 <th>SKU</th>
                 <th>Tồn thực tế</th>
@@ -125,9 +130,9 @@
             </tr>
             </thead>
             <tbody>
-            <c:forEach items="${lowStockItems}" var="item">
+            <c:forEach items="${lowStockItems}" var="item" varStatus="st">
                 <tr>
-                    <td>#${item.productId}</td>
+                    <td>${st.index + 1}</td>
                     <td><b>${item.productName}</b></td>
                     <td><b style="font-family:monospace;color:var(--gold-dark,#b8860b);">${item.sku}</b></td>
                     <td>${item.onHand}</td>

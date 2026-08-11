@@ -65,6 +65,7 @@ public class VoucherController extends HttpServlet {
                 req.setAttribute("pageTitle", "Thêm voucher");
                 
                 LocalDateTime now = LocalDateTime.now();
+                req.setAttribute("minDateTimeFormatted", now.format(DATE_TIME_FORMATTER));
                 req.setAttribute("startAtFormatted", now.format(DATE_TIME_FORMATTER));
                 req.setAttribute("endAtFormatted", now.plusMonths(1).format(DATE_TIME_FORMATTER));
                 
@@ -74,6 +75,8 @@ public class VoucherController extends HttpServlet {
             }
             case "/edit": {
                 String idStr = req.getParameter("id");
+                LocalDateTime now = LocalDateTime.now();
+                req.setAttribute("minDateTimeFormatted", now.format(DATE_TIME_FORMATTER));
                 if (idStr != null && !idStr.isBlank()) {
                     try {
                         int id = Integer.parseInt(idStr);
@@ -102,9 +105,18 @@ public class VoucherController extends HttpServlet {
                 if (idStr != null && !idStr.isBlank()) {
                     try {
                         int id = Integer.parseInt(idStr);
-                        voucherRepository.delete(id);
-                    } catch (NumberFormatException e) {
-                        e.printStackTrace();
+                        if (voucherRepository.isVoucherInUse(id)) {
+                            req.getSession().setAttribute("errorMessage", "Không thể xóa voucher này vì đã có dữ liệu sử dụng.");
+                        } else {
+                            boolean deleted = voucherRepository.delete(id);
+                            if (deleted) {
+                                req.getSession().setAttribute("successMessage", "Xóa voucher thành công.");
+                            } else {
+                                req.getSession().setAttribute("errorMessage", "Không thể xóa voucher.");
+                            }
+                        }
+                    } catch (Exception e) {
+                        req.getSession().setAttribute("errorMessage", "Không thể xóa voucher.");
                     }
                 }
                 resp.sendRedirect(req.getContextPath() + "/manage/admin/vouchers");
@@ -255,18 +267,46 @@ public class VoucherController extends HttpServlet {
         if (errorMessage == null) {
             if (voucher.getVoucherCode().isBlank()) {
                 errorMessage = "Vui lòng nhập Mã Voucher.";
+            } else if (voucher.getVoucherCode().length() > 50) {
+                errorMessage = "Mã Voucher không được vượt quá 50 ký tự.";
             } else if (voucher.getVoucherName().isBlank()) {
                 errorMessage = "Vui lòng nhập Tên Voucher.";
+            } else if (voucher.getVoucherName().length() > 200) {
+                errorMessage = "Tên Voucher không được vượt quá 200 ký tự.";
+            } else if (voucher.getDescription() != null && voucher.getDescription().length() > 1000) {
+                errorMessage = "Mô tả Voucher không được vượt quá 1000 ký tự.";
+            } else if ("PERCENT".equals(voucher.getDiscountType())) {
+                if (voucher.getDiscountValue() == null || voucher.getDiscountValue().compareTo(BigDecimal.ZERO) <= 0 || voucher.getDiscountValue().compareTo(new BigDecimal("100")) > 0) {
+                    errorMessage = "Với loại giảm giá phần trăm (PERCENT), giá trị giảm phải lớn hơn 0 và nhỏ hơn hoặc bằng 100.";
+                }
+            } else if ("FIXED".equals(voucher.getDiscountType())) {
+                if (voucher.getDiscountValue() == null || voucher.getDiscountValue().compareTo(BigDecimal.ZERO) <= 0) {
+                    errorMessage = "Với loại giảm giá cố định (FIXED), số tiền giảm phải lớn hơn 0.";
+                }
             } else if (voucher.getDiscountValue() == null || voucher.getDiscountValue().compareTo(BigDecimal.ZERO) < 0) {
                 errorMessage = "Giá trị giảm giá phải lớn hơn hoặc bằng 0.";
-            } else if (voucher.getStartAt() == null) {
-                errorMessage = "Vui lòng chọn Thời gian bắt đầu.";
-            } else if (voucher.getEndAt() == null) {
-                errorMessage = "Vui lòng chọn Thời gian kết thúc.";
-            } else if (!voucher.getEndAt().isAfter(voucher.getStartAt())) {
-                errorMessage = "Thời gian kết thúc phải diễn ra sau thời gian bắt đầu.";
-            } else if (voucherRepository.existsByCode(voucher.getVoucherCode(), voucherId)) {
-                errorMessage = "Mã Voucher '" + voucher.getVoucherCode() + "' đã tồn tại trong hệ thống. Vui lòng nhập mã khác.";
+            }
+
+            if (errorMessage == null) {
+                if (voucher.getMaximumDiscount() != null && voucher.getMaximumDiscount().compareTo(BigDecimal.ZERO) < 0) {
+                    errorMessage = "Giá trị giảm tối đa không được là số âm.";
+                } else if (voucher.getMinimumOrderValue() != null && voucher.getMinimumOrderValue().compareTo(BigDecimal.ZERO) < 0) {
+                    errorMessage = "Đơn hàng tối thiểu không được là số âm.";
+                } else if (voucher.getUsageLimit() != null && voucher.getUsageLimit() < 0) {
+                    errorMessage = "Giới hạn sử dụng không được là số âm.";
+                } else if (voucher.getUsageLimitPerUser() != null && voucher.getUsageLimitPerUser() < 0) {
+                    errorMessage = "Lượt dùng / khách không được là số âm.";
+                } else if (voucher.getStartAt() == null) {
+                    errorMessage = "Vui lòng chọn Thời gian bắt đầu.";
+                } else if (voucherId == null && voucher.getStartAt().isBefore(LocalDateTime.now().minusMinutes(2))) {
+                    errorMessage = "Thời gian bắt đầu không được nằm trong quá khứ.";
+                } else if (voucher.getEndAt() == null) {
+                    errorMessage = "Vui lòng chọn Thời gian kết thúc.";
+                } else if (!voucher.getEndAt().isAfter(voucher.getStartAt())) {
+                    errorMessage = "Thời gian kết thúc phải diễn ra sau thời gian bắt đầu.";
+                } else if (voucherRepository.existsByCode(voucher.getVoucherCode(), voucherId)) {
+                    errorMessage = "Mã Voucher '" + voucher.getVoucherCode() + "' đã tồn tại trong hệ thống. Vui lòng nhập mã khác.";
+                }
             }
         }
 
@@ -276,6 +316,7 @@ public class VoucherController extends HttpServlet {
             req.setAttribute("voucher", voucher);
             req.setAttribute("startAtFormatted", startAtStr);
             req.setAttribute("endAtFormatted", endAtStr);
+            req.setAttribute("minDateTimeFormatted", LocalDateTime.now().format(DATE_TIME_FORMATTER));
             req.setAttribute("adminArea", "admin");
             req.setAttribute("pageTitle", voucherId == null ? "Thêm voucher" : "Sửa voucher");
             req.setAttribute("contentPage", "/views/admin/voucher-form.jsp");

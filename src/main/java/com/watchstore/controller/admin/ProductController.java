@@ -96,8 +96,19 @@ public class ProductController extends HttpServlet {
                 if (idStr != null && !idStr.isBlank()) {
                     try {
                         int id = Integer.parseInt(idStr);
-                        productRepository.delete(id);
-                    } catch (Exception ignored) {}
+                        if (productRepository.isProductInUse(id)) {
+                            req.getSession().setAttribute("errorMessage", "Không thể xóa sản phẩm này vì đã có dữ liệu liên quan (đơn hàng, giỏ hàng, đánh giá, kho hàng...).");
+                        } else {
+                            boolean deleted = productRepository.delete(id);
+                            if (deleted) {
+                                req.getSession().setAttribute("successMessage", "Xóa sản phẩm thành công.");
+                            } else {
+                                req.getSession().setAttribute("errorMessage", "Không thể xóa sản phẩm.");
+                            }
+                        }
+                    } catch (Exception e) {
+                        req.getSession().setAttribute("errorMessage", "Không thể xóa sản phẩm.");
+                    }
                 }
                 resp.sendRedirect(req.getContextPath() + "/manage/admin/products");
                 break;
@@ -150,16 +161,22 @@ public class ProductController extends HttpServlet {
         String isFeaturedStr = trim(req.getParameter("isFeatured"));
         String description = trim(req.getParameter("description"));
 
-        int brandId = parse(brandIdStr, 1);
-        int categoryId = parse(categoryIdStr, 1);
+        int brandId = parse(brandIdStr, 0);
+        int categoryId = parse(categoryIdStr, 0);
         BigDecimal price = parseBigDecimal(priceStr);
 
-        String error = validateProduct(code, name, slug, price);
+        String error = validateProduct(code, name, slug, sku, brandId, categoryId, price, movementType, gender, status);
         if (error == null && productRepository.existsByCode(code, null)) {
             error = "Mã sản phẩm \"" + code + "\" đã tồn tại.";
         }
         if (error == null && !slug.isEmpty() && productRepository.existsBySlug(slug, null)) {
             error = "Slug \"" + slug + "\" đã tồn tại.";
+        }
+        if (error == null) {
+            String effectiveSku = !sku.isEmpty() ? sku : code + "-STD";
+            if (productRepository.existsBySku(effectiveSku, null)) {
+                error = "SKU đã tồn tại. Vui lòng nhập SKU khác.";
+            }
         }
 
         if (error != null) {
@@ -191,16 +208,22 @@ public class ProductController extends HttpServlet {
         String description = trim(req.getParameter("description"));
 
         int id = parse(idStr, 0);
-        int brandId = parse(brandIdStr, 1);
-        int categoryId = parse(categoryIdStr, 1);
+        int brandId = parse(brandIdStr, 0);
+        int categoryId = parse(categoryIdStr, 0);
         BigDecimal price = parseBigDecimal(priceStr);
 
-        String error = validateProduct(code, name, slug, price);
+        String error = validateProduct(code, name, slug, sku, brandId, categoryId, price, movementType, gender, status);
         if (error == null && productRepository.existsByCode(code, id)) {
             error = "Mã sản phẩm \"" + code + "\" đã tồn tại ở sản phẩm khác.";
         }
         if (error == null && !slug.isEmpty() && productRepository.existsBySlug(slug, id)) {
             error = "Slug \"" + slug + "\" đã tồn tại ở sản phẩm khác.";
+        }
+        if (error == null) {
+            String effectiveSku = !sku.isEmpty() ? sku : code + "-STD";
+            if (productRepository.existsBySku(effectiveSku, id)) {
+                error = "SKU đã tồn tại. Vui lòng nhập SKU khác.";
+            }
         }
 
         if (error != null) {
@@ -225,11 +248,30 @@ public class ProductController extends HttpServlet {
     private int parse(String s, int def) { try { return Integer.parseInt(s); } catch (Exception e) { return def; } }
     private BigDecimal parseBigDecimal(String s) { try { return new BigDecimal(s); } catch (Exception e) { return BigDecimal.ZERO; } }
 
-    private String validateProduct(String code, String name, String slug, BigDecimal price) {
-        if (code.isEmpty()) return "Mã sản phẩm không được để trống.";
-        if (name.isEmpty()) return "Tên sản phẩm không được để trống.";
-        if (slug.isEmpty()) return "Slug không được để trống.";
-        if (price == null || price.compareTo(BigDecimal.ZERO) < 0) return "Giá bán phải lớn hơn hoặc bằng 0.";
+    private String validateProduct(String code, String name, String slug, String sku, int brandId, int categoryId,
+                                   BigDecimal price, String movementType, String gender, String status) {
+        if (code.isBlank()) return "Mã sản phẩm không được để trống.";
+        if (code.length() > 50) return "Mã sản phẩm không được vượt quá 50 ký tự.";
+        if (name.isBlank()) return "Tên sản phẩm không được để trống.";
+        if (name.length() > 250) return "Tên sản phẩm không được vượt quá 250 ký tự.";
+        if (slug.isBlank()) return "Slug không được để trống.";
+        if (slug.length() > 300) return "Slug không được vượt quá 300 ký tự.";
+        if (!slug.matches("^[a-z0-9]+(?:-[a-z0-9]+)*$")) {
+            return "Slug không hợp lệ (chỉ gồm chữ cái viết thường, chữ số và dấu gạch ngang).";
+        }
+        if (!sku.isEmpty() && sku.length() > 80) return "SKU không được vượt quá 80 ký tự.";
+        if (price == null || price.compareTo(BigDecimal.ZERO) <= 0) return "Giá bán phải lớn hơn 0.";
+        if (brandId <= 0 || brandRepository.findById(brandId) == null) return "Thương hiệu đã chọn không tồn tại trong hệ thống.";
+        if (categoryId <= 0 || categoryRepository.findById(categoryId) == null) return "Danh mục đã chọn không tồn tại trong hệ thống.";
+        if (!movementType.isEmpty() && !"AUTOMATIC".equals(movementType) && !"QUARTZ".equals(movementType) && !"SOLAR".equals(movementType) && !"SMART".equals(movementType) && !"MECHANICAL".equals(movementType)) {
+            return "Loại máy (Movement) không hợp lệ (chấp nhận AUTOMATIC, QUARTZ, SOLAR, SMART, MECHANICAL).";
+        }
+        if (!gender.isEmpty() && !"MEN".equals(gender) && !"WOMEN".equals(gender) && !"UNISEX".equals(gender) && !"COUPLE".equals(gender)) {
+            return "Giới tính không hợp lệ (chấp nhận MEN, WOMEN, UNISEX, COUPLE).";
+        }
+        if (!status.isEmpty() && !"DRAFT".equals(status) && !"ACTIVE".equals(status) && !"INACTIVE".equals(status) && !"DISCONTINUED".equals(status)) {
+            return "Trạng thái sản phẩm không hợp lệ (chấp nhận DRAFT, ACTIVE, INACTIVE, DISCONTINUED).";
+        }
         return null;
     }
 

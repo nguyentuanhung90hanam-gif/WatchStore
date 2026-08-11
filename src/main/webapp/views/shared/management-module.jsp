@@ -147,7 +147,33 @@
 
 </div>
 
+<c:choose>
+    <c:when test="${not empty requestScope.errorMessage}">
+        <div style="background:#fff3cd;color:#856404;border:1px solid #ffc107;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:0.95em;">
+            ⚠ ${requestScope.errorMessage}
+        </div>
+    </c:when>
+    <c:when test="${not empty sessionScope.errorMessage}">
+        <div style="background:#fff3cd;color:#856404;border:1px solid #ffc107;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:0.95em;">
+            ⚠ ${sessionScope.errorMessage}
+        </div>
+        <c:remove var="errorMessage" scope="session"/>
+    </c:when>
+</c:choose>
 
+<c:choose>
+    <c:when test="${not empty requestScope.successMessage}">
+        <div style="background:#d4edda;color:#155724;border:1px solid #c3e6cb;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:0.95em;">
+            ✓ ${requestScope.successMessage}
+        </div>
+    </c:when>
+    <c:when test="${not empty sessionScope.successMessage}">
+        <div style="background:#d4edda;color:#155724;border:1px solid #c3e6cb;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:0.95em;">
+            ✓ ${sessionScope.successMessage}
+        </div>
+        <c:remove var="successMessage" scope="session"/>
+    </c:when>
+</c:choose>
 
 <c:choose>
 
@@ -225,18 +251,12 @@
 
     <c:when test="${tableKind == 'products'}">
 
-        <c:if test="${not empty errorMessage}">
-            <div style="background:#fff3cd;color:#856404;border:1px solid #ffc107;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:0.95em;">
-                ⚠ ${errorMessage}
-            </div>
-        </c:if>
-
         <div class="dashboard-card">
             <div class="table-wrap">
                 <table>
                     <thead>
                     <tr>
-                        <th>ID</th>
+                        <th>STT</th>
                         <th>Sản phẩm</th>
                         <th>Mã / SKU</th>
                         <th>Giá bán</th>
@@ -245,9 +265,9 @@
                     </tr>
                     </thead>
                     <tbody>
-                    <c:forEach items="${products}" var="p">
+                    <c:forEach items="${products}" var="p" varStatus="status">
                         <tr>
-                            <td>#${p.id}</td>
+                            <td>${status.index + 1}</td>
                             <td>
                                 <div>
                                     <b>${p.name}</b>
@@ -313,7 +333,7 @@
                 <table>
                     <thead>
                     <tr>
-                        <th>ID</th>
+                        <th>STT</th>
                         <th>Mã quyền</th>
                         <th>Tên quyền hạn</th>
                         <th>Module</th>
@@ -321,9 +341,9 @@
                     </tr>
                     </thead>
                     <tbody>
-                    <c:forEach items="${permissions}" var="perm">
+                    <c:forEach items="${permissions}" var="perm" varStatus="status">
                         <tr>
-                            <td>#${perm.permissionId}</td>
+                            <td>${status.index + 1}</td>
                             <td><b style="font-family:monospace;color:var(--gold-dark,#b8860b);">${perm.permissionCode}</b></td>
                             <td><b>${perm.permissionName}</b></td>
                             <td><span class="status-badge" style="background:#e3f2fd;color:#0d47a1;">${perm.moduleCode}</span></td>
@@ -345,18 +365,12 @@
 
     <c:when test="${tableKind == 'accounts'}">
 
-    <c:if test="${not empty errorMessage}">
-        <div style="background:#fff3cd;color:#856404;border:1px solid #ffc107;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:0.95em;">
-            ⚠ ${errorMessage}
-        </div>
-    </c:if>
-
     <div class="dashboard-card">
         <div class="table-wrap">
             <table>
                 <thead>
                 <tr>
-                    <th>ID</th>
+                    <th>STT</th>
                     <th>Họ tên</th>
                     <th>Email</th>
                     <th>Số điện thoại</th>
@@ -366,9 +380,9 @@
                 </tr>
                 </thead>
                 <tbody>
-                <c:forEach items="${users}" var="user">
+                <c:forEach items="${users}" var="user" varStatus="status">
                     <tr>
-                        <td>#${user.userId}</td>
+                        <td>${status.index + 1}</td>
                         <td><b>${user.fullName}</b></td>
                         <td>${user.email}</td>
                         <td>${not empty user.phone ? user.phone : '—'}</td>
@@ -424,40 +438,12 @@
     </c:when>
 <c:when test="${tableKind == 'roles'}">
 
-    <c:choose>
-        <c:when test="${not empty requestScope.errorMessage}">
-            <div style="background:#fff3cd;color:#856404;border:1px solid #ffc107;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:0.95em;">
-                ⚠ ${requestScope.errorMessage}
-            </div>
-        </c:when>
-        <c:when test="${not empty sessionScope.errorMessage}">
-            <div style="background:#fff3cd;color:#856404;border:1px solid #ffc107;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:0.95em;">
-                ⚠ ${sessionScope.errorMessage}
-            </div>
-            <c:remove var="errorMessage" scope="session"/>
-        </c:when>
-    </c:choose>
-
-    <c:choose>
-        <c:when test="${not empty requestScope.successMessage}">
-            <div style="background:#d4edda;color:#155724;border:1px solid #c3e6cb;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:0.95em;">
-                ✓ ${requestScope.successMessage}
-            </div>
-        </c:when>
-        <c:when test="${not empty sessionScope.successMessage}">
-            <div style="background:#d4edda;color:#155724;border:1px solid #c3e6cb;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:0.95em;">
-                ✓ ${sessionScope.successMessage}
-            </div>
-            <c:remove var="successMessage" scope="session"/>
-        </c:when>
-    </c:choose>
-
     <div class="dashboard-card">
         <div class="table-wrap">
             <table>
                 <thead>
                 <tr>
-                    <th>ID</th>
+                    <th>STT</th>
                     <th>Mã</th>
                     <th>Tên vai trò</th>
                     <th>Mô tả</th>
@@ -467,9 +453,9 @@
                 </tr>
                 </thead>
                 <tbody>
-                <c:forEach items="${roles}" var="role">
+                <c:forEach items="${roles}" var="role" varStatus="status">
                     <tr>
-                        <td>#${role.roleId}</td>
+                        <td>${status.index + 1}</td>
                         <td>
                             <b style="font-family:monospace;color:var(--gold-dark,#b8860b);">${role.roleCode}</b>
                         </td>
@@ -532,7 +518,7 @@
 
                  <thead>
                  <tr>
-                     <th>ID</th>
+                     <th>STT</th>
                      <th>Mã</th>
                      <th>Tên voucher</th>
                      <th>Loại</th>
@@ -546,11 +532,11 @@
 
                  <tbody>
 
-                 <c:forEach items="${vouchers}" var="voucher">
+                 <c:forEach items="${vouchers}" var="voucher" varStatus="status">
 
                      <tr>
 
-                         <td>#${voucher.voucherId}</td>
+                         <td>${status.index + 1}</td>
 
                          <td>
                              <b style="color: var(--gold-dark, #b8860b); font-family: monospace; font-size: 1.05em;">${voucher.voucherCode}</b>
@@ -661,7 +647,6 @@
                      <th>Tên danh mục</th>
                      <th>Slug</th>
                      <th>Danh mục cha</th>
-                     <th>Thứ tự</th>
                      <th>Trạng thái</th>
                      <th>Thao tác</th>
                  </tr>
@@ -689,7 +674,6 @@
                                  </c:otherwise>
                              </c:choose>
                          </td>
-                         <td style="text-align:center;">${cat.displayOrder}</td>
                          <td>
                              <c:choose>
                                  <c:when test="${cat.status == 'ACTIVE'}">
@@ -716,7 +700,7 @@
                  </c:forEach>
                  <c:if test="${empty categories}">
                      <tr>
-                         <td colspan="8" style="text-align:center;color:#888;padding:20px;">
+                         <td colspan="7" style="text-align:center;color:#888;padding:20px;">
                              Chưa có danh mục nào trong hệ thống.
                          </td>
                      </tr>
@@ -735,19 +719,19 @@
              <table>
                  <thead>
                  <tr>
-                     <th>ID</th>
-                     <th>Mã</th>
-                     <th>Tên thương hiệu</th>
-                     <th>Slug</th>
-                     <th>Quốc gia</th>
-                     <th>Trạng thái</th>
-                     <th>Thao tác</th>
-                 </tr>
-                 </thead>
-                 <tbody>
-                 <c:forEach items="${brands}" var="b">
-                     <tr>
-                         <td>#${b.brandID}</td>
+                      <th>STT</th>
+                      <th>Mã</th>
+                      <th>Tên thương hiệu</th>
+                      <th>Slug</th>
+                      <th>Quốc gia</th>
+                      <th>Trạng thái</th>
+                      <th>Thao tác</th>
+                  </tr>
+                  </thead>
+                  <tbody>
+                  <c:forEach items="${brands}" var="b" varStatus="status">
+                      <tr>
+                          <td>${status.index + 1}</td>
                          <td>
                              <b style="font-family:monospace;color:var(--gold-dark,#b8860b);">${b.brandCode}</b>
                          </td>
@@ -810,7 +794,7 @@
              <table>
                  <thead>
                  <tr>
-                     <th>ID</th>
+                     <th>STT</th>
                      <th>Tên Banner</th>
                      <th>Tiêu đề chính</th>
                      <th>Vị trí</th>
@@ -820,9 +804,9 @@
                  </tr>
                  </thead>
                  <tbody>
-                 <c:forEach items="${banners}" var="b">
+                 <c:forEach items="${banners}" var="b" varStatus="status">
                      <tr>
-                         <td>#${b.bannerId}</td>
+                         <td>${status.index + 1}</td>
                          <td><b>${b.bannerName}</b></td>
                          <td>${b.title}</td>
                          <td><span class="status-badge" style="background:#e3f2fd;color:#0d47a1;">${b.positionCode}</span></td>
@@ -873,7 +857,7 @@
              <table>
                  <thead>
                  <tr>
-                     <th>ID</th>
+                     <th>STT</th>
                      <th>Tiêu đề bài viết</th>
                      <th>Loại</th>
                      <th>Tác giả</th>
@@ -882,9 +866,9 @@
                  </tr>
                  </thead>
                  <tbody>
-                 <c:forEach items="${posts}" var="p">
+                 <c:forEach items="${posts}" var="p" varStatus="status">
                      <tr>
-                         <td>#${p.postId}</td>
+                         <td>${status.index + 1}</td>
                          <td><b>${p.title}</b><br><small style="color:#777;">${p.slug}</small></td>
                          <td><span class="status-badge" style="background:#f3e5f5;color:#4a148c;">${p.postType}</span></td>
                          <td>${not empty p.authorName ? p.authorName : 'Admin'}</td>
@@ -934,18 +918,18 @@
              <table>
                  <thead>
                  <tr>
-                     <th>ID</th>
-                     <th>Tiêu đề</th>
-                     <th>Nội dung</th>
-                     <th>Loại</th>
-                     <th>Người tạo</th>
-                     <th>Thao tác</th>
-                 </tr>
-                 </thead>
-                 <tbody>
-                 <c:forEach items="${notifications}" var="n">
-                     <tr>
-                         <td>#${n.notificationId}</td>
+                      <th>STT</th>
+                      <th>Tiêu đề</th>
+                      <th>Nội dung</th>
+                      <th>Loại</th>
+                      <th>Người tạo</th>
+                      <th>Thao tác</th>
+                  </tr>
+                  </thead>
+                  <tbody>
+                  <c:forEach items="${notifications}" var="n" varStatus="status">
+                      <tr>
+                          <td>${status.index + 1}</td>
                          <td><b>${n.title}</b></td>
                          <td><small style="color:#555;">${n.message}</small></td>
                          <td><span class="status-badge" style="background:#e8f5e9;color:#1b5e20;">${n.notificationType}</span></td>

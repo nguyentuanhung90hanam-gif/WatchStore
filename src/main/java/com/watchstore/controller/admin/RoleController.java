@@ -174,7 +174,7 @@ public class RoleController extends HttpServlet {
         String isSystemStr = trim(req.getParameter("isSystem"));
 
         // Validation
-        String error = validateRole(roleCode, roleName);
+        String error = validateRole(roleCode, roleName, description);
         if (error == null && roleRepository.existsByCode(roleCode, null)) {
             error = "Mã vai trò \"" + roleCode + "\" đã tồn tại trong hệ thống.";
         }
@@ -205,7 +205,7 @@ public class RoleController extends HttpServlet {
         try { id = Integer.parseInt(idStr); } catch (NumberFormatException ignored) {}
 
         // Validation
-        String error = validateRole(roleCode, roleName);
+        String error = validateRole(roleCode, roleName, description);
         if (error == null && roleRepository.existsByCode(roleCode, id)) {
             error = "Mã vai trò \"" + roleCode + "\" đã được dùng bởi vai trò khác.";
         }
@@ -235,9 +235,15 @@ public class RoleController extends HttpServlet {
         return (s == null) ? "" : s.trim();
     }
 
-    private String validateRole(String roleCode, String roleName) {
-        if (roleCode.isEmpty()) return "Mã vai trò không được để trống.";
-        if (roleName.isEmpty()) return "Tên vai trò không được để trống.";
+    private String validateRole(String roleCode, String roleName, String description) {
+        if (roleCode.isBlank()) return "Mã vai trò không được để trống.";
+        if (roleCode.length() > 30) return "Mã vai trò không được vượt quá 30 ký tự.";
+        if (!roleCode.matches("^[A-Za-z0-9_]+$")) {
+            return "Mã vai trò chỉ được gồm chữ cái, chữ số và dấu gạch dưới (VD: ADMIN, SALES_STAFF).";
+        }
+        if (roleName.isBlank()) return "Tên vai trò không được để trống.";
+        if (roleName.length() > 100) return "Tên vai trò không được vượt quá 100 ký tự.";
+        if (!description.isEmpty() && description.length() > 500) return "Mô tả không được vượt quá 500 ký tự.";
         return null;
     }
 

@@ -20,4 +20,6 @@ public interface UserRepository {
     boolean existsByEmail(String email, Integer excludeId);
 
     boolean existsByPhone(String phone, Integer excludeId);
+
+    boolean isUserInUse(int userId);
 }

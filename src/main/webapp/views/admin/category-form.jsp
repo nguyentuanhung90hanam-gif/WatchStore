@@ -65,18 +65,6 @@
                        required>
             </div>
 
-            <%-- Display Order --%>
-            <div class="form-group">
-                <label style="font-weight:600;margin-bottom:6px;display:block;">
-                    Thứ tự hiển thị <small style="color:#888;font-weight:normal;">(để trống tự động xếp cuối)</small>
-                </label>
-                <input type="number"
-                       name="displayOrder"
-                       value="${category.displayOrder}"
-                       placeholder="Để trống tự động xếp cuối"
-                       min="1">
-            </div>
-
             <%-- Parent Category --%>
             <div class="form-group">
                 <label style="font-weight:600;margin-bottom:6px;display:block;">Danh mục cha</label>

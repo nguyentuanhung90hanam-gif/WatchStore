@@ -47,4 +47,9 @@ public class MockProductRepository implements ProductRepository {
         if (slug == null || slug.isBlank()) return false;
         return PRODUCTS.stream().anyMatch(p -> p.getSlug() != null && p.getSlug().equalsIgnoreCase(slug.trim()) && (excludeId == null || p.getId() != excludeId));
     }
+    @Override public boolean existsBySku(String sku, Integer excludeId) {
+        if (sku == null || sku.isBlank()) return false;
+        return PRODUCTS.stream().anyMatch(p -> p.getSku() != null && p.getSku().equalsIgnoreCase(sku.trim()) && (excludeId == null || p.getId() != excludeId));
+    }
+    @Override public boolean isProductInUse(int productId) { return false; }
 }
