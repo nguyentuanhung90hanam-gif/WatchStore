@@ -18,9 +18,7 @@
     </div>
     <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
         <a class="button button-outline" href="${cp}/manage/warehouse/exports">Quay lại</a>
-        <c:if test="${export.status == 'COMPLETED'}">
-            <a class="button button-gold" href="${cp}/manage/warehouse/export-pdf?id=${export.stockExportId}" target="_blank">In PDF</a>
-        </c:if>
+        <a class="button button-gold" href="${cp}/manage/warehouse/export-pdf?id=${export.stockExportId}" target="_blank">In / PDF</a>
     </div>
 </div>
 
@@ -60,7 +58,7 @@
             <td style="color:#888;">Mã đơn hàng</td>
             <td>${export.orderId != null ? export.orderId : '—'}</td>
             <td style="color:#888;">Người duyệt</td>
-            <td>${export.approvedBy != null ? export.approvedBy : '—'}<c:if test="${export.approvedAt != null}"> (${export.approvedAt})</c:if></td>
+            <td>${export.approvedByName != null ? export.approvedByName : '—'}<c:if test="${export.approvedAt != null}"> (${export.approvedAt})</c:if></td>
         </tr>
         <tr>
             <td style="color:#888;">Ghi chú</td>
@@ -68,6 +66,22 @@
         </tr>
     </table>
 </div>
+
+<c:if test="${export.status == 'DRAFT'}">
+<div class="dashboard-card" style="margin-bottom:16px;">
+    <h3 style="margin-bottom:12px;">Sửa thông tin phiếu</h3>
+    <form method="post" action="${cp}/manage/warehouse/export-update" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;align-items:end;">
+        <input type="hidden" name="exportId" value="${export.stockExportId}">
+        <label>Mã phiếu<input name="exportCode" value="${export.exportCode}" required maxlength="40"></label>
+        <label>Kho<select name="warehouseId" required><c:forEach items="${warehouses}" var="w"><option value="${w.warehouseId}" ${export.warehouseId == w.warehouseId ? 'selected' : ''}>${w.warehouseName}</option></c:forEach></select></label>
+        <label>Loại xuất<select name="exportType" required><option value="SALE" ${export.exportType == 'SALE' ? 'selected' : ''}>SALE</option><option value="TRANSFER" ${export.exportType == 'TRANSFER' ? 'selected' : ''}>TRANSFER</option><option value="DAMAGED" ${export.exportType == 'DAMAGED' ? 'selected' : ''}>DAMAGED</option><option value="OTHER" ${export.exportType == 'OTHER' ? 'selected' : ''}>OTHER</option></select></label>
+        <label>OrderID (chỉ SALE)<input type="number" name="orderId" value="${export.orderId}"></label>
+        <label>Người nhận<input name="receiverName" value="${export.receiverName}" maxlength="200"></label>
+        <label style="grid-column:2 / -1;">Ghi chú<input name="note" value="${export.note}" maxlength="1000"></label>
+        <button class="button button-gold" type="submit">Lưu thông tin</button>
+    </form>
+</div>
+</c:if>
 
 <%-- Workflow actions --%>
 <c:if test="${export.status == 'DRAFT' || export.status == 'PENDING'}">
@@ -112,8 +126,10 @@
                     <label style="flex:2; min-width:200px;">Biến thể
                         <select name="variantId" required>
                             <option value="">-- Chọn --</option>
-                            <c:forEach items="${variants}" var="v">
-                                <option value="${v.variantId}">${v.productName} – ${v.variantName} (${v.sku})</option>
+                            <c:forEach items="${inventoryItems}" var="i">
+                                <c:if test="${i.warehouseId == export.warehouseId && i.availableQuantity > 0}">
+                                    <option value="${i.variantId}">${i.productName} – ${i.variantName} (${i.sku}) | Tồn khả dụng: ${i.availableQuantity}</option>
+                                </c:if>
                             </c:forEach>
                         </select>
                     </label>

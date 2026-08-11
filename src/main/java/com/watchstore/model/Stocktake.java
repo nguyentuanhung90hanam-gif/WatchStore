@@ -22,6 +22,7 @@ public class Stocktake {
     private String note;
     private int createdBy;
     private String createdByName;       // JOIN từ Users
+    private String approvedByName;      // JOIN từ Users
     private Integer approvedBy;
     private LocalDateTime approvedAt;
     private List<StocktakeItem> items = new ArrayList<>();
@@ -54,6 +55,9 @@ public class Stocktake {
 
     public String getCreatedByName()              { return createdByName; }
     public void setCreatedByName(String v)        { this.createdByName = v; }
+
+    public String getApprovedByName()              { return approvedByName; }
+    public void setApprovedByName(String v)        { this.approvedByName = v; }
 
     public Integer getApprovedBy()                { return approvedBy; }
     public void setApprovedBy(Integer v)          { this.approvedBy = v; }

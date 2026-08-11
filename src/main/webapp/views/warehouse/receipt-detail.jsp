@@ -18,9 +18,7 @@
     </div>
     <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
         <a class="button button-outline" href="${cp}/manage/warehouse/receipts">Quay lại</a>
-        <c:if test="${receipt.status == 'COMPLETED'}">
-            <a class="button button-gold" href="${cp}/manage/warehouse/receipt-pdf?id=${receipt.stockReceiptId}" target="_blank">In PDF</a>
-        </c:if>
+        <a class="button button-gold" href="${cp}/manage/warehouse/receipt-pdf?id=${receipt.stockReceiptId}" target="_blank">In / PDF</a>
     </div>
 </div>
 
@@ -54,7 +52,7 @@
             <td style="color:#888;">Nhà cung cấp</td>
             <td>${receipt.supplierName}<c:if test="${not empty receipt.supplierPhone}"> – ${receipt.supplierPhone}</c:if></td>
             <td style="color:#888;">Người duyệt</td>
-            <td>${receipt.approvedBy != null ? receipt.approvedBy : '—'}<c:if test="${receipt.approvedAt != null}"> (${receipt.approvedAt})</c:if></td>
+            <td>${receipt.approvedByName != null ? receipt.approvedByName : '—'}<c:if test="${receipt.approvedAt != null}"> (${receipt.approvedAt})</c:if></td>
         </tr>
         <tr>
             <td style="color:#888;">Tổng tiền</td>
@@ -64,6 +62,21 @@
         </tr>
     </table>
 </div>
+
+<c:if test="${receipt.status == 'DRAFT'}">
+<div class="dashboard-card" style="margin-bottom:16px;">
+    <h3 style="margin-bottom:12px;">Sửa thông tin phiếu</h3>
+    <form method="post" action="${cp}/manage/warehouse/receipt-update" style="display:grid;grid-template-columns:1fr 1.2fr 1fr 1fr;gap:10px;align-items:end;">
+        <input type="hidden" name="receiptId" value="${receipt.stockReceiptId}">
+        <label>Mã phiếu<input name="receiptCode" value="${receipt.receiptCode}" required maxlength="40"></label>
+        <label>Kho<select name="warehouseId" required><c:forEach items="${warehouses}" var="w"><option value="${w.warehouseId}" ${receipt.warehouseId == w.warehouseId ? 'selected' : ''}>${w.warehouseName}</option></c:forEach></select></label>
+        <label>Nhà cung cấp<input name="supplierName" value="${receipt.supplierName}" required maxlength="200"></label>
+        <label>SĐT<input name="supplierPhone" value="${receipt.supplierPhone}" maxlength="20"></label>
+        <label style="grid-column:1 / -2;">Ghi chú<input name="note" value="${receipt.note}" maxlength="1000"></label>
+        <button class="button button-gold" type="submit">Lưu thông tin</button>
+    </form>
+</div>
+</c:if>
 
 <%-- Workflow actions --%>
 <c:if test="${receipt.status == 'DRAFT' || receipt.status == 'PENDING'}">

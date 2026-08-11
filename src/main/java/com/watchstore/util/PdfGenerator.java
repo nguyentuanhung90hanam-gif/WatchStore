@@ -25,10 +25,10 @@ public class PdfGenerator {
     private static Font getFont(int size, int style) {
         try {
             // Read font from resources
-            InputStream is = PdfGenerator.class.getResourceAsStream("/fonts/Roboto-Regular.ttf");
+            InputStream is = PdfGenerator.class.getResourceAsStream("/fonts/NotoSans-Regular.ttf");
             if (is != null) {
                 byte[] fontBytes = is.readAllBytes();
-                BaseFont bf = BaseFont.createFont("Roboto-Regular.ttf", BaseFont.IDENTITY_H, BaseFont.EMBEDDED, true, fontBytes, null);
+                BaseFont bf = BaseFont.createFont("NotoSans-Regular.ttf", BaseFont.IDENTITY_H, BaseFont.EMBEDDED, true, fontBytes, null);
                 return new Font(bf, size, style);
             }
         } catch (Exception e) {

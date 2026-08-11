@@ -1,6 +1,5 @@
 <%@ page contentType="text/html;charset=UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
-<%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 
 <div class="module-heading">
     <div class="module-title-area">
@@ -30,8 +29,7 @@
                 <c:forEach items="${transactions}" var="t">
                     <tr>
                         <td style="white-space: nowrap;">
-                            <fmt:parseDate value="${t.createdAt}" pattern="yyyy-MM-dd'T'HH:mm:ss" var="parsedDate" type="both" />
-                            <fmt:formatDate pattern="dd/MM/yyyy HH:mm" value="${parsedDate}" />
+                            ${t.createdAt}
                         </td>
                         <td>${t.warehouseName}</td>
                         <td>

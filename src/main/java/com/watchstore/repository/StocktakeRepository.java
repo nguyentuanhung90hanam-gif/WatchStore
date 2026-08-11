@@ -17,12 +17,14 @@ import java.util.Set;
 
 public class StocktakeRepository {
 
-    public List<Stocktake> findAll() {
+    public List<Stocktake> findAll() throws Exception {
         List<Stocktake> list = new ArrayList<>();
-        String sql = "SELECT st.*, w.WarehouseName, u.FullName as CreatedByName " +
+        String sql = "SELECT st.*, w.WarehouseName, u.FullName as CreatedByName, " +
+                "au.FullName as ApprovedByName " +
                 "FROM dbo.Stocktakes st " +
-                "INNER JOIN dbo.Warehouses w ON st.WarehouseID = w.WarehouseID " +
+                "LEFT JOIN dbo.Warehouses w ON st.WarehouseID = w.WarehouseID " +
                 "LEFT JOIN dbo.Users u ON st.CreatedBy = u.UserID " +
+                "LEFT JOIN dbo.Users au ON st.ApprovedBy = au.UserID " +
                 "ORDER BY st.StocktakeDate DESC";
 
         try (Connection conn = DBContext.getConnection();
@@ -33,29 +35,32 @@ public class StocktakeRepository {
                 list.add(mapHeader(rs));
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw e;
         }
 
         return list;
     }
 
-    public Stocktake findById(long id) {
+    public Stocktake findById(long id) throws Exception {
         Stocktake st = null;
 
-        String sqlHeader = "SELECT st.*, w.WarehouseName, u.FullName as CreatedByName " +
+        String sqlHeader = "SELECT st.*, w.WarehouseName, u.FullName as CreatedByName, " +
+                "au.FullName as ApprovedByName " +
                 "FROM dbo.Stocktakes st " +
-                "INNER JOIN dbo.Warehouses w ON st.WarehouseID = w.WarehouseID " +
+                "LEFT JOIN dbo.Warehouses w ON st.WarehouseID = w.WarehouseID " +
                 "LEFT JOIN dbo.Users u ON st.CreatedBy = u.UserID " +
+                "LEFT JOIN dbo.Users au ON st.ApprovedBy = au.UserID " +
                 "WHERE st.StocktakeID = ?";
 
-        String sqlItems = "SELECT sti.*, pv.SKU, " +
-                "(SELECT STRING_AGG(pa.AttributeName + ': ' + pav.Value, ', ') " +
+        String sqlItems = "SELECT sti.*, pv.SKU, p.ProductName, " +
+                "(SELECT STRING_AGG(pa.AttributeName + ': ' + pav.ValueName, ', ') " +
                 " FROM dbo.VariantAttributeValues vav " +
-                " INNER JOIN dbo.ProductAttributeValues pav ON vav.ValueID = pav.ValueID " +
+                " INNER JOIN dbo.ProductAttributeValues pav ON vav.AttributeValueID = pav.AttributeValueID " +
                 " INNER JOIN dbo.ProductAttributes pa ON pav.AttributeID = pa.AttributeID " +
                 " WHERE vav.VariantID = pv.VariantID) as VariantName " +
                 "FROM dbo.StocktakeItems sti " +
                 "INNER JOIN dbo.ProductVariants pv ON sti.VariantID = pv.VariantID " +
+                "INNER JOIN dbo.Products p ON pv.ProductID = p.ProductID " +
                 "WHERE sti.StocktakeID = ?";
 
         try (Connection conn = DBContext.getConnection();
@@ -86,6 +91,7 @@ public class StocktakeRepository {
                         item.setActualQuantity(rs.getInt("ActualQuantity"));
                         item.setDifferenceQuantity(rs.getInt("DifferenceQuantity"));
                         item.setNote(rs.getString("Note"));
+                        item.setProductName(rs.getString("ProductName"));
                         item.setSku(rs.getString("SKU"));
                         item.setVariantName(rs.getString("VariantName"));
 
@@ -96,15 +102,86 @@ public class StocktakeRepository {
                 st.setItems(items);
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw e;
         }
 
         return st;
     }
 
+
+    public List<Stocktake> search(String keyword, String status, Integer warehouseId) throws Exception {
+        List<Stocktake> list=new ArrayList<>();
+        StringBuilder sql=new StringBuilder(
+                "SELECT st.*, w.WarehouseName, u.FullName AS CreatedByName, au.FullName AS ApprovedByName " +
+                        "FROM dbo.Stocktakes st LEFT JOIN dbo.Warehouses w ON st.WarehouseID=w.WarehouseID " +
+                        "LEFT JOIN dbo.Users u ON st.CreatedBy=u.UserID LEFT JOIN dbo.Users au ON st.ApprovedBy=au.UserID WHERE 1=1 "
+        );
+        List<Object> params=new ArrayList<>();
+        if(keyword!=null&&!keyword.trim().isEmpty()){
+            sql.append("AND (st.StocktakeCode LIKE ? OR w.WarehouseName LIKE ?) ");String v="%"+keyword.trim()+"%";params.add(v);params.add(v);
+        }
+        if(status!=null&&!status.isBlank()){sql.append("AND st.Status=? ");params.add(status.trim().toUpperCase());}
+        if(warehouseId!=null&&warehouseId>0){sql.append("AND st.WarehouseID=? ");params.add(warehouseId);}
+        sql.append("ORDER BY st.StocktakeDate DESC");
+        try(Connection conn=DBContext.getConnection();PreparedStatement ps=conn.prepareStatement(sql.toString())){
+            for(int i=0;i<params.size();i++)ps.setObject(i+1,params.get(i));
+            try(ResultSet rs=ps.executeQuery()){while(rs.next())list.add(mapHeader(rs));}
+        }
+        return list;
+    }
+
+    public void updateDraft(Stocktake stocktake) throws Exception {
+        if(stocktake==null||stocktake.getStocktakeId()<=0)throw new Exception("Phiếu kiểm kê không hợp lệ.");
+        if(stocktake.getWarehouseId()<=0)throw new Exception("Kho kiểm kê không hợp lệ.");
+        if(stocktake.getStocktakeCode()==null||stocktake.getStocktakeCode().isBlank())throw new Exception("Mã phiếu kiểm kê không được để trống.");
+        String updateSql="UPDATE dbo.Stocktakes SET StocktakeCode=?, WarehouseID=?, Note=? WHERE StocktakeID=? AND Status='DRAFT'";
+        String itemsSql="SELECT StocktakeItemID, VariantID, ActualQuantity FROM dbo.StocktakeItems WHERE StocktakeID=?";
+        String qtySql="SELECT ISNULL(QuantityOnHand,0) FROM dbo.InventoryBalances WHERE WarehouseID=? AND VariantID=?";
+        String itemUpdate="UPDATE dbo.StocktakeItems SET SystemQuantity=?, DifferenceQuantity=? WHERE StocktakeItemID=?";
+        try(Connection conn=DBContext.getConnection()){
+            conn.setAutoCommit(false);
+            try{
+                try(PreparedStatement ps=conn.prepareStatement(updateSql)){
+                    ps.setString(1,stocktake.getStocktakeCode().trim());ps.setInt(2,stocktake.getWarehouseId());ps.setString(3,stocktake.getNote());ps.setLong(4,stocktake.getStocktakeId());
+                    if(ps.executeUpdate()!=1)throw new Exception("Chỉ có thể sửa phiếu kiểm kê ở trạng thái DRAFT.");
+                }
+                try(PreparedStatement psItems=conn.prepareStatement(itemsSql);PreparedStatement psQty=conn.prepareStatement(qtySql);PreparedStatement psUpdate=conn.prepareStatement(itemUpdate)){
+                    psItems.setLong(1,stocktake.getStocktakeId());
+                    try(ResultSet rs=psItems.executeQuery()){
+                        while(rs.next()){
+                            int variantId=rs.getInt("VariantID");
+                            int actual=rs.getInt("ActualQuantity");
+                            int system=0;
+                            psQty.setInt(1,stocktake.getWarehouseId());psQty.setInt(2,variantId);
+                            try(ResultSet q=psQty.executeQuery()){if(q.next())system=q.getInt(1);}
+                            psUpdate.setInt(1,system);psUpdate.setInt(2,actual-system);psUpdate.setLong(3,rs.getLong("StocktakeItemID"));psUpdate.executeUpdate();
+                        }
+                    }
+                }
+                conn.commit();
+            }catch(Exception e){try{conn.rollback();}catch(SQLException ignored){}throw e;}
+            finally{try{conn.setAutoCommit(true);}catch(SQLException ignored){}}
+        }catch(SQLException e){throw new Exception("Không thể cập nhật phiếu kiểm kê.",e);}
+    }
+
+    public void deleteDraft(long stocktakeId) throws Exception {
+        String sql="DELETE FROM dbo.Stocktakes WHERE StocktakeID=? AND Status='DRAFT'";
+        try(Connection conn=DBContext.getConnection();PreparedStatement ps=conn.prepareStatement(sql)){
+            ps.setLong(1,stocktakeId);if(ps.executeUpdate()!=1)throw new Exception("Chỉ có thể xóa phiếu kiểm kê ở trạng thái DRAFT.");
+        }catch(SQLException e){throw new Exception("Không thể xóa phiếu kiểm kê.",e);}
+    }
+
+
     public long createDraft(Stocktake stocktake) throws Exception {
-        if (stocktake.getItems() == null || stocktake.getItems().isEmpty()) {
-            throw new Exception("Phiếu kiểm kê phải có ít nhất một sản phẩm.");
+        if (stocktake == null) {
+            throw new Exception("Dữ liệu phiếu kiểm kê không hợp lệ.");
+        }
+
+        if (stocktake.getItems() == null ||
+                stocktake.getItems().isEmpty()) {
+            throw new Exception(
+                    "Phiếu kiểm kê phải có ít nhất một sản phẩm."
+            );
         }
 
         validateItems(stocktake.getItems());
@@ -204,15 +281,17 @@ public class StocktakeRepository {
     }
 
     public void addItem(long stocktakeId, StocktakeItem item) throws Exception {
-        assertStatus(stocktakeId, "DRAFT");
+        if (item == null) {
+            throw new Exception("Sản phẩm kiểm kê không hợp lệ.");
+        }
 
         if (item.getActualQuantity() < 0) {
             throw new Exception("Số lượng thực tế không được âm.");
         }
 
-        if (isDuplicateVariant(stocktakeId, item.getVariantId(), 0)) {
-            throw new Exception("Biến thể này đã tồn tại trong phiếu.");
-        }
+        String statusSql =
+                "SELECT Status FROM dbo.Stocktakes WITH (UPDLOCK, HOLDLOCK) " +
+                        "WHERE StocktakeID = ?";
 
         String getSysQtySql =
                 "SELECT ib.QuantityOnHand " +
@@ -225,27 +304,51 @@ public class StocktakeRepository {
                         "(StocktakeID, VariantID, SystemQuantity, ActualQuantity) " +
                         "VALUES (?, ?, ?, ?)";
 
-        try (Connection conn = DBContext.getConnection();
-             PreparedStatement psSysQty = conn.prepareStatement(getSysQtySql);
-             PreparedStatement ps = conn.prepareStatement(insertSql)) {
+        String duplicateSql =
+                "SELECT COUNT(1) FROM dbo.StocktakeItems " +
+                        "WHERE StocktakeID = ? AND VariantID = ?";
 
-            psSysQty.setLong(1, stocktakeId);
-            psSysQty.setInt(2, item.getVariantId());
+        try (Connection conn = DBContext.getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                assertStatus(conn, stocktakeId, "DRAFT", statusSql);
 
-            int sysQty = 0;
-
-            try (ResultSet rs = psSysQty.executeQuery()) {
-                if (rs.next()) {
-                    sysQty = rs.getInt(1);
+                try (PreparedStatement ps = conn.prepareStatement(duplicateSql)) {
+                    ps.setLong(1, stocktakeId);
+                    ps.setInt(2, item.getVariantId());
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next() && rs.getInt(1) > 0) {
+                            throw new Exception("Biến thể này đã tồn tại trong phiếu.");
+                        }
+                    }
                 }
+
+                int sysQty = 0;
+                try (PreparedStatement ps = conn.prepareStatement(getSysQtySql)) {
+                    ps.setLong(1, stocktakeId);
+                    ps.setInt(2, item.getVariantId());
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) {
+                            sysQty = rs.getInt("QuantityOnHand");
+                        }
+                    }
+                }
+
+                try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
+                    ps.setLong(1, stocktakeId);
+                    ps.setInt(2, item.getVariantId());
+                    ps.setInt(3, sysQty);
+                    ps.setInt(4, item.getActualQuantity());
+                    ps.executeUpdate();
+                }
+
+                conn.commit();
+            } catch (Exception e) {
+                try { conn.rollback(); } catch (SQLException ignored) { }
+                throw e;
+            } finally {
+                try { conn.setAutoCommit(true); } catch (SQLException ignored) { }
             }
-
-            ps.setLong(1, stocktakeId);
-            ps.setInt(2, item.getVariantId());
-            ps.setInt(3, sysQty);
-            ps.setInt(4, item.getActualQuantity());
-
-            ps.executeUpdate();
         }
     }
 
@@ -254,49 +357,137 @@ public class StocktakeRepository {
             throw new Exception("Số lượng thực tế không được âm.");
         }
 
-        long stocktakeId = getStocktakeIdByItem(itemId);
-        assertStatus(stocktakeId, "DRAFT");
+        String findSql =
+                "SELECT sti.StocktakeID " +
+                        "FROM dbo.StocktakeItems sti " +
+                        "INNER JOIN dbo.Stocktakes st ON sti.StocktakeID = st.StocktakeID " +
+                        "WHERE sti.StocktakeItemID = ? AND st.Status = 'DRAFT'";
 
-        String sql =
-                "UPDATE dbo.StocktakeItems " +
-                        "SET ActualQuantity = ? " +
-                        "WHERE StocktakeItemID = ?";
+        String updateSql =
+                "UPDATE dbo.StocktakeItems SET ActualQuantity = ? WHERE StocktakeItemID = ?";
 
-        try (Connection conn = DBContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = DBContext.getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                long stocktakeId;
+                try (PreparedStatement ps = conn.prepareStatement(findSql)) {
+                    ps.setLong(1, itemId);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (!rs.next()) {
+                            throw new Exception("Không tìm thấy sản phẩm hoặc phiếu không còn ở trạng thái DRAFT.");
+                        }
+                        stocktakeId = rs.getLong("StocktakeID");
+                    }
+                }
 
-            ps.setInt(1, actualQuantity);
-            ps.setLong(2, itemId);
+                assertStatus(conn, stocktakeId, "DRAFT",
+                        "SELECT Status FROM dbo.Stocktakes WITH (UPDLOCK, HOLDLOCK) WHERE StocktakeID = ?");
 
-            ps.executeUpdate();
+                try (PreparedStatement ps = conn.prepareStatement(updateSql)) {
+                    ps.setInt(1, actualQuantity);
+                    ps.setLong(2, itemId);
+                    if (ps.executeUpdate() != 1) {
+                        throw new Exception("Không thể cập nhật sản phẩm trong phiếu.");
+                    }
+                }
+
+                conn.commit();
+            } catch (Exception e) {
+                try { conn.rollback(); } catch (SQLException ignored) { }
+                throw e;
+            } finally {
+                try { conn.setAutoCommit(true); } catch (SQLException ignored) { }
+            }
         }
     }
 
     public void deleteItem(long itemId) throws Exception {
-        long stocktakeId = getStocktakeIdByItem(itemId);
-        assertStatus(stocktakeId, "DRAFT");
+        String findSql =
+                "SELECT sti.StocktakeID " +
+                        "FROM dbo.StocktakeItems sti " +
+                        "INNER JOIN dbo.Stocktakes st ON sti.StocktakeID = st.StocktakeID " +
+                        "WHERE sti.StocktakeItemID = ?";
 
-        String sql =
-                "DELETE FROM dbo.StocktakeItems " +
-                        "WHERE StocktakeItemID = ?";
+        String deleteSql =
+                "DELETE FROM dbo.StocktakeItems WHERE StocktakeItemID = ?";
 
-        try (Connection conn = DBContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = DBContext.getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                long stocktakeId;
+                try (PreparedStatement ps = conn.prepareStatement(findSql)) {
+                    ps.setLong(1, itemId);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (!rs.next()) {
+                            throw new Exception("Không tìm thấy sản phẩm trong phiếu.");
+                        }
+                        stocktakeId = rs.getLong("StocktakeID");
+                    }
+                }
 
-            ps.setLong(1, itemId);
+                assertStatus(conn, stocktakeId, "DRAFT",
+                        "SELECT Status FROM dbo.Stocktakes WITH (UPDLOCK, HOLDLOCK) WHERE StocktakeID = ?");
 
-            ps.executeUpdate();
+                try (PreparedStatement ps = conn.prepareStatement(deleteSql)) {
+                    ps.setLong(1, itemId);
+                    if (ps.executeUpdate() != 1) {
+                        throw new Exception("Không thể xóa sản phẩm khỏi phiếu.");
+                    }
+                }
+
+                conn.commit();
+            } catch (Exception e) {
+                try { conn.rollback(); } catch (SQLException ignored) { }
+                throw e;
+            } finally {
+                try { conn.setAutoCommit(true); } catch (SQLException ignored) { }
+            }
         }
     }
 
     public void submitForApproval(long stocktakeId) throws Exception {
-        assertStatus(stocktakeId, "DRAFT");
-        assertHasItems(stocktakeId);
-        updateStatus(stocktakeId, "COUNTING");
+        String statusSql =
+                "SELECT Status FROM dbo.Stocktakes WITH (UPDLOCK, HOLDLOCK) WHERE StocktakeID = ?";
+        String countSql =
+                "SELECT COUNT(1) FROM dbo.StocktakeItems WHERE StocktakeID = ?";
+        String updateSql =
+                "UPDATE dbo.Stocktakes SET Status = 'COUNTING' " +
+                        "WHERE StocktakeID = ? AND Status = 'DRAFT'";
+
+        try (Connection conn = DBContext.getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                assertStatus(conn, stocktakeId, "DRAFT", statusSql);
+
+                try (PreparedStatement ps = conn.prepareStatement(countSql)) {
+                    ps.setLong(1, stocktakeId);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (!rs.next() || rs.getInt(1) == 0) {
+                            throw new Exception("Phiếu phải có ít nhất một sản phẩm.");
+                        }
+                    }
+                }
+
+                try (PreparedStatement ps = conn.prepareStatement(updateSql)) {
+                    ps.setLong(1, stocktakeId);
+                    if (ps.executeUpdate() != 1) {
+                        throw new Exception("Không thể gửi phiếu kiểm kê.");
+                    }
+                }
+
+                conn.commit();
+            } catch (Exception e) {
+                try { conn.rollback(); } catch (SQLException ignored) { }
+                throw e;
+            } finally {
+                try { conn.setAutoCommit(true); } catch (SQLException ignored) { }
+            }
+        }
     }
 
     public void approve(long stocktakeId, int approvedBy) throws Exception {
-        assertStatus(stocktakeId, "COUNTING");
+        String statusSql =
+                "SELECT Status FROM dbo.Stocktakes WITH (UPDLOCK, HOLDLOCK) WHERE StocktakeID = ?";
 
         String sqlGetInfo =
                 "SELECT Note, WarehouseID, CreatedBy " +
@@ -331,6 +522,8 @@ public class StocktakeRepository {
         try {
             conn = DBContext.getConnection();
             conn.setAutoCommit(false);
+
+            assertStatus(conn, stocktakeId, "COUNTING", statusSql);
 
             String note = "";
             int warehouseId = 0;
@@ -430,17 +623,23 @@ public class StocktakeRepository {
     }
 
     public void cancel(long stocktakeId) throws Exception {
-        Stocktake st = findById(stocktakeId);
+        String sql =
+                "UPDATE dbo.Stocktakes " +
+                        "SET Status = 'CANCELLED' " +
+                        "WHERE StocktakeID = ? " +
+                        "AND Status IN ('DRAFT', 'COUNTING')";
 
-        if (st == null) {
-            throw new Exception("Phiếu không tồn tại.");
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setLong(1, stocktakeId);
+
+            if (ps.executeUpdate() != 1) {
+                throw new Exception(
+                        "Không thể hủy phiếu. Phiếu không tồn tại hoặc đã hoàn thành/đã hủy."
+                );
+            }
         }
-
-        if ("COMPLETED".equals(st.getStatus())) {
-            throw new Exception("Không thể hủy phiếu đã hoàn thành.");
-        }
-
-        updateStatus(stocktakeId, "CANCELLED");
     }
 
     private Stocktake mapHeader(ResultSet rs) throws SQLException {
@@ -466,6 +665,7 @@ public class StocktakeRepository {
                         ? rs.getInt("ApprovedBy")
                         : null
         );
+        st.setApprovedByName(rs.getString("ApprovedByName"));
 
         if (rs.getTimestamp("ApprovedAt") != null) {
             st.setApprovedAt(
@@ -476,15 +676,13 @@ public class StocktakeRepository {
         return st;
     }
 
-    private void assertStatus(long stocktakeId, String expectedStatus) throws Exception {
-        String sql =
-                "SELECT Status " +
-                        "FROM dbo.Stocktakes " +
-                        "WHERE StocktakeID = ?";
-
-        try (Connection conn = DBContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
+    private void assertStatus(
+            Connection conn,
+            long stocktakeId,
+            String expectedStatus,
+            String sql
+    ) throws Exception {
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setLong(1, stocktakeId);
 
             try (ResultSet rs = ps.executeQuery()) {
@@ -493,7 +691,6 @@ public class StocktakeRepository {
                 }
 
                 String status = rs.getString("Status");
-
                 if (!expectedStatus.equals(status)) {
                     throw new Exception(
                             "Thao tác không hợp lệ. Trạng thái hiện tại: " + status
@@ -503,22 +700,12 @@ public class StocktakeRepository {
         }
     }
 
-    private void assertHasItems(long stocktakeId) throws Exception {
+    private void assertStatus(long stocktakeId, String expectedStatus) throws Exception {
         String sql =
-                "SELECT COUNT(1) " +
-                        "FROM dbo.StocktakeItems " +
-                        "WHERE StocktakeID = ?";
+                "SELECT Status FROM dbo.Stocktakes WHERE StocktakeID = ?";
 
-        try (Connection conn = DBContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setLong(1, stocktakeId);
-
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next() && rs.getInt(1) == 0) {
-                    throw new Exception("Phiếu phải có ít nhất một sản phẩm.");
-                }
-            }
+        try (Connection conn = DBContext.getConnection()) {
+            assertStatus(conn, stocktakeId, expectedStatus, sql);
         }
     }
 
@@ -600,4 +787,3 @@ public class StocktakeRepository {
         }
     }
 }
-

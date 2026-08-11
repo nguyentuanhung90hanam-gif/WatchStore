@@ -55,10 +55,8 @@
                         <td>
                             <a class="button button-outline" style="padding:5px 10px; font-size:12px;"
                                href="${cp}/manage/warehouse/export-detail?id=${e.stockExportId}">Chi tiết</a>
-                            <c:if test="${e.status == 'COMPLETED'}">
-                                <a class="button button-gold" style="padding:5px 10px; font-size:12px;"
-                                   href="${cp}/manage/warehouse/export-pdf?id=${e.stockExportId}" target="_blank">PDF</a>
-                            </c:if>
+                            <a class="button button-gold" style="padding:5px 10px; font-size:12px;" href="${cp}/manage/warehouse/export-pdf?id=${e.stockExportId}" target="_blank">In / PDF</a>
+                            <c:if test="${e.status == 'DRAFT'}"><form method="post" action="${cp}/manage/warehouse/export-delete" style="display:inline"><input type="hidden" name="exportId" value="${e.stockExportId}"><button class="button button-outline" type="submit" style="padding:5px 10px;font-size:12px;color:#c0392b;" onclick="return confirm('Xóa phiếu nháp này?')">Xóa</button></form></c:if>
                         </td>
                     </tr>
                 </c:forEach>

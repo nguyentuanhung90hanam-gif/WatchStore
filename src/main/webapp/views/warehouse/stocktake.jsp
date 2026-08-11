@@ -49,8 +49,8 @@
                             </span>
                         </td>
                         <td>
-                            <a class="button button-outline" style="padding:5px 10px; font-size:12px;"
-                               href="${cp}/manage/warehouse/stocktake-detail?id=${s.stocktakeId}">Chi tiết</a>
+                            <a class="button button-outline" style="padding:5px 10px; font-size:12px;" href="${cp}/manage/warehouse/stocktake-detail?id=${s.stocktakeId}">Chi tiết</a>
+                            <c:if test="${s.status == 'DRAFT'}"><form method="post" action="${cp}/manage/warehouse/stocktake-delete" style="display:inline"><input type="hidden" name="stocktakeId" value="${s.stocktakeId}"><button class="button button-outline" type="submit" style="padding:5px 10px;font-size:12px;color:#c0392b;" onclick="return confirm('Xóa phiếu nháp này?')">Xóa</button></form></c:if>
                         </td>
                     </tr>
                 </c:forEach>

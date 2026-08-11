@@ -1,6 +1,7 @@
 package com.watchstore.controller.warehouse;
 
 import com.watchstore.model.Variant;
+import com.watchstore.model.VariantAttributeOption;
 import com.watchstore.repository.VariantRepository;
 import com.watchstore.util.ViewRouter;
 import jakarta.servlet.ServletException;
@@ -11,6 +12,10 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 @WebServlet(urlPatterns = {
         "/manage/warehouse/variants",
@@ -221,33 +226,62 @@ public class VariantController extends HttpServlet {
         String idParam =
                 req.getParameter("id");
 
-        if (idParam == null ||
-                idParam.trim().isEmpty()) {
+        int variantId = 0;
 
-            return;
-        }
+        if (idParam != null &&
+                !idParam.trim().isEmpty()) {
 
-        int variantId =
-                parsePositiveInt(
-                        idParam,
-                        "ID biến thể không hợp lệ."
+            variantId =
+                    parsePositiveInt(
+                            idParam,
+                            "ID biến thể không hợp lệ."
+                    );
+
+            Variant variant =
+                    variantRepo.findById(
+                            variantId
+                    );
+
+            if (variant == null) {
+
+                throw new Exception(
+                        "Không tìm thấy biến thể."
                 );
+            }
 
-        Variant variant =
-                variantRepo.findById(
-                        variantId
-                );
-
-        if (variant == null) {
-
-            throw new Exception(
-                    "Không tìm thấy biến thể."
+            req.setAttribute(
+                    "variant",
+                    variant
             );
         }
 
+        List<VariantAttributeOption> options =
+                variantRepo.findAttributeOptions(
+                        variantId
+                );
+
+        Map<Integer, List<VariantAttributeOption>> attributeGroups =
+                new LinkedHashMap<>();
+
+        for (VariantAttributeOption option :
+                options) {
+
+            attributeGroups
+                    .computeIfAbsent(
+                            option.getAttributeId(),
+                            key -> new ArrayList<>()
+                    )
+                    .add(option);
+        }
+
         req.setAttribute(
-                "variant",
-                variant
+                "attributeGroups",
+                attributeGroups
+        );
+
+        req.setAttribute(
+                "editing",
+                variantId > 0
         );
     }
 
@@ -261,8 +295,12 @@ public class VariantController extends HttpServlet {
                         req
                 );
 
+        List<Integer> attributeValueIds =
+                getAttributeValueIds(req);
+
         variantRepo.create(
-                variant
+                variant,
+                attributeValueIds
         );
 
         req.getSession().setAttribute(
@@ -293,8 +331,12 @@ public class VariantController extends HttpServlet {
                 )
         );
 
+        List<Integer> attributeValueIds =
+                getAttributeValueIds(req);
+
         variantRepo.update(
-                variant
+                variant,
+                attributeValueIds
         );
 
         req.getSession().setAttribute(
@@ -465,6 +507,53 @@ public class VariantController extends HttpServlet {
         );
 
         return variant;
+    }
+
+    private List<Integer> getAttributeValueIds(
+            HttpServletRequest req
+    ) throws Exception {
+
+        List<Integer> ids =
+                new ArrayList<>();
+
+        java.util.Map<String, String[]> parameterMap =
+                req.getParameterMap();
+
+        for (Map.Entry<String, String[]> entry :
+                parameterMap.entrySet()) {
+
+            String name = entry.getKey();
+
+            if (!name.startsWith(
+                    "attributeValueIds_"
+            )) {
+                continue;
+            }
+
+            String[] values =
+                    entry.getValue();
+
+            if (values == null) {
+                continue;
+            }
+
+            for (String value : values) {
+
+                if (value == null ||
+                        value.trim().isEmpty()) {
+                    continue;
+                }
+
+                ids.add(
+                        parsePositiveInt(
+                                value,
+                                "Giá trị thuộc tính không hợp lệ."
+                        )
+                );
+            }
+        }
+
+        return ids;
     }
 
     private void render(

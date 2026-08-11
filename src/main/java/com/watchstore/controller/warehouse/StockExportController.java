@@ -5,7 +5,6 @@ import com.watchstore.model.StockExportItem;
 import com.watchstore.model.User;
 import com.watchstore.repository.InventoryRepository;
 import com.watchstore.repository.StockExportRepository;
-import com.watchstore.repository.VariantRepository;
 import com.watchstore.util.PdfGenerator;
 import com.watchstore.util.ViewRouter;
 import jakarta.servlet.ServletException;
@@ -28,19 +27,19 @@ import java.util.List;
         "/manage/warehouse/export-delete-item",
         "/manage/warehouse/export-submit",
         "/manage/warehouse/export-approve",
-        "/manage/warehouse/export-cancel"
+        "/manage/warehouse/export-cancel",
+        "/manage/warehouse/export-update",
+        "/manage/warehouse/export-delete"
 })
 public class StockExportController extends HttpServlet {
 
     private StockExportRepository exportRepo;
     private InventoryRepository inventoryRepo;
-    private VariantRepository variantRepo;
 
     @Override
     public void init() {
         exportRepo = new StockExportRepository();
         inventoryRepo = new InventoryRepository();
-        variantRepo = new VariantRepository();
     }
 
     @Override
@@ -52,24 +51,20 @@ public class StockExportController extends HttpServlet {
         String path = req.getServletPath();
 
         try {
-
             switch (path) {
 
                 case "/manage/warehouse/exports":
-
                     handleExportList(req);
 
                     render(
                             req,
                             resp,
                             "export-list",
-                            "Phiếu xuất kho"
+                            "Quản lý phiếu xuất"
                     );
-
                     return;
 
                 case "/manage/warehouse/export-create":
-
                     handleExportCreateForm(req);
 
                     render(
@@ -78,11 +73,9 @@ public class StockExportController extends HttpServlet {
                             "export-create",
                             "Tạo phiếu xuất"
                     );
-
                     return;
 
                 case "/manage/warehouse/export-detail":
-
                     handleExportDetail(req);
 
                     render(
@@ -91,27 +84,19 @@ public class StockExportController extends HttpServlet {
                             "export-detail",
                             "Chi tiết phiếu xuất"
                     );
-
                     return;
 
                 case "/manage/warehouse/export-pdf":
-
-                    handleExportPdf(
-                            req,
-                            resp
-                    );
-
+                    handleExportPdf(req, resp);
                     return;
 
                 default:
-
                     resp.sendError(
                             HttpServletResponse.SC_NOT_FOUND
                     );
             }
 
         } catch (Exception e) {
-
             e.printStackTrace();
 
             req.getSession().setAttribute(
@@ -132,89 +117,73 @@ public class StockExportController extends HttpServlet {
             HttpServletResponse resp
     ) throws ServletException, IOException {
 
+        req.setCharacterEncoding("UTF-8");
+
         String path = req.getServletPath();
 
         try {
-
-            int userId =
-                    getCurrentUserId(req);
+            int userId = getCurrentUserId(req);
 
             switch (path) {
 
                 case "/manage/warehouse/export-create":
-
                     handleExportCreate(
                             req,
                             userId,
                             resp
                     );
-
                     return;
 
                 case "/manage/warehouse/export-add-item":
-
                     handleExportAddItem(
                             req,
                             resp
                     );
-
                     return;
 
                 case "/manage/warehouse/export-update-item":
-
                     handleExportUpdateItem(
                             req,
                             resp
                     );
-
                     return;
 
                 case "/manage/warehouse/export-delete-item":
-
                     handleExportDeleteItem(
                             req,
                             resp
                     );
-
                     return;
 
                 case "/manage/warehouse/export-submit":
-
                     handleExportSubmit(
                             req,
                             resp
                     );
-
                     return;
 
                 case "/manage/warehouse/export-approve":
-
                     handleExportApprove(
                             req,
                             userId,
                             resp
                     );
-
                     return;
 
                 case "/manage/warehouse/export-cancel":
-
                     handleExportCancel(
                             req,
                             resp
                     );
-
                     return;
 
                 default:
-
                     resp.sendError(
                             HttpServletResponse.SC_NOT_FOUND
                     );
             }
 
         } catch (Exception e) {
-
             e.printStackTrace();
 
             req.getSession().setAttribute(
@@ -222,11 +191,10 @@ public class StockExportController extends HttpServlet {
                     getErrorMessage(e)
             );
 
-            String exportId =
-                    req.getParameter("exportId");
+            String exportId = req.getParameter("exportId");
 
-            if (exportId != null &&
-                    !exportId.trim().isEmpty()) {
+            if (exportId != null
+                    && !exportId.trim().isEmpty()) {
 
                 resp.sendRedirect(
                         req.getContextPath()
@@ -246,7 +214,7 @@ public class StockExportController extends HttpServlet {
 
     private void handleExportList(
             HttpServletRequest req
-    ) {
+    ) throws Exception {
 
         req.setAttribute(
                 "exports",
@@ -256,7 +224,7 @@ public class StockExportController extends HttpServlet {
 
     private void handleExportCreateForm(
             HttpServletRequest req
-    ) {
+    ) throws Exception {
 
         req.setAttribute(
                 "warehouses",
@@ -264,8 +232,8 @@ public class StockExportController extends HttpServlet {
         );
 
         req.setAttribute(
-                "variants",
-                variantRepo.findAll()
+                "inventoryItems",
+                inventoryRepo.findAll()
         );
     }
 
@@ -273,28 +241,24 @@ public class StockExportController extends HttpServlet {
             HttpServletRequest req
     ) throws Exception {
 
-        String idParam =
-                req.getParameter("id");
+        String idParam = req.getParameter("id");
 
-        if (idParam == null ||
-                idParam.trim().isEmpty()) {
+        if (idParam == null
+                || idParam.trim().isEmpty()) {
 
             throw new Exception(
                     "Thiếu mã phiếu xuất."
             );
         }
 
-        long id =
-                parsePositiveLong(
-                        idParam,
-                        "Mã phiếu xuất không hợp lệ."
-                );
+        long id = parsePositiveLong(
+                idParam,
+                "Mã phiếu xuất không hợp lệ."
+        );
 
-        StockExport export =
-                exportRepo.findById(id);
+        StockExport export = exportRepo.findById(id);
 
         if (export == null) {
-
             throw new Exception(
                     "Không tìm thấy phiếu xuất."
             );
@@ -306,9 +270,22 @@ public class StockExportController extends HttpServlet {
         );
 
         req.setAttribute(
-                "variants",
-                variantRepo.findAll()
+                "warehouses",
+                inventoryRepo.findAllWarehouses()
         );
+
+        /*
+         * Chỉ cần danh sách Variant để thêm sản phẩm
+         * khi phiếu vẫn đang ở trạng thái DRAFT.
+         */
+        if ("DRAFT".equalsIgnoreCase(
+                export.getStatus()
+        )) {
+            req.setAttribute(
+                    "inventoryItems",
+                    inventoryRepo.findAll()
+            );
+        }
     }
 
     private void handleExportCreate(
@@ -317,32 +294,28 @@ public class StockExportController extends HttpServlet {
             HttpServletResponse resp
     ) throws Exception {
 
-        int warehouseId =
-                parsePositiveInt(
-                        req.getParameter("warehouseId"),
-                        "Kho không hợp lệ."
-                );
+        int warehouseId = parsePositiveInt(
+                req.getParameter("warehouseId"),
+                "Mã kho không hợp lệ."
+        );
 
-        String[] variantIds =
-                req.getParameterValues(
-                        "variantIds"
-                );
+        String exportType = optionalString(
+                req.getParameter("exportType")
+        );
 
-        String[] quantities =
-                req.getParameterValues(
-                        "quantities"
-                );
+        String receiverName = optionalString(
+                req.getParameter("receiverName")
+        );
 
-        if (variantIds == null ||
-                variantIds.length == 0) {
+        String note = optionalString(
+                req.getParameter("note")
+        );
 
-            throw new Exception(
-                    "Phiếu xuất phải có ít nhất một sản phẩm."
-            );
-        }
+        String orderIdStr = optionalString(
+                req.getParameter("orderId")
+        );
 
-        StockExport export =
-                new StockExport();
+        StockExport export = new StockExport();
 
         export.setExportCode(
                 "EXP-" + System.currentTimeMillis()
@@ -353,116 +326,77 @@ public class StockExportController extends HttpServlet {
         );
 
         export.setExportType(
-                optionalString(
-                        req.getParameter(
-                                "exportType"
-                        )
-                )
+                exportType
         );
 
         export.setReceiverName(
-                optionalString(
-                        req.getParameter(
-                                "receiverName"
-                        )
-                )
+                receiverName
         );
 
         export.setNote(
-                optionalString(
-                        req.getParameter(
-                                "note"
-                        )
-                )
+                note
         );
 
         export.setCreatedBy(
                 userId
         );
 
-        String orderIdStr =
-                optionalString(
-                        req.getParameter(
-                                "orderId"
-                        )
-                );
-
-        if (orderIdStr != null) {
+        if ("SALE".equalsIgnoreCase(exportType)) {
+            if (orderIdStr == null) {
+                throw new Exception("Xuất Bán (SALE) bắt buộc phải nhập OrderID.");
+            }
 
             export.setOrderId(
                     parsePositiveLong(
                             orderIdStr,
-                            "Mã đơn hàng không hợp lệ."
+                            "OrderID không hợp lệ."
                     )
             );
+        } else {
+            // Chỉ SALE mới được phép liên kết Orders.
+            export.setOrderId(null);
         }
 
-        List<StockExportItem> items =
-                new ArrayList<>();
+        String[] variantIds = req.getParameterValues("variantIds");
+        String[] quantities = req.getParameterValues("quantities");
 
-        for (int i = 0;
-             i < variantIds.length;
-             i++) {
+        List<StockExportItem> items = new ArrayList<>();
 
-            if (variantIds[i] == null ||
-                    variantIds[i].trim().isEmpty()) {
-
-                continue;
-            }
-
-            if (quantities == null ||
-                    i >= quantities.length) {
-
+        if (variantIds != null || quantities != null) {
+            if (variantIds == null || quantities == null
+                    || variantIds.length != quantities.length) {
                 throw new Exception(
-                        "Thiếu số lượng sản phẩm."
+                        "Danh sách sản phẩm xuất không hợp lệ."
                 );
             }
 
-            int variantId =
-                    parsePositiveInt(
-                            variantIds[i],
-                            "Biến thể không hợp lệ."
-                    );
-
-            int quantity =
-                    parsePositiveInt(
-                            quantities[i],
-                            "Số lượng xuất phải lớn hơn 0."
-                    );
-
-            StockExportItem item =
-                    new StockExportItem();
-
-            item.setVariantId(
-                    variantId
-            );
-
-            item.setQuantity(
-                    quantity
-            );
-
-            items.add(item);
-        }
-
-        if (items.isEmpty()) {
-
-            throw new Exception(
-                    "Phiếu xuất phải có ít nhất một sản phẩm hợp lệ."
-            );
-        }
-
-        export.setItems(
-                items
-        );
-
-        long exportId =
-                exportRepo.createDraft(
-                        export
+            for (int i = 0; i < variantIds.length; i++) {
+                int variantId = parsePositiveInt(
+                        variantIds[i],
+                        "Bạn chưa chọn biến thể sản phẩm."
                 );
+
+                int quantity = parsePositiveInt(
+                        quantities[i],
+                        "Số lượng xuất phải lớn hơn 0."
+                );
+
+                StockExportItem item = new StockExportItem();
+                item.setVariantId(variantId);
+                item.setQuantity(quantity);
+                items.add(item);
+            }
+        }
+
+        export.setItems(items);
+
+        long exportId = exportRepo.createDraft(
+                export
+        );
 
         req.getSession().setAttribute(
                 "successMsg",
-                "Tạo phiếu xuất nháp thành công!"
+                "Đã tạo phiếu xuất nháp thành công."
         );
 
         resp.sendRedirect(
@@ -477,26 +411,22 @@ public class StockExportController extends HttpServlet {
             HttpServletResponse resp
     ) throws Exception {
 
-        long exportId =
-                parsePositiveLong(
-                        req.getParameter("exportId"),
-                        "Mã phiếu xuất không hợp lệ."
-                );
+        long exportId = parsePositiveLong(
+                req.getParameter("exportId"),
+                "Mã phiếu xuất không hợp lệ."
+        );
 
-        int variantId =
-                parsePositiveInt(
-                        req.getParameter("variantId"),
-                        "Phải chọn biến thể."
-                );
+        int variantId = parsePositiveInt(
+                req.getParameter("variantId"),
+                "Bạn chưa chọn biến thể sản phẩm."
+        );
 
-        int quantity =
-                parsePositiveInt(
-                        req.getParameter("quantity"),
-                        "Số lượng phải lớn hơn 0."
-                );
+        int quantity = parsePositiveInt(
+                req.getParameter("quantity"),
+                "Số lượng xuất phải lớn hơn 0."
+        );
 
-        StockExportItem item =
-                new StockExportItem();
+        StockExportItem item = new StockExportItem();
 
         item.setVariantId(
                 variantId
@@ -513,7 +443,7 @@ public class StockExportController extends HttpServlet {
 
         req.getSession().setAttribute(
                 "successMsg",
-                "Thêm sản phẩm thành công."
+                "Đã thêm sản phẩm vào phiếu xuất."
         );
 
         resp.sendRedirect(
@@ -528,23 +458,20 @@ public class StockExportController extends HttpServlet {
             HttpServletResponse resp
     ) throws Exception {
 
-        long exportId =
-                parsePositiveLong(
-                        req.getParameter("exportId"),
-                        "Mã phiếu xuất không hợp lệ."
-                );
+        long exportId = parsePositiveLong(
+                req.getParameter("exportId"),
+                "Mã phiếu xuất không hợp lệ."
+        );
 
-        long itemId =
-                parsePositiveLong(
-                        req.getParameter("itemId"),
-                        "Mã sản phẩm trong phiếu không hợp lệ."
-                );
+        long itemId = parsePositiveLong(
+                req.getParameter("itemId"),
+                "Mã sản phẩm trong phiếu không hợp lệ."
+        );
 
-        int quantity =
-                parsePositiveInt(
-                        req.getParameter("quantity"),
-                        "Số lượng phải lớn hơn 0."
-                );
+        int quantity = parsePositiveInt(
+                req.getParameter("quantity"),
+                "Số lượng xuất phải lớn hơn 0."
+        );
 
         exportRepo.updateItem(
                 itemId,
@@ -553,7 +480,7 @@ public class StockExportController extends HttpServlet {
 
         req.getSession().setAttribute(
                 "successMsg",
-                "Cập nhật thành công."
+                "Cập nhật sản phẩm thành công."
         );
 
         resp.sendRedirect(
@@ -568,17 +495,15 @@ public class StockExportController extends HttpServlet {
             HttpServletResponse resp
     ) throws Exception {
 
-        long exportId =
-                parsePositiveLong(
-                        req.getParameter("exportId"),
-                        "Mã phiếu xuất không hợp lệ."
-                );
+        long exportId = parsePositiveLong(
+                req.getParameter("exportId"),
+                "Mã phiếu xuất không hợp lệ."
+        );
 
-        long itemId =
-                parsePositiveLong(
-                        req.getParameter("itemId"),
-                        "Mã sản phẩm trong phiếu không hợp lệ."
-                );
+        long itemId = parsePositiveLong(
+                req.getParameter("itemId"),
+                "Mã sản phẩm trong phiếu không hợp lệ."
+        );
 
         exportRepo.deleteItem(
                 itemId
@@ -586,7 +511,7 @@ public class StockExportController extends HttpServlet {
 
         req.getSession().setAttribute(
                 "successMsg",
-                "Đã xóa sản phẩm."
+                "Đã xóa sản phẩm khỏi phiếu xuất."
         );
 
         resp.sendRedirect(
@@ -601,11 +526,10 @@ public class StockExportController extends HttpServlet {
             HttpServletResponse resp
     ) throws Exception {
 
-        long exportId =
-                parsePositiveLong(
-                        req.getParameter("exportId"),
-                        "Mã phiếu xuất không hợp lệ."
-                );
+        long exportId = parsePositiveLong(
+                req.getParameter("exportId"),
+                "Mã phiếu xuất không hợp lệ."
+        );
 
         exportRepo.submitForApproval(
                 exportId
@@ -613,7 +537,7 @@ public class StockExportController extends HttpServlet {
 
         req.getSession().setAttribute(
                 "successMsg",
-                "Đã gửi phiếu chờ duyệt."
+                "Đã gửi phiếu xuất để duyệt."
         );
 
         resp.sendRedirect(
@@ -629,11 +553,10 @@ public class StockExportController extends HttpServlet {
             HttpServletResponse resp
     ) throws Exception {
 
-        long exportId =
-                parsePositiveLong(
-                        req.getParameter("exportId"),
-                        "Mã phiếu xuất không hợp lệ."
-                );
+        long exportId = parsePositiveLong(
+                req.getParameter("exportId"),
+                "Mã phiếu xuất không hợp lệ."
+        );
 
         exportRepo.approve(
                 exportId,
@@ -642,7 +565,7 @@ public class StockExportController extends HttpServlet {
 
         req.getSession().setAttribute(
                 "successMsg",
-                "Phiếu xuất đã được duyệt và tồn kho đã cập nhật!"
+                "Đã duyệt phiếu xuất và cập nhật tồn kho."
         );
 
         resp.sendRedirect(
@@ -657,11 +580,10 @@ public class StockExportController extends HttpServlet {
             HttpServletResponse resp
     ) throws Exception {
 
-        long exportId =
-                parsePositiveLong(
-                        req.getParameter("exportId"),
-                        "Mã phiếu xuất không hợp lệ."
-                );
+        long exportId = parsePositiveLong(
+                req.getParameter("exportId"),
+                "Mã phiếu xuất không hợp lệ."
+        );
 
         exportRepo.cancel(
                 exportId
@@ -669,7 +591,7 @@ public class StockExportController extends HttpServlet {
 
         req.getSession().setAttribute(
                 "successMsg",
-                "Phiếu đã bị hủy."
+                "Đã hủy phiếu xuất."
         );
 
         resp.sendRedirect(
@@ -679,18 +601,39 @@ public class StockExportController extends HttpServlet {
         );
     }
 
+    private void handleExportUpdate(HttpServletRequest req, HttpServletResponse resp) throws Exception {
+        long exportId=parsePositiveLong(req.getParameter("exportId"),"Mã phiếu xuất không hợp lệ.");
+        StockExport export=new StockExport();
+        export.setStockExportId(exportId);
+        export.setExportCode(optionalString(req.getParameter("exportCode")));
+        export.setWarehouseId(parsePositiveInt(req.getParameter("warehouseId"),"Kho không hợp lệ."));
+        export.setExportType(optionalString(req.getParameter("exportType")));
+        String orderId=optionalString(req.getParameter("orderId"));
+        if(orderId!=null && !orderId.isBlank()) export.setOrderId(parsePositiveLong(orderId,"OrderID không hợp lệ."));
+        export.setReceiverName(optionalString(req.getParameter("receiverName")));
+        export.setNote(optionalString(req.getParameter("note")));
+        exportRepo.updateDraft(export);
+        req.getSession().setAttribute("successMsg","Cập nhật phiếu xuất thành công.");
+        resp.sendRedirect(req.getContextPath()+"/manage/warehouse/export-detail?id="+exportId);
+    }
+
+    private void handleExportDelete(HttpServletRequest req, HttpServletResponse resp) throws Exception {
+        long exportId=parsePositiveLong(req.getParameter("exportId"),"Mã phiếu xuất không hợp lệ.");
+        exportRepo.deleteDraft(exportId);
+        req.getSession().setAttribute("successMsg","Đã xóa phiếu xuất nháp.");
+        resp.sendRedirect(req.getContextPath()+"/manage/warehouse/exports");
+    }
+
     private void handleExportPdf(
             HttpServletRequest req,
             HttpServletResponse resp
     ) throws IOException {
 
         try {
+            String idParam = req.getParameter("id");
 
-            String idParam =
-                    req.getParameter("id");
-
-            if (idParam == null ||
-                    idParam.trim().isEmpty()) {
+            if (idParam == null
+                    || idParam.trim().isEmpty()) {
 
                 resp.sendRedirect(
                         req.getContextPath()
@@ -700,14 +643,12 @@ public class StockExportController extends HttpServlet {
                 return;
             }
 
-            long id =
-                    parsePositiveLong(
-                            idParam,
-                            "Mã phiếu xuất không hợp lệ."
-                    );
+            long id = parsePositiveLong(
+                    idParam,
+                    "Mã phiếu xuất không hợp lệ."
+            );
 
-            StockExport export =
-                    exportRepo.findById(id);
+            StockExport export = exportRepo.findById(id);
 
             if (export == null) {
 
@@ -725,7 +666,7 @@ public class StockExportController extends HttpServlet {
 
             resp.setHeader(
                     "Content-Disposition",
-                    "attachment; filename=\"Export_"
+                    "inline; filename=\"Export_"
                             + sanitizeFileName(
                             export.getExportCode()
                     )
@@ -738,7 +679,6 @@ public class StockExportController extends HttpServlet {
             );
 
         } catch (Exception e) {
-
             e.printStackTrace();
 
             if (!resp.isCommitted()) {
@@ -782,9 +722,7 @@ public class StockExportController extends HttpServlet {
     ) throws Exception {
 
         Object userObj =
-                req.getSession().getAttribute(
-                        "user"
-                );
+                req.getSession().getAttribute("user");
 
         if (userObj instanceof User) {
 
@@ -802,20 +740,17 @@ public class StockExportController extends HttpServlet {
     ) throws Exception {
 
         try {
-
-            if (value == null ||
-                    value.trim().isEmpty()) {
+            if (value == null
+                    || value.trim().isEmpty()) {
 
                 throw new Exception(message);
             }
 
-            int result =
-                    Integer.parseInt(
-                            value.trim()
-                    );
+            int result = Integer.parseInt(
+                    value.trim()
+            );
 
             if (result <= 0) {
-
                 throw new Exception(message);
             }
 
@@ -833,20 +768,17 @@ public class StockExportController extends HttpServlet {
     ) throws Exception {
 
         try {
-
-            if (value == null ||
-                    value.trim().isEmpty()) {
+            if (value == null
+                    || value.trim().isEmpty()) {
 
                 throw new Exception(message);
             }
 
-            long result =
-                    Long.parseLong(
-                            value.trim()
-                    );
+            long result = Long.parseLong(
+                    value.trim()
+            );
 
             if (result <= 0) {
-
                 throw new Exception(message);
             }
 
@@ -862,8 +794,8 @@ public class StockExportController extends HttpServlet {
             String value
     ) {
 
-        if (value == null ||
-                value.trim().isEmpty()) {
+        if (value == null
+                || value.trim().isEmpty()) {
 
             return null;
         }
@@ -875,8 +807,8 @@ public class StockExportController extends HttpServlet {
             String value
     ) {
 
-        if (value == null ||
-                value.trim().isEmpty()) {
+        if (value == null
+                || value.trim().isEmpty()) {
 
             return "document";
         }
@@ -891,10 +823,10 @@ public class StockExportController extends HttpServlet {
             Exception e
     ) {
 
-        if (e.getMessage() == null ||
-                e.getMessage().trim().isEmpty()) {
+        if (e.getMessage() == null
+                || e.getMessage().trim().isEmpty()) {
 
-            return "Có lỗi xảy ra trong quá trình xử lý.";
+            return "Đã xảy ra lỗi trong quá trình xử lý.";
         }
 
         return e.getMessage();

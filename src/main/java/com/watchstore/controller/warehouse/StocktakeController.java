@@ -26,7 +26,9 @@ import java.util.List;
         "/manage/warehouse/stocktake-delete-item",
         "/manage/warehouse/stocktake-submit",
         "/manage/warehouse/stocktake-approve",
-        "/manage/warehouse/stocktake-cancel"
+        "/manage/warehouse/stocktake-cancel",
+        "/manage/warehouse/stocktake-update",
+        "/manage/warehouse/stocktake-delete"
 })
 public class StocktakeController extends HttpServlet {
 
@@ -187,12 +189,15 @@ public class StocktakeController extends HttpServlet {
                     return;
 
                 case "/manage/warehouse/stocktake-cancel":
+                    handleStocktakeCancel(req, resp);
+                    return;
 
-                    handleStocktakeCancel(
-                            req,
-                            resp
-                    );
+                case "/manage/warehouse/stocktake-update":
+                    handleStocktakeUpdate(req, resp);
+                    return;
 
+                case "/manage/warehouse/stocktake-delete":
+                    handleStocktakeDelete(req, resp);
                     return;
 
                 default:
@@ -235,7 +240,7 @@ public class StocktakeController extends HttpServlet {
 
     private void handleStocktakeList(
             HttpServletRequest req
-    ) {
+    ) throws Exception {
 
         req.setAttribute(
                 "stocktakes",
@@ -245,7 +250,7 @@ public class StocktakeController extends HttpServlet {
 
     private void handleStocktakeCreateForm(
             HttpServletRequest req
-    ) {
+    ) throws Exception {
 
         req.setAttribute(
                 "warehouses",
@@ -287,6 +292,11 @@ public class StocktakeController extends HttpServlet {
         );
 
         req.setAttribute(
+                "warehouses",
+                inventoryRepo.findAllWarehouses()
+        );
+
+        req.setAttribute(
                 "variants",
                 variantRepo.findAll()
         );
@@ -310,29 +320,46 @@ public class StocktakeController extends HttpServlet {
                 );
 
         String[] variantIds =
-                req.getParameterValues(
-                        "variantIds"
-                );
+                req.getParameterValues("variantId");
 
         String[] actualQuantities =
-                req.getParameterValues(
-                        "actualQuantities"
-                );
+                req.getParameterValues("actualQuantity");
 
         if (variantIds == null ||
-                variantIds.length == 0) {
+                actualQuantities == null ||
+                variantIds.length == 0 ||
+                actualQuantities.length == 0 ||
+                variantIds.length != actualQuantities.length) {
 
             throw new Exception(
-                    "Phiếu kiểm kê phải có ít nhất một sản phẩm."
+                    "Phiếu kiểm kê phải có ít nhất một sản phẩm và số lượng thực tế."
             );
         }
 
-        if (actualQuantities == null ||
-                actualQuantities.length == 0) {
+        List<StocktakeItem> items =
+                new ArrayList<>();
 
-            throw new Exception(
-                    "Phiếu kiểm kê phải có số lượng thực tế."
-            );
+        for (int i = 0; i < variantIds.length; i++) {
+
+            int variantId =
+                    parsePositiveInt(
+                            variantIds[i],
+                            "Sản phẩm tại dòng " + (i + 1) + " không hợp lệ."
+                    );
+
+            int actualQuantity =
+                    parsePositiveOrZeroInt(
+                            actualQuantities[i],
+                            "Số lượng thực tế tại dòng " + (i + 1) + " không hợp lệ."
+                    );
+
+            StocktakeItem item =
+                    new StocktakeItem();
+
+            item.setVariantId(variantId);
+            item.setActualQuantity(actualQuantity);
+
+            items.add(item);
         }
 
         Stocktake stocktake =
@@ -354,59 +381,6 @@ public class StocktakeController extends HttpServlet {
                 userId
         );
 
-        List<StocktakeItem> items =
-                new ArrayList<>();
-
-        for (int i = 0;
-             i < variantIds.length;
-             i++) {
-
-            if (variantIds[i] == null ||
-                    variantIds[i].trim().isEmpty()) {
-
-                continue;
-            }
-
-            if (i >= actualQuantities.length) {
-
-                throw new Exception(
-                        "Thiếu số lượng kiểm kê."
-                );
-            }
-
-            int variantId =
-                    parsePositiveInt(
-                            variantIds[i],
-                            "Biến thể không hợp lệ."
-                    );
-
-            int actualQuantity =
-                    parsePositiveOrZeroInt(
-                            actualQuantities[i],
-                            "Số lượng kiểm kê không hợp lệ."
-                    );
-
-            StocktakeItem item =
-                    new StocktakeItem();
-
-            item.setVariantId(
-                    variantId
-            );
-
-            item.setActualQuantity(
-                    actualQuantity
-            );
-
-            items.add(item);
-        }
-
-        if (items.isEmpty()) {
-
-            throw new Exception(
-                    "Phiếu kiểm kê phải có ít nhất một sản phẩm hợp lệ."
-            );
-        }
-
         stocktake.setItems(
                 items
         );
@@ -418,7 +392,7 @@ public class StocktakeController extends HttpServlet {
 
         req.getSession().setAttribute(
                 "successMsg",
-                "Tạo phiếu kiểm kê nháp thành công!"
+                "Tạo phiếu kiểm kê thành công."
         );
 
         resp.sendRedirect(
@@ -606,6 +580,25 @@ public class StocktakeController extends HttpServlet {
                         + "/manage/warehouse/stocktake-detail?id="
                         + stocktakeId
         );
+    }
+
+    private void handleStocktakeUpdate(HttpServletRequest req, HttpServletResponse resp) throws Exception {
+        long id=parsePositiveLong(req.getParameter("stocktakeId"),"Mã phiếu kiểm kê không hợp lệ.");
+        Stocktake stocktake=new Stocktake();
+        stocktake.setStocktakeId(id);
+        stocktake.setStocktakeCode(optionalString(req.getParameter("stocktakeCode")));
+        stocktake.setWarehouseId(parsePositiveInt(req.getParameter("warehouseId"),"Kho không hợp lệ."));
+        stocktake.setNote(optionalString(req.getParameter("note")));
+        stocktakeRepo.updateDraft(stocktake);
+        req.getSession().setAttribute("successMsg","Cập nhật phiếu kiểm kê thành công.");
+        resp.sendRedirect(req.getContextPath()+"/manage/warehouse/stocktake-detail?id="+id);
+    }
+
+    private void handleStocktakeDelete(HttpServletRequest req, HttpServletResponse resp) throws Exception {
+        long id=parsePositiveLong(req.getParameter("stocktakeId"),"Mã phiếu kiểm kê không hợp lệ.");
+        stocktakeRepo.deleteDraft(id);
+        req.getSession().setAttribute("successMsg","Đã xóa phiếu kiểm kê nháp.");
+        resp.sendRedirect(req.getContextPath()+"/manage/warehouse/stocktake");
     }
 
     private void handleStocktakeCancel(

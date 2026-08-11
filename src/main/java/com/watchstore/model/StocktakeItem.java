@@ -4,13 +4,14 @@ package com.watchstore.model;
  * Model ánh xạ bảng dbo.StocktakeItems.
  *
  * Cột: StocktakeItemID, StocktakeID, VariantID, SystemQuantity, ActualQuantity, DifferenceQuantity, Note
- * Thêm: VariantName, SKU từ JOIN ProductVariants (tiện hiển thị JSP)
+ * Thêm: ProductName, VariantName, SKU từ JOIN ProductVariants/Products (tiện hiển thị JSP)
  */
 public class StocktakeItem {
 
     private long stocktakeItemId;
     private long stocktakeId;
     private int variantId;
+    private String productName;      // JOIN từ Products
     private String variantName;     // JOIN từ ProductVariants
     private String sku;             // JOIN từ ProductVariants
     private int systemQuantity;
@@ -28,6 +29,9 @@ public class StocktakeItem {
 
     public int getVariantId()                     { return variantId; }
     public void setVariantId(int v)               { this.variantId = v; }
+
+    public String getProductName()                 { return productName; }
+    public void setProductName(String v)           { this.productName = v; }
 
     public String getVariantName()                { return variantName; }
     public void setVariantName(String v)          { this.variantName = v; }

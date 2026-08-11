@@ -1,6 +1,8 @@
 package com.watchstore.controller.warehouse;
 
+import com.watchstore.model.User;
 import com.watchstore.repository.InventoryRepository;
+import com.watchstore.repository.VariantRepository;
 import com.watchstore.util.ViewRouter;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -13,15 +15,18 @@ import java.io.IOException;
 @WebServlet(urlPatterns = {
         "/manage/warehouse/inventory",
         "/manage/warehouse/transactions",
-        "/manage/warehouse/alerts"
+        "/manage/warehouse/alerts",
+        "/manage/warehouse/adjust"
 })
 public class InventoryController extends HttpServlet {
 
     private InventoryRepository inventoryRepo;
+    private VariantRepository variantRepo;
 
     @Override
     public void init() {
         inventoryRepo = new InventoryRepository();
+        variantRepo = new VariantRepository();
     }
 
     @Override
@@ -100,17 +105,40 @@ public class InventoryController extends HttpServlet {
 
     private void handleInventory(
             HttpServletRequest req
-    ) {
+    ) throws Exception {
 
+        String keyword=req.getParameter("keyword");
+        Integer warehouseId=parseNullablePositiveInt(req.getParameter("warehouseId"));
         req.setAttribute(
                 "inventoryItems",
-                inventoryRepo.findAll()
+                (keyword!=null && !keyword.isBlank()) || warehouseId!=null
+                        ? inventoryRepo.search(keyword, warehouseId)
+                        : inventoryRepo.findAll()
         );
+        req.setAttribute("warehouses", inventoryRepo.findAllWarehouses());
+        req.setAttribute("variants", variantRepo.findAll());
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        req.setCharacterEncoding("UTF-8");
+        String path=req.getServletPath();
+        if(!"/manage/warehouse/adjust".equals(path)){ resp.sendError(HttpServletResponse.SC_NOT_FOUND); return; }
+        try{
+            int userId=getCurrentUserId(req);
+            int warehouseId=parsePositiveInt(req.getParameter("warehouseId"),"Kho không hợp lệ.");
+            int variantId=parsePositiveInt(req.getParameter("variantId"),"Biến thể không hợp lệ.");
+            int quantityChange=parseInt(req.getParameter("quantityChange"),"Số lượng điều chỉnh không hợp lệ.");
+            String note=req.getParameter("note");
+            inventoryRepo.adjustStock(warehouseId,variantId,quantityChange,note,userId);
+            req.getSession().setAttribute("successMsg","Điều chỉnh tồn kho thành công.");
+        }catch(Exception e){ req.getSession().setAttribute("errorMsg",getErrorMessage(e)); }
+        resp.sendRedirect(req.getContextPath()+"/manage/warehouse/inventory");
     }
 
     private void handleTransactions(
             HttpServletRequest req
-    ) {
+    ) throws Exception {
 
         req.setAttribute(
                 "transactions",
@@ -120,7 +148,7 @@ public class InventoryController extends HttpServlet {
 
     private void handleAlerts(
             HttpServletRequest req
-    ) {
+    ) throws Exception {
 
         req.setAttribute(
                 "lowStockItems",
@@ -154,12 +182,21 @@ public class InventoryController extends HttpServlet {
         );
     }
 
+    private int getCurrentUserId(HttpServletRequest req) throws Exception {
+        Object obj=req.getSession().getAttribute("user");
+        if(!(obj instanceof User)) throw new Exception("Phiên đăng nhập đã hết. Vui lòng đăng nhập lại.");
+        return ((User)obj).getId();
+    }
+    private int parsePositiveInt(String value,String message) throws Exception { int n=parseInt(value,message); if(n<=0)throw new Exception(message); return n; }
+    private int parseInt(String value,String message) throws Exception { try{return Integer.parseInt(value);}catch(Exception e){throw new Exception(message);}}
+    private Integer parseNullablePositiveInt(String value){ try{ if(value==null||value.isBlank())return null; int n=Integer.parseInt(value); return n>0?n:null;}catch(Exception e){return null;} }
+
     private String getErrorMessage(
             Exception e
     ) {
 
-        if (e.getMessage() == null ||
-                e.getMessage().trim().isEmpty()) {
+        if (e.getMessage() == null
+                || e.getMessage().trim().isEmpty()) {
 
             return "Có lỗi xảy ra trong quá trình xử lý.";
         }
@@ -167,4 +204,3 @@ public class InventoryController extends HttpServlet {
         return e.getMessage();
     }
 }
-

@@ -58,10 +58,8 @@
                         <td>
                             <a class="button button-outline" style="padding:5px 10px; font-size:12px;"
                                href="${cp}/manage/warehouse/receipt-detail?id=${r.stockReceiptId}">Chi tiết</a>
-                            <c:if test="${r.status == 'COMPLETED'}">
-                                <a class="button button-gold" style="padding:5px 10px; font-size:12px;"
-                                   href="${cp}/manage/warehouse/receipt-pdf?id=${r.stockReceiptId}" target="_blank">PDF</a>
-                            </c:if>
+                            <a class="button button-gold" style="padding:5px 10px; font-size:12px;" href="${cp}/manage/warehouse/receipt-pdf?id=${r.stockReceiptId}" target="_blank">In / PDF</a>
+                            <c:if test="${r.status == 'DRAFT'}"><form method="post" action="${cp}/manage/warehouse/receipt-delete" style="display:inline"><input type="hidden" name="receiptId" value="${r.stockReceiptId}"><button class="button button-outline" type="submit" style="padding:5px 10px;font-size:12px;color:#c0392b;" onclick="return confirm('Xóa phiếu nháp này?')">Xóa</button></form></c:if>
                         </td>
                     </tr>
                 </c:forEach>

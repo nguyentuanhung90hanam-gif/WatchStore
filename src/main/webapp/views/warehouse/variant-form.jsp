@@ -224,6 +224,65 @@
 
         </div>
 
+        <c:if test="${not empty attributeGroups}">
+
+            <div style="margin-top:24px;">
+
+                <h3 style="margin-bottom:8px;">
+                    Thuộc tính biến thể
+                </h3>
+
+                <p style="margin-bottom:16px; color:#666;">
+                    Chọn tối đa một giá trị cho mỗi thuộc tính.
+                </p>
+
+                <c:forEach items="${attributeGroups}"
+                           var="group">
+
+                    <div class="form-group"
+                         style="margin-bottom:18px;">
+
+                        <label>
+                            ${group.value[0].attributeName}
+                        </label>
+
+                        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+
+                            <c:forEach items="${group.value}"
+                                       var="option">
+
+                                <label style="display:flex; align-items:center; gap:6px;">
+
+                                    <input type="radio"
+                                           name="attributeValueIds_${group.key}"
+                                           value="${option.attributeValueId}"
+                                           ${option.selected ? 'checked' : ''}>
+
+                                    <c:if test="${not empty option.colorHex}">
+                                        <span style="display:inline-block;
+                                                     width:14px;
+                                                     height:14px;
+                                                     border-radius:50%;
+                                                     border:1px solid #ccc;
+                                                     background:${option.colorHex};"></span>
+                                    </c:if>
+
+                                    ${option.valueName}
+
+                                </label>
+
+                            </c:forEach>
+
+                        </div>
+
+                    </div>
+
+                </c:forEach>
+
+            </div>
+
+        </c:if>
+
         <div style="margin-top:24px; display:flex; gap:10px;">
 
             <button type="submit"

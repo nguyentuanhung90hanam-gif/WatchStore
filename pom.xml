@@ -36,6 +36,7 @@
             <artifactId>mssql-jdbc</artifactId>
             <version>13.2.0.jre11</version>
         </dependency>
+        <!-- Thư viện tạo PDF cho PdfGenerator -->
         <dependency>
             <groupId>com.github.librepdf</groupId>
             <artifactId>openpdf</artifactId>

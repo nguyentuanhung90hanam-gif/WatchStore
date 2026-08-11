@@ -42,6 +42,16 @@ public class WarehouseController extends HttpServlet {
             );
 
             req.setAttribute(
+                    "outOfStockCount",
+                    inventoryRepo.getOutOfStockCount()
+            );
+
+            req.setAttribute(
+                    "inventoryItemCount",
+                    inventoryRepo.getInventoryItemCount()
+            );
+
+            req.setAttribute(
                     "cp",
                     req.getContextPath()
             );

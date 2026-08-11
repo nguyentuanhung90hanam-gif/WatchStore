@@ -32,7 +32,14 @@
                         <td style="color: red; font-weight: bold;">${item.availableQuantity}</td>
                         <td>${item.reorderLevel}</td>
                         <td>
-                            <span class="status-badge warning">${item.stockStatus}</span>
+                            <c:choose>
+                                <c:when test="${item.availableQuantity <= 0}">
+                                    <span class="status-badge danger">HẾT HÀNG</span>
+                                </c:when>
+                                <c:otherwise>
+                                    <span class="status-badge warning">CẢNH BÁO SẮP HẾT</span>
+                                </c:otherwise>
+                            </c:choose>
                         </td>
                     </tr>
                 </c:forEach>

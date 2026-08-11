@@ -29,7 +29,9 @@ import java.util.List;
         "/manage/warehouse/receipt-delete-item",
         "/manage/warehouse/receipt-submit",
         "/manage/warehouse/receipt-approve",
-        "/manage/warehouse/receipt-cancel"
+        "/manage/warehouse/receipt-cancel",
+        "/manage/warehouse/receipt-update",
+        "/manage/warehouse/receipt-delete"
 })
 public class StockReceiptController extends HttpServlet {
 
@@ -53,46 +55,59 @@ public class StockReceiptController extends HttpServlet {
         String path = req.getServletPath();
 
         try {
+
             switch (path) {
 
                 case "/manage/warehouse/receipts":
+
                     handleReceiptList(req);
+
                     render(
                             req,
                             resp,
                             "receipt-list",
                             "Phiếu nhập kho"
                     );
+
                     return;
 
                 case "/manage/warehouse/receipt-create":
+
                     handleReceiptCreateForm(req);
+
                     render(
                             req,
                             resp,
                             "receipt-create",
                             "Tạo phiếu nhập"
                     );
+
                     return;
 
                 case "/manage/warehouse/receipt-detail":
+
                     handleReceiptDetail(req);
+
                     render(
                             req,
                             resp,
                             "receipt-detail",
                             "Chi tiết phiếu nhập"
                     );
+
                     return;
 
                 case "/manage/warehouse/receipt-pdf":
+
                     handleReceiptPdf(
                             req,
                             resp
                     );
+
                     return;
 
                 default:
+
                     resp.sendError(
                             HttpServletResponse.SC_NOT_FOUND
                     );
@@ -120,70 +135,96 @@ public class StockReceiptController extends HttpServlet {
             HttpServletResponse resp
     ) throws ServletException, IOException {
 
+        req.setCharacterEncoding("UTF-8");
+
         String path = req.getServletPath();
 
         try {
-            // Đặt int userId bên trong try-catch và chỉ lấy khi cần
+
             int userId;
 
             switch (path) {
 
                 case "/manage/warehouse/receipt-create":
-                    userId = getCurrentUserId(req);
+
+                    userId =
+                            getCurrentUserId(req);
+
                     handleReceiptCreate(
                             req,
                             userId,
                             resp
                     );
+
                     return;
 
                 case "/manage/warehouse/receipt-add-item":
-                    userId = getCurrentUserId(req);
+
+                    userId =
+                            getCurrentUserId(req);
+
                     handleReceiptAddItem(
                             req,
                             userId,
                             resp
                     );
+
                     return;
 
                 case "/manage/warehouse/receipt-update-item":
+
                     handleReceiptUpdateItem(
                             req,
                             resp
                     );
+
                     return;
 
                 case "/manage/warehouse/receipt-delete-item":
+
                     handleReceiptDeleteItem(
                             req,
                             resp
                     );
+
                     return;
 
                 case "/manage/warehouse/receipt-submit":
+
                     handleReceiptSubmit(
                             req,
                             resp
                     );
+
                     return;
 
                 case "/manage/warehouse/receipt-approve":
-                    userId = getCurrentUserId(req);
+
+                    userId =
+                            getCurrentUserId(req);
+
                     handleReceiptApprove(
                             req,
                             userId,
                             resp
                     );
+
                     return;
 
                 case "/manage/warehouse/receipt-cancel":
-                    handleReceiptCancel(
-                            req,
-                            resp
-                    );
+                    handleReceiptCancel(req, resp);
+                    return;
+
+                case "/manage/warehouse/receipt-update":
+                    handleReceiptUpdate(req, resp);
+                    return;
+
+                case "/manage/warehouse/receipt-delete":
+                    handleReceiptDelete(req, resp);
                     return;
 
                 default:
+
                     resp.sendError(
                             HttpServletResponse.SC_NOT_FOUND
                     );
@@ -198,15 +239,20 @@ public class StockReceiptController extends HttpServlet {
                     getErrorMessage(e)
             );
 
-            String receiptId = req.getParameter("receiptId");
+            String receiptId =
+                    req.getParameter("receiptId");
 
-            if (receiptId != null && !receiptId.trim().isEmpty()) {
+            if (receiptId != null
+                    && !receiptId.trim().isEmpty()) {
+
                 resp.sendRedirect(
                         req.getContextPath()
                                 + "/manage/warehouse/receipt-detail?id="
                                 + receiptId
                 );
+
             } else {
+
                 resp.sendRedirect(
                         req.getContextPath()
                                 + "/manage/warehouse/receipts"
@@ -217,7 +263,7 @@ public class StockReceiptController extends HttpServlet {
 
     private void handleReceiptList(
             HttpServletRequest req
-    ) {
+    ) throws Exception {
 
         req.setAttribute(
                 "receipts",
@@ -227,7 +273,7 @@ public class StockReceiptController extends HttpServlet {
 
     private void handleReceiptCreateForm(
             HttpServletRequest req
-    ) {
+    ) throws Exception {
 
         req.setAttribute(
                 "warehouses",
@@ -247,35 +293,19 @@ public class StockReceiptController extends HttpServlet {
         String idParam =
                 req.getParameter("id");
 
-        if (idParam == null ||
-                idParam.trim().isEmpty()) {
+        if (idParam == null
+                || idParam.trim().isEmpty()) {
 
             throw new Exception(
                     "Thiếu mã phiếu nhập."
             );
         }
 
-        long id;
-
-        try {
-
-            id = Long.parseLong(
-                    idParam.trim()
-            );
-
-        } catch (NumberFormatException e) {
-
-            throw new Exception(
-                    "Mã phiếu nhập không hợp lệ."
-            );
-        }
-
-        if (id <= 0) {
-
-            throw new Exception(
-                    "Mã phiếu nhập không hợp lệ."
-            );
-        }
+        long id =
+                parsePositiveLong(
+                        idParam,
+                        "Mã phiếu nhập không hợp lệ."
+                );
 
         StockReceipt receipt =
                 receiptRepo.findById(id);
@@ -293,9 +323,19 @@ public class StockReceiptController extends HttpServlet {
         );
 
         req.setAttribute(
-                "variants",
-                variantRepo.findAll()
+                "warehouses",
+                inventoryRepo.findAllWarehouses()
         );
+
+        if ("DRAFT".equalsIgnoreCase(
+                receipt.getStatus()
+        )) {
+
+            req.setAttribute(
+                    "variants",
+                    variantRepo.findAll()
+            );
+        }
     }
 
     private void handleReceiptCreate(
@@ -311,28 +351,56 @@ public class StockReceiptController extends HttpServlet {
                 );
 
         String supplierName =
-                req.getParameter("supplierName");
+                optionalString(
+                        req.getParameter("supplierName")
+                );
 
         String supplierPhone =
-                req.getParameter("supplierPhone");
+                optionalString(
+                        req.getParameter("supplierPhone")
+                );
 
         String note =
-                req.getParameter("note");
+                optionalString(
+                        req.getParameter("note")
+                );
 
         String[] variantIds =
-                req.getParameterValues("variantIds");
+                req.getParameterValues(
+                        "variantIds"
+                );
 
         String[] quantities =
-                req.getParameterValues("quantities");
+                req.getParameterValues(
+                        "quantities"
+                );
 
         String[] unitCosts =
-                req.getParameterValues("unitCosts");
+                req.getParameterValues(
+                        "unitCosts"
+                );
 
-        if (variantIds == null ||
-                variantIds.length == 0) {
+        if (variantIds == null
+                || variantIds.length == 0) {
 
             throw new Exception(
                     "Phiếu nhập phải có ít nhất một sản phẩm."
+            );
+        }
+
+        if (quantities == null
+                || quantities.length != variantIds.length) {
+
+            throw new Exception(
+                    "Dữ liệu số lượng sản phẩm không hợp lệ."
+            );
+        }
+
+        if (unitCosts == null
+                || unitCosts.length != variantIds.length) {
+
+            throw new Exception(
+                    "Dữ liệu giá nhập sản phẩm không hợp lệ."
             );
         }
 
@@ -363,37 +431,31 @@ public class StockReceiptController extends HttpServlet {
                 userId
         );
 
-        BigDecimal totalCost =
-                BigDecimal.ZERO;
-
         List<StockReceiptItem> items =
                 new ArrayList<>();
+
+        BigDecimal totalCost =
+                BigDecimal.ZERO;
 
         for (int i = 0;
              i < variantIds.length;
              i++) {
 
-            if (variantIds[i] == null ||
-                    variantIds[i].trim().isEmpty()) {
-
-                continue;
-            }
-
-            if (quantities == null ||
-                    i >= quantities.length) {
+            if (variantIds[i] == null
+                    || variantIds[i].trim().isEmpty()) {
 
                 throw new Exception(
-                        "Thiếu số lượng sản phẩm."
+                        "Dòng sản phẩm thứ "
+                                + (i + 1)
+                                + " chưa chọn biến thể."
                 );
             }
 
-            if (unitCosts == null ||
-                    i >= unitCosts.length) {
-
-                throw new Exception(
-                        "Thiếu giá nhập sản phẩm."
-                );
-            }
+            int variantId =
+                    parsePositiveInt(
+                            variantIds[i],
+                            "Biến thể không hợp lệ."
+                    );
 
             int quantity =
                     parsePositiveInt(
@@ -411,10 +473,7 @@ public class StockReceiptController extends HttpServlet {
                     new StockReceiptItem();
 
             item.setVariantId(
-                    parsePositiveInt(
-                            variantIds[i],
-                            "Biến thể không hợp lệ."
-                    )
+                    variantId
             );
 
             item.setQuantity(
@@ -481,28 +540,37 @@ public class StockReceiptController extends HttpServlet {
                         "Mã phiếu nhập không hợp lệ."
                 );
 
+        int variantId =
+                parsePositiveInt(
+                        req.getParameter("variantId"),
+                        "Phải chọn biến thể."
+                );
+
+        int quantity =
+                parsePositiveInt(
+                        req.getParameter("quantity"),
+                        "Số lượng phải lớn hơn 0."
+                );
+
+        BigDecimal unitCost =
+                parseMoney(
+                        req.getParameter("unitCost"),
+                        "Giá nhập không hợp lệ."
+                );
+
         StockReceiptItem item =
                 new StockReceiptItem();
 
         item.setVariantId(
-                parsePositiveInt(
-                        req.getParameter("variantId"),
-                        "Phải chọn biến thể."
-                )
+                variantId
         );
 
         item.setQuantity(
-                parsePositiveInt(
-                        req.getParameter("quantity"),
-                        "Số lượng phải lớn hơn 0."
-                )
+                quantity
         );
 
         item.setUnitCost(
-                parseMoney(
-                        req.getParameter("unitCost"),
-                        "Giá nhập không hợp lệ."
-                )
+                unitCost
         );
 
         receiptRepo.addItem(
@@ -527,16 +595,16 @@ public class StockReceiptController extends HttpServlet {
             HttpServletResponse resp
     ) throws Exception {
 
-        long itemId =
-                parsePositiveLong(
-                        req.getParameter("itemId"),
-                        "Mã sản phẩm trong phiếu không hợp lệ."
-                );
-
         long receiptId =
                 parsePositiveLong(
                         req.getParameter("receiptId"),
                         "Mã phiếu nhập không hợp lệ."
+                );
+
+        long itemId =
+                parsePositiveLong(
+                        req.getParameter("itemId"),
+                        "Mã sản phẩm trong phiếu không hợp lệ."
                 );
 
         int quantity =
@@ -685,6 +753,27 @@ public class StockReceiptController extends HttpServlet {
         );
     }
 
+    private void handleReceiptUpdate(HttpServletRequest req, HttpServletResponse resp) throws Exception {
+        long receiptId=parsePositiveLong(req.getParameter("receiptId"),"Mã phiếu nhập không hợp lệ.");
+        StockReceipt receipt=new StockReceipt();
+        receipt.setStockReceiptId(receiptId);
+        receipt.setReceiptCode(optionalString(req.getParameter("receiptCode")));
+        receipt.setWarehouseId(parsePositiveInt(req.getParameter("warehouseId"),"Kho không hợp lệ."));
+        receipt.setSupplierName(optionalString(req.getParameter("supplierName")));
+        receipt.setSupplierPhone(optionalString(req.getParameter("supplierPhone")));
+        receipt.setNote(optionalString(req.getParameter("note")));
+        receiptRepo.updateDraft(receipt);
+        req.getSession().setAttribute("successMsg","Cập nhật phiếu nhập thành công.");
+        resp.sendRedirect(req.getContextPath()+"/manage/warehouse/receipt-detail?id="+receiptId);
+    }
+
+    private void handleReceiptDelete(HttpServletRequest req, HttpServletResponse resp) throws Exception {
+        long receiptId=parsePositiveLong(req.getParameter("receiptId"),"Mã phiếu nhập không hợp lệ.");
+        receiptRepo.deleteDraft(receiptId);
+        req.getSession().setAttribute("successMsg","Đã xóa phiếu nhập nháp.");
+        resp.sendRedirect(req.getContextPath()+"/manage/warehouse/receipts");
+    }
+
     private void handleReceiptPdf(
             HttpServletRequest req,
             HttpServletResponse resp
@@ -692,37 +781,16 @@ public class StockReceiptController extends HttpServlet {
 
         try {
 
-            String idParam =
-                    req.getParameter("id");
-
-            if (idParam == null ||
-                    idParam.trim().isEmpty()) {
-
-                resp.sendRedirect(
-                        req.getContextPath()
-                                + "/manage/warehouse/receipts"
-                );
-
-                return;
-            }
-
-            long id =
-                    Long.parseLong(
-                            idParam.trim()
+            long receiptId =
+                    parsePositiveLong(
+                            req.getParameter("id"),
+                            "Mã phiếu nhập không hợp lệ."
                     );
 
-            if (id <= 0) {
-
-                resp.sendRedirect(
-                        req.getContextPath()
-                                + "/manage/warehouse/receipts"
-                );
-
-                return;
-            }
-
             StockReceipt receipt =
-                    receiptRepo.findById(id);
+                    receiptRepo.findById(
+                            receiptId
+                    );
 
             if (receipt == null) {
 
@@ -740,7 +808,7 @@ public class StockReceiptController extends HttpServlet {
 
             resp.setHeader(
                     "Content-Disposition",
-                    "attachment; filename=\"Receipt_"
+                    "inline; filename=\"Receipt_"
                             + sanitizeFileName(
                             receipt.getReceiptCode()
                     )
@@ -797,7 +865,9 @@ public class StockReceiptController extends HttpServlet {
     ) throws Exception {
 
         Object userObj =
-                req.getSession().getAttribute("user");
+                req.getSession().getAttribute(
+                        "user"
+                );
 
         if (userObj instanceof User) {
 
@@ -816,8 +886,8 @@ public class StockReceiptController extends HttpServlet {
 
         try {
 
-            if (value == null ||
-                    value.trim().isEmpty()) {
+            if (value == null
+                    || value.trim().isEmpty()) {
 
                 throw new Exception(message);
             }
@@ -847,8 +917,8 @@ public class StockReceiptController extends HttpServlet {
 
         try {
 
-            if (value == null ||
-                    value.trim().isEmpty()) {
+            if (value == null
+                    || value.trim().isEmpty()) {
 
                 throw new Exception(message);
             }
@@ -878,8 +948,8 @@ public class StockReceiptController extends HttpServlet {
 
         try {
 
-            if (value == null ||
-                    value.trim().isEmpty()) {
+            if (value == null
+                    || value.trim().isEmpty()) {
 
                 throw new Exception(message);
             }
@@ -904,12 +974,25 @@ public class StockReceiptController extends HttpServlet {
         }
     }
 
+    private String optionalString(
+            String value
+    ) {
+
+        if (value == null
+                || value.trim().isEmpty()) {
+
+            return null;
+        }
+
+        return value.trim();
+    }
+
     private String sanitizeFileName(
             String value
     ) {
 
-        if (value == null ||
-                value.trim().isEmpty()) {
+        if (value == null
+                || value.trim().isEmpty()) {
 
             return "document";
         }
@@ -924,13 +1007,12 @@ public class StockReceiptController extends HttpServlet {
             Exception e
     ) {
 
-        if (e.getMessage() == null ||
-                e.getMessage().trim().isEmpty()) {
+        if (e.getMessage() == null
+                || e.getMessage().trim().isEmpty()) {
 
-              return "Có lỗi xảy ra trong quá trình xử lý.";
+            return "Có lỗi xảy ra trong quá trình xử lý.";
         }
 
         return e.getMessage();
     }
-
 }

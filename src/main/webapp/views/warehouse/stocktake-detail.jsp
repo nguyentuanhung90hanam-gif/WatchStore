@@ -63,12 +63,25 @@
         <div>
             <p><strong>Người tạo:</strong> ${stocktake.createdByName}</p>
             <c:if test="${stocktake.status == 'COMPLETED'}">
-                <p><strong>Người duyệt:</strong> ID User ${stocktake.approvedBy}</p>
+                <p><strong>Người duyệt:</strong> ${stocktake.approvedByName != null ? stocktake.approvedByName : '—'}</p>
                 <p><strong>Ngày duyệt:</strong> ${stocktake.approvedAt}</p>
             </c:if>
         </div>
     </div>
 </div>
+
+<c:if test="${stocktake.status == 'DRAFT'}">
+<div class="dashboard-card" style="margin-bottom:16px;padding:20px;">
+    <h3 style="margin-bottom:12px;">Sửa thông tin phiếu</h3>
+    <form method="post" action="${cp}/manage/warehouse/stocktake-update" style="display:grid;grid-template-columns:1fr 1fr 2fr auto;gap:10px;align-items:end;">
+        <input type="hidden" name="stocktakeId" value="${stocktake.stocktakeId}">
+        <label>Mã phiếu<input name="stocktakeCode" value="${stocktake.stocktakeCode}" required maxlength="40"></label>
+        <label>Kho<select name="warehouseId" required><c:forEach items="${warehouses}" var="w"><option value="${w.warehouseId}" ${stocktake.warehouseId == w.warehouseId ? 'selected' : ''}>${w.warehouseName}</option></c:forEach></select></label>
+        <label>Ghi chú<input name="note" value="${stocktake.note}" maxlength="1000"></label>
+        <button class="button button-gold" type="submit">Lưu</button>
+    </form>
+</div>
+</c:if>
 
 <div class="dashboard-card" style="padding: 20px;">
     <h3 style="margin-bottom: 16px;">Danh sách sản phẩm kiểm đếm</h3>

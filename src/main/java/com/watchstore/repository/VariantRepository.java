@@ -2,14 +2,19 @@ package com.watchstore.repository;
 
 import com.watchstore.config.DBContext;
 import com.watchstore.model.Variant;
+import com.watchstore.model.VariantAttributeOption;
+import com.watchstore.model.ProductOption;
 
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class VariantRepository {
 
@@ -85,14 +90,22 @@ public class VariantRepository {
     }
 
     public void create(Variant variant) throws Exception {
-        validate(variant);
+        create(variant, new ArrayList<>());
+    }
 
+    public void create(
+            Variant variant,
+            List<Integer> attributeValueIds
+    ) throws Exception {
+
+        validate(variant);
         ensureProductExists(variant.getProductId());
         ensureUnique(
                 variant.getSku(),
                 variant.getBarcode(),
                 0
         );
+        validateAttributeValueIds(attributeValueIds);
 
         String sql =
                 "INSERT INTO dbo.ProductVariants " +
@@ -101,21 +114,68 @@ public class VariantRepository {
                         "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (
-                Connection conn = DBContext.getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql)
+                Connection conn = DBContext.getConnection()
         ) {
-            bindVariant(ps, variant);
-            ps.executeUpdate();
+            conn.setAutoCommit(false);
+
+            try (
+                    PreparedStatement ps =
+                            conn.prepareStatement(
+                                    sql,
+                                    Statement.RETURN_GENERATED_KEYS
+                            )
+            ) {
+                bindVariant(ps, variant);
+                ps.executeUpdate();
+
+                int variantId;
+
+                try (ResultSet keys = ps.getGeneratedKeys()) {
+                    if (!keys.next()) {
+                        throw new Exception(
+                                "Không thể lấy ID biến thể vừa tạo."
+                        );
+                    }
+
+                    variantId = keys.getInt(1);
+                }
+
+                insertVariantAttributeValues(
+                        conn,
+                        variantId,
+                        attributeValueIds
+                );
+
+                conn.commit();
+
+            } catch (Exception e) {
+                try {
+                    conn.rollback();
+                } catch (SQLException ignored) {
+                }
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
+            }
 
         } catch (SQLException e) {
             throw new Exception(
-                    "Không thể thêm biến thể: " + e.getMessage(),
+                    "Không thể thêm biến thể: " +
+                            e.getMessage(),
                     e
             );
         }
     }
 
     public void update(Variant variant) throws Exception {
+        update(variant, new ArrayList<>());
+    }
+
+    public void update(
+            Variant variant,
+            List<Integer> attributeValueIds
+    ) throws Exception {
+
         if (variant == null || variant.getVariantId() <= 0) {
             throw new Exception("ID biến thể không hợp lệ.");
         }
@@ -136,6 +196,8 @@ public class VariantRepository {
                 variant.getVariantId()
         );
 
+        validateAttributeValueIds(attributeValueIds);
+
         String sql =
                 "UPDATE dbo.ProductVariants SET " +
                         "ProductID = ?, " +
@@ -151,20 +213,48 @@ public class VariantRepository {
                         "WHERE VariantID = ?";
 
         try (
-                Connection conn = DBContext.getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql)
+                Connection conn = DBContext.getConnection()
         ) {
-            bindVariant(ps, variant);
+            conn.setAutoCommit(false);
 
-            ps.setInt(
-                    10,
-                    variant.getVariantId()
-            );
+            try (
+                    PreparedStatement ps =
+                            conn.prepareStatement(sql)
+            ) {
+                bindVariant(ps, variant);
 
-            if (ps.executeUpdate() != 1) {
-                throw new Exception(
-                        "Không thể cập nhật biến thể."
+                ps.setInt(
+                        10,
+                        variant.getVariantId()
                 );
+
+                if (ps.executeUpdate() != 1) {
+                    throw new Exception(
+                            "Không thể cập nhật biến thể."
+                    );
+                }
+
+                deleteVariantAttributeValues(
+                        conn,
+                        variant.getVariantId()
+                );
+
+                insertVariantAttributeValues(
+                        conn,
+                        variant.getVariantId(),
+                        attributeValueIds
+                );
+
+                conn.commit();
+
+            } catch (Exception e) {
+                try {
+                    conn.rollback();
+                } catch (SQLException ignored) {
+                }
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
             }
 
         } catch (SQLException e) {
@@ -173,6 +263,199 @@ public class VariantRepository {
                             e.getMessage(),
                     e
             );
+        }
+    }
+
+    public List<VariantAttributeOption> findAttributeOptions(
+            int variantId
+    ) throws Exception {
+
+        String sql =
+                "SELECT pa.AttributeID, " +
+                        "pa.AttributeCode, " +
+                        "pa.AttributeName, " +
+                        "pav.AttributeValueID, " +
+                        "pav.ValueCode, " +
+                        "pav.ValueName, " +
+                        "pav.ColorHex, " +
+                        "CASE WHEN vav.VariantID IS NULL " +
+                        "THEN 0 ELSE 1 END AS IsSelected " +
+                        "FROM dbo.ProductAttributes pa " +
+                        "INNER JOIN dbo.ProductAttributeValues pav " +
+                        "ON pa.AttributeID = pav.AttributeID " +
+                        "LEFT JOIN dbo.VariantAttributeValues vav " +
+                        "ON vav.AttributeValueID = pav.AttributeValueID " +
+                        "AND vav.VariantID = ? " +
+                        "ORDER BY pa.DisplayOrder, " +
+                        "pa.AttributeName, " +
+                        "pav.DisplayOrder, " +
+                        "pav.ValueName";
+
+        List<VariantAttributeOption> list =
+                new ArrayList<>();
+
+        try (
+                Connection conn = DBContext.getConnection();
+                PreparedStatement ps =
+                        conn.prepareStatement(sql)
+        ) {
+            ps.setInt(1, variantId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    VariantAttributeOption option =
+                            new VariantAttributeOption();
+
+                    option.setAttributeId(
+                            rs.getInt("AttributeID")
+                    );
+
+                    option.setAttributeCode(
+                            rs.getString("AttributeCode")
+                    );
+
+                    option.setAttributeName(
+                            rs.getString("AttributeName")
+                    );
+
+                    option.setAttributeValueId(
+                            rs.getInt("AttributeValueID")
+                    );
+
+                    option.setValueCode(
+                            rs.getString("ValueCode")
+                    );
+
+                    option.setValueName(
+                            rs.getString("ValueName")
+                    );
+
+                    option.setColorHex(
+                            rs.getString("ColorHex")
+                    );
+
+                    option.setSelected(
+                            rs.getInt("IsSelected") == 1
+                    );
+
+                    list.add(option);
+                }
+            }
+
+        } catch (SQLException e) {
+            throw new Exception(
+                    "Không thể tải thuộc tính biến thể: " +
+                            e.getMessage(),
+                    e
+            );
+        }
+
+        return list;
+    }
+
+    private void validateAttributeValueIds(
+            List<Integer> attributeValueIds
+    ) throws Exception {
+
+        if (attributeValueIds == null ||
+                attributeValueIds.isEmpty()) {
+            return;
+        }
+
+        String sql =
+                "SELECT pav.AttributeValueID, pav.AttributeID " +
+                        "FROM dbo.ProductAttributeValues pav " +
+                        "WHERE pav.AttributeValueID = ?";
+
+        Set<Integer> selectedAttributes =
+                new HashSet<>();
+
+        try (
+                Connection conn = DBContext.getConnection();
+                PreparedStatement ps =
+                        conn.prepareStatement(sql)
+        ) {
+            for (Integer valueId : attributeValueIds) {
+
+                if (valueId == null || valueId <= 0) {
+                    throw new Exception(
+                            "Giá trị thuộc tính không hợp lệ."
+                    );
+                }
+
+                ps.setInt(1, valueId);
+
+                try (ResultSet rs = ps.executeQuery()) {
+
+                    if (!rs.next()) {
+                        throw new Exception(
+                                "Giá trị thuộc tính không tồn tại."
+                        );
+                    }
+
+                    int attributeId =
+                            rs.getInt("AttributeID");
+
+                    if (!selectedAttributes.add(attributeId)) {
+                        throw new Exception(
+                                "Mỗi thuộc tính chỉ được chọn một giá trị."
+                        );
+                    }
+                }
+            }
+
+        } catch (SQLException e) {
+            throw new Exception(
+                    "Không thể kiểm tra thuộc tính biến thể: " +
+                            e.getMessage(),
+                    e
+            );
+        }
+    }
+
+    private void deleteVariantAttributeValues(
+            Connection conn,
+            int variantId
+    ) throws SQLException {
+
+        String sql =
+                "DELETE FROM dbo.VariantAttributeValues " +
+                        "WHERE VariantID = ?";
+
+        try (PreparedStatement ps =
+                     conn.prepareStatement(sql)) {
+
+            ps.setInt(1, variantId);
+            ps.executeUpdate();
+        }
+    }
+
+    private void insertVariantAttributeValues(
+            Connection conn,
+            int variantId,
+            List<Integer> attributeValueIds
+    ) throws SQLException {
+
+        if (attributeValueIds == null ||
+                attributeValueIds.isEmpty()) {
+            return;
+        }
+
+        String sql =
+                "INSERT INTO dbo.VariantAttributeValues " +
+                        "(VariantID, AttributeValueID) " +
+                        "VALUES (?, ?)";
+
+        try (PreparedStatement ps =
+                     conn.prepareStatement(sql)) {
+
+            for (Integer valueId : attributeValueIds) {
+                ps.setInt(1, variantId);
+                ps.setInt(2, valueId);
+                ps.addBatch();
+            }
+
+            ps.executeBatch();
         }
     }
 
@@ -185,10 +468,6 @@ public class VariantRepository {
             );
         }
 
-        /*
-         * Nếu Variant đã được sử dụng trong nghiệp vụ,
-         * không DELETE cứng để tránh phá dữ liệu lịch sử.
-         */
         if (hasOperationalData(variantId)) {
             setStatus(
                     variantId,
@@ -197,10 +476,6 @@ public class VariantRepository {
             return;
         }
 
-        /*
-         * Variant chưa được sử dụng:
-         * cho phép xóa thật.
-         */
         String sql =
                 "DELETE FROM dbo.ProductVariants " +
                         "WHERE VariantID = ?";
@@ -316,6 +591,12 @@ public class VariantRepository {
         }
 
         return list;
+    }
+
+    public List<VariantAttributeOption> findAttributeOptionsForCreate()
+            throws Exception {
+
+        return findAttributeOptions(0);
     }
 
     private List<Variant> query(
@@ -785,6 +1066,14 @@ public class VariantRepository {
                         "WHERE VariantID = ?" +
                         ") " +
                         "OR EXISTS (" +
+                        "SELECT 1 FROM dbo.StocktakeItems " +
+                        "WHERE VariantID = ?" +
+                        ") " +
+                        "OR EXISTS (" +
+                        "SELECT 1 FROM dbo.InventoryTransactions " +
+                        "WHERE VariantID = ?" +
+                        ") " +
+                        "OR EXISTS (" +
                         "SELECT 1 FROM dbo.VariantAttributeValues " +
                         "WHERE VariantID = ?" +
                         ") " +
@@ -796,11 +1085,9 @@ public class VariantRepository {
                         conn.prepareStatement(sql)
         ) {
 
-            ps.setInt(1, variantId);
-            ps.setInt(2, variantId);
-            ps.setInt(3, variantId);
-            ps.setInt(4, variantId);
-            ps.setInt(5, variantId);
+            for (int i = 1; i <= 7; i++) {
+                ps.setInt(i, variantId);
+            }
 
             try (
                     ResultSet rs =
@@ -813,9 +1100,9 @@ public class VariantRepository {
 
         } catch (SQLException e) {
             throw new Exception(
-                    "Không thể kiểm tra dữ liệu liên quan " +
-                            "của biến thể: " +
-                            e.getMessage(), e
+                    "Không thể kiểm tra dữ liệu nghiệp vụ của biến thể: " +
+                            e.getMessage(),
+                    e
             );
         }
     }
@@ -825,47 +1112,9 @@ public class VariantRepository {
     ) {
         if (value == null ||
                 value.trim().isEmpty()) {
-
             return null;
         }
 
         return value.trim();
-    }
-
-    public static class ProductOption {
-
-        private int productId;
-        private String productName;
-        private String brandName;
-
-        public int getProductId() {
-            return productId;
-        }
-
-        public void setProductId(
-                int productId
-        ) {
-            this.productId = productId;
-        }
-
-        public String getProductName() {
-            return productName;
-        }
-
-        public void setProductName(
-                String productName
-        ) {
-            this.productName = productName;
-        }
-
-        public String getBrandName() {
-            return brandName;
-        }
-
-        public void setBrandName(
-                String brandName
-        ) {
-            this.brandName = brandName;
-        }
     }
 }

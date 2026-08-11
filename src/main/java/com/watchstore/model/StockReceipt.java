@@ -26,6 +26,7 @@ public class StockReceipt {
     private String note;
     private int createdBy;
     private String createdByName;       // JOIN từ Users
+    private String approvedByName;      // JOIN từ Users
     private Integer approvedBy;
     private LocalDateTime approvedAt;
     private List<StockReceiptItem> items = new ArrayList<>();
@@ -67,6 +68,9 @@ public class StockReceipt {
 
     public String getCreatedByName()              { return createdByName; }
     public void setCreatedByName(String v)        { this.createdByName = v; }
+
+    public String getApprovedByName()              { return approvedByName; }
+    public void setApprovedByName(String v)        { this.approvedByName = v; }
 
     public Integer getApprovedBy()                { return approvedBy; }
     public void setApprovedBy(Integer v)          { this.approvedBy = v; }
