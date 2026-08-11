@@ -927,7 +927,7 @@ public class StockReceiptController extends HttpServlet {
         if (e.getMessage() == null ||
                 e.getMessage().trim().isEmpty()) {
 
-            return "Có lỗi xảy ra trong quá trình xử lý.";
+              return "Có lỗi xảy ra trong quá trình xử lý.";
         }
 
         return e.getMessage();
