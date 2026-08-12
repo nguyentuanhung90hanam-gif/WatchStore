@@ -465,17 +465,17 @@
                                 </td>
                                 <td style="padding:12px 10px;">
                                     <c:choose>
-                                        <c:when test="${order.status == 'COMPLETED' or order.status == 'Hoàn thành'}">
+                                        <c:when test="${order.statusCode == 'COMPLETED' or order.statusCode == 'Hoàn thành'}">
                                             <span style="background:#d1fae5;color:#065f46;padding:4px 10px;border-radius:12px;font-size:12px;">Hoàn thành</span>
                                         </c:when>
-                                        <c:when test="${order.status == 'CANCELLED' or order.status == 'Đã hủy'}">
+                                        <c:when test="${order.statusCode == 'CANCELLED' or order.statusCode == 'Đã hủy'}">
                                             <span style="background:#fee2e2;color:#991b1b;padding:4px 10px;border-radius:12px;font-size:12px;">Đã hủy</span>
                                         </c:when>
-                                        <c:when test="${order.status == 'SHIPPING' or order.status == 'Đang giao'}">
+                                        <c:when test="${order.statusCode == 'SHIPPING' or order.statusCode == 'Đang giao'}">
                                             <span style="background:#dbeafe;color:#1e40af;padding:4px 10px;border-radius:12px;font-size:12px;">Đang giao</span>
                                         </c:when>
                                         <c:otherwise>
-                                            <span style="background:#fef3c7;color:#92400e;padding:4px 10px;border-radius:12px;font-size:12px;">${order.status}</span>
+                                            <span style="background:#fef3c7;color:#92400e;padding:4px 10px;border-radius:12px;font-size:12px;">${order.statusCode}</span>
                                         </c:otherwise>
                                     </c:choose>
                                 </td>

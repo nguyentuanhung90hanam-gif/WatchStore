@@ -280,7 +280,7 @@
                     </div>
                     
                     <!-- Step 2: Xác nhận -->
-                    <c:set var="step2Active" value="${order.status != 'PENDING'}" />
+                    <c:set var="step2Active" value="${order.statusCode != 'PENDING'}" />
                     <div style="text-align: center; flex: 1; z-index: 2; position: relative;">
                         <div style="width: 40px; height: 40px; border-radius: 50%; background: ${step2Active ? '#2563eb' : '#e5e7eb'}; color: ${step2Active ? 'white' : '#666'}; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px auto; font-weight: bold; font-size: 15px; border: 4px solid #fff; box-shadow: 0 0 0 2px ${step2Active ? '#2563eb' : '#e5e7eb'};">
                             2
@@ -289,7 +289,7 @@
                     </div>
                     
                     <!-- Step 3: Đóng gói -->
-                    <c:set var="step3Active" value="${order.status != 'PENDING' && order.status != 'CONFIRMED'}" />
+                    <c:set var="step3Active" value="${order.statusCode != 'PENDING' && order.statusCode != 'CONFIRMED'}" />
                     <div style="text-align: center; flex: 1; z-index: 2; position: relative;">
                         <div style="width: 40px; height: 40px; border-radius: 50%; background: ${step3Active ? '#2563eb' : '#e5e7eb'}; color: ${step3Active ? 'white' : '#666'}; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px auto; font-weight: bold; font-size: 15px; border: 4px solid #fff; box-shadow: 0 0 0 2px ${step3Active ? '#2563eb' : '#e5e7eb'};">
                             3
@@ -298,7 +298,7 @@
                     </div>
                     
                     <!-- Step 4: Đang giao -->
-                    <c:set var="step4Active" value="${order.status != 'PENDING' && order.status != 'CONFIRMED' && order.status != 'PACKING'}" />
+                    <c:set var="step4Active" value="${order.statusCode != 'PENDING' && order.statusCode != 'CONFIRMED' && order.statusCode != 'PACKING'}" />
                     <div style="text-align: center; flex: 1; z-index: 2; position: relative;">
                         <div style="width: 40px; height: 40px; border-radius: 50%; background: ${step4Active ? '#2563eb' : '#e5e7eb'}; color: ${step4Active ? 'white' : '#666'}; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px auto; font-weight: bold; font-size: 15px; border: 4px solid #fff; box-shadow: 0 0 0 2px ${step4Active ? '#2563eb' : '#e5e7eb'};">
                             4
@@ -307,9 +307,9 @@
                     </div>
                     
                     <!-- Step 5: Kết thúc -->
-                    <c:set var="isCompleted" value="${order.status == 'COMPLETED'}" />
-                    <c:set var="isCancelled" value="${order.status == 'CANCELLED'}" />
-                    <c:set var="isReturned" value="${order.status == 'RETURNED'}" />
+                    <c:set var="isCompleted" value="${order.statusCode == 'COMPLETED'}" />
+                    <c:set var="isCancelled" value="${order.statusCode == 'CANCELLED'}" />
+                    <c:set var="isReturned" value="${order.statusCode == 'RETURNED'}" />
                     <c:set var="step5Color" value="${isCompleted ? '#059669' : (isCancelled ? '#dc2626' : (isReturned ? '#d97706' : '#e5e7eb'))}" />
                     <c:set var="step5Text" value="${isCancelled ? 'Đã hủy' : (isReturned ? 'Đổi trả' : 'Hoàn thành')}" />
                     <c:set var="step5Active" value="${isCompleted || isCancelled || isReturned}" />
@@ -359,32 +359,32 @@
                     <span class="value">
 
                         <c:choose>
-                            <c:when test="${order.status == 'PENDING'}">
+                            <c:when test="${order.statusCode == 'PENDING'}">
                                 <span class="status processing">Chờ xử lý</span>
                             </c:when>
-                            <c:when test="${order.status == 'CONFIRMED'}">
+                            <c:when test="${order.statusCode == 'CONFIRMED'}">
                                 <span class="status processing">Đã xác nhận</span>
                             </c:when>
-                            <c:when test="${order.status == 'PACKING'}">
+                            <c:when test="${order.statusCode == 'PACKING'}">
                                 <span class="status processing">Đang đóng gói</span>
                             </c:when>
-                            <c:when test="${order.status == 'SHIPPING'}">
+                            <c:when test="${order.statusCode == 'SHIPPING'}">
                                 <span class="status shipping">Đang giao</span>
                             </c:when>
-                            <c:when test="${order.status == 'DELIVERED'}">
+                            <c:when test="${order.statusCode == 'DELIVERED'}">
                                 <span class="status shipping">Đã giao</span>
                             </c:when>
-                            <c:when test="${order.status == 'COMPLETED'}">
+                            <c:when test="${order.statusCode == 'COMPLETED'}">
                                 <span class="status completed">Hoàn thành</span>
                             </c:when>
-                            <c:when test="${order.status == 'CANCELLED'}">
+                            <c:when test="${order.statusCode == 'CANCELLED'}">
                                 <span class="status cancelled">Đã hủy</span>
                             </c:when>
-                            <c:when test="${order.status == 'RETURNED'}">
+                            <c:when test="${order.statusCode == 'RETURNED'}">
                                 <span class="status cancelled">Đã đổi trả</span>
                             </c:when>
                             <c:otherwise>
-                                <span class="status">${order.status}</span>
+                                <span class="status">${order.statusCode}</span>
                             </c:otherwise>
                         </c:choose>
 
@@ -472,7 +472,7 @@
             <div class="box">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
                     <h2 style="margin:0;">Thông tin giao nhận hàng</h2>
-                    <c:if test="${order.status != 'COMPLETED' && order.status != 'CANCELLED'}">
+                    <c:if test="${order.statusCode != 'COMPLETED' && order.statusCode != 'CANCELLED'}">
                         <button type="button" class="btn" style="background:#e5e7eb; color:#333; width:auto; height:32px; padding:0 12px; font-size:12px; font-weight:600; cursor:pointer;" onclick="toggleEditShipping()">
                             ✏️ Sửa thông tin nhận
                         </button>
@@ -494,7 +494,7 @@
                     </div>
                 </div>
                 
-                <c:if test="${order.status != 'COMPLETED' && order.status != 'CANCELLED'}">
+                <c:if test="${order.statusCode != 'COMPLETED' && order.statusCode != 'CANCELLED'}">
                     <form id="shipping-form" method="post" action="${pageContext.request.contextPath}/manage/sales/order-update-shipping" style="display:none; margin-top:10px;">
                         <input type="hidden" name="id" value="${order.id}">
                         <div style="margin-bottom:12px;">
@@ -593,17 +593,17 @@
                 <h2>Cập nhật trạng thái</h2>
 
                 <c:choose>
-                    <c:when test="${order.status == 'COMPLETED'}">
+                    <c:when test="${order.statusCode == 'COMPLETED'}">
                         <div style="background:#f0fdf4; border:1px solid #bbf7d0; color:#15803d; padding:12px; border-radius:6px; font-size:13px; font-weight:600;">
                             ✓ Đơn hàng đã Hoàn thành. Không thể cập nhật trạng thái.
                         </div>
                     </c:when>
-                    <c:when test="${order.status == 'CANCELLED'}">
+                    <c:when test="${order.statusCode == 'CANCELLED'}">
                         <div style="background:#fef2f2; border:1px solid #fecaca; color:#991b1b; padding:12px; border-radius:6px; font-size:13px; font-weight:600;">
                             ✕ Đơn hàng đã bị Hủy. Không thể cập nhật trạng thái.
                         </div>
                     </c:when>
-                    <c:when test="${order.status == 'RETURNED'}">
+                    <c:when test="${order.statusCode == 'RETURNED'}">
                         <div style="background:#fffbeb; border:1px solid #fef3c7; color:#b45309; padding:12px; border-radius:6px; font-size:13px; font-weight:600;">
                             ⚠ Đơn hàng đã Đổi trả. Không thể cập nhật trạng thái.
                         </div>
@@ -623,14 +623,14 @@
                                 </label>
 
                                 <select id="status" name="status" required>
-                                    <option value="PENDING" ${order.status == 'PENDING' ? 'selected' : ''}>Chờ xử lý</option>
-                                    <option value="CONFIRMED" ${order.status == 'CONFIRMED' ? 'selected' : ''}>Đã xác nhận</option>
-                                    <option value="PACKING" ${order.status == 'PACKING' ? 'selected' : ''}>Đang đóng gói</option>
-                                    <option value="SHIPPING" ${order.status == 'SHIPPING' ? 'selected' : ''}>Đang giao hàng</option>
-                                    <option value="DELIVERED" ${order.status == 'DELIVERED' ? 'selected' : ''}>Đã giao hàng</option>
-                                    <option value="COMPLETED" ${order.status == 'COMPLETED' ? 'selected' : ''}>Hoàn thành</option>
-                                    <option value="CANCELLED" ${order.status == 'CANCELLED' ? 'selected' : ''}>Đã hủy</option>
-                                    <option value="RETURNED" ${order.status == 'RETURNED' ? 'selected' : ''}>Đã đổi trả</option>
+                                    <option value="PENDING" ${order.statusCode == 'PENDING' ? 'selected' : ''}>Chờ xử lý</option>
+                                    <option value="CONFIRMED" ${order.statusCode == 'CONFIRMED' ? 'selected' : ''}>Đã xác nhận</option>
+                                    <option value="PACKING" ${order.statusCode == 'PACKING' ? 'selected' : ''}>Đang đóng gói</option>
+                                    <option value="SHIPPING" ${order.statusCode == 'SHIPPING' ? 'selected' : ''}>Đang giao hàng</option>
+                                    <option value="DELIVERED" ${order.statusCode == 'DELIVERED' ? 'selected' : ''}>Đã giao hàng</option>
+                                    <option value="COMPLETED" ${order.statusCode == 'COMPLETED' ? 'selected' : ''}>Hoàn thành</option>
+                                    <option value="CANCELLED" ${order.statusCode == 'CANCELLED' ? 'selected' : ''}>Đã hủy</option>
+                                    <option value="RETURNED" ${order.statusCode == 'RETURNED' ? 'selected' : ''}>Đã đổi trả</option>
                                 </select>
 
                             </div>
@@ -655,7 +655,7 @@
 
                 <h2>Thao tác</h2>
 
-                <c:if test="${order.status == 'PENDING'}">
+                <c:if test="${order.statusCode == 'PENDING'}">
                     <p style="margin-bottom: 12px;">
                         <button type="button" class="btn" style="background:#059669; font-weight:600; cursor:pointer;" onclick="confirmAction(${order.id}, 'confirm')">
                             ✅ Xác nhận đơn hàng
@@ -663,7 +663,7 @@
                     </p>
                 </c:if>
 
-                <c:if test="${order.status != 'COMPLETED'}">
+                <c:if test="${order.statusCode != 'COMPLETED'}">
                     <p style="margin-bottom: 12px;">
                         <a href="${pageContext.request.contextPath}/manage/sales/order-edit?id=${order.id}" class="btn" style="background:#d97706; font-weight:600; display:inline-flex; align-items:center; justify-content:center; text-decoration:none; cursor:pointer;">
                             ✏️ Sửa thông tin đơn hàng
@@ -671,7 +671,7 @@
                     </p>
                 </c:if>
 
-                <c:if test="${order.status != 'COMPLETED' && order.status != 'CANCELLED' && order.status != 'RETURNED'}">
+                <c:if test="${order.statusCode != 'COMPLETED' && order.statusCode != 'CANCELLED' && order.statusCode != 'RETURNED'}">
                     <p style="margin-bottom: 15px;">
                         <button type="button" class="btn" style="background:#dc2626; font-weight:600; cursor:pointer;" onclick="confirmAction(${order.id}, 'cancel')">
                             ❌ Hủy đơn hàng

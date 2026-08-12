@@ -98,14 +98,14 @@
                 <div class="form-group">
                     <label for="status">Trạng thái đơn hàng <span class="required-mark">*</span></label>
                     <select id="status" name="status" required>
-                        <option value="PENDING" ${order.status == 'PENDING' ? 'selected' : ''}>Chờ xử lý</option>
-                        <option value="CONFIRMED" ${order.status == 'CONFIRMED' ? 'selected' : ''}>Đã xác nhận</option>
-                        <option value="PACKING" ${order.status == 'PACKING' ? 'selected' : ''}>Đang đóng gói</option>
-                        <option value="SHIPPING" ${order.status == 'SHIPPING' ? 'selected' : ''}>Đang giao hàng</option>
-                        <option value="DELIVERED" ${order.status == 'DELIVERED' ? 'selected' : ''}>Đã giao hàng</option>
-                        <option value="COMPLETED" ${order.status == 'COMPLETED' ? 'selected' : ''}>Hoàn thành</option>
-                        <option value="CANCELLED" ${order.status == 'CANCELLED' ? 'selected' : ''}>Đã hủy</option>
-                        <option value="RETURNED" ${order.status == 'RETURNED' ? 'selected' : ''}>Đã đổi trả</option>
+                        <option value="PENDING" ${order.statusCode == 'PENDING' ? 'selected' : ''}>Chờ xử lý</option>
+                        <option value="CONFIRMED" ${order.statusCode == 'CONFIRMED' ? 'selected' : ''}>Đã xác nhận</option>
+                        <option value="PACKING" ${order.statusCode == 'PACKING' ? 'selected' : ''}>Đang đóng gói</option>
+                        <option value="SHIPPING" ${order.statusCode == 'SHIPPING' ? 'selected' : ''}>Đang giao hàng</option>
+                        <option value="DELIVERED" ${order.statusCode == 'DELIVERED' ? 'selected' : ''}>Đã giao hàng</option>
+                        <option value="COMPLETED" ${order.statusCode == 'COMPLETED' ? 'selected' : ''}>Hoàn thành</option>
+                        <option value="CANCELLED" ${order.statusCode == 'CANCELLED' ? 'selected' : ''}>Đã hủy</option>
+                        <option value="RETURNED" ${order.statusCode == 'RETURNED' ? 'selected' : ''}>Đã đổi trả</option>
                     </select>
                 </div>
 

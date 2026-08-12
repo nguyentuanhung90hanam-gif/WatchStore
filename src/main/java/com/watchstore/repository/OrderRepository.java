@@ -181,7 +181,7 @@ public class OrderRepository {
             ps.setString(5, order.getShippingAddress() != null ? order.getShippingAddress() : "Hà Nội");
             ps.setBigDecimal(6, order.getTotalPrice());
             ps.setBigDecimal(7, order.getTotalPrice());
-            ps.setString(8, order.getStatus() != null ? order.getStatus() : "PENDING");
+            ps.setString(8, order.getStatusCode());
             ps.setString(9, order.getPaymentStatus() != null ? order.getPaymentStatus() : "UNPAID");
 
             ps.executeUpdate();
@@ -215,7 +215,7 @@ public class OrderRepository {
             ps.setString(2, order.getPhone());
             ps.setString(3, order.getShippingAddress());
             ps.setBigDecimal(4, order.getTotalPrice());
-            ps.setString(5, order.getStatus());
+            ps.setString(5, order.getStatusCode());
             ps.setString(6, order.getPaymentStatus());
             ps.setInt(7, order.getId());
             return ps.executeUpdate() > 0;

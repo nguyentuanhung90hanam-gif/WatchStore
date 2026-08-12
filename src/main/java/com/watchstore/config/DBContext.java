@@ -20,7 +20,7 @@ public final class DBContext {
 
     public static Connection getConnection() throws SQLException {
         String url  = env("WATCHSTORE_DB_URL",
-                "jdbc:sqlserver://localhost:1433;databaseName=WatchStore;encrypt=true;trustServerCertificate=true");
+                "jdbc:sqlserver://127.0.0.1:1433;databaseName=WatchStore;encrypt=true;trustServerCertificate=true");
         String user = env("WATCHSTORE_DB_USER",     "sa");
         String pass = env("WATCHSTORE_DB_PASSWORD", "123456");
         return DriverManager.getConnection(url, user, pass);

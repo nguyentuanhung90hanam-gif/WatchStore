@@ -39,7 +39,7 @@ public class CartController extends HttpServlet {
         List<Map<String, Object>> items = new ArrayList<>();
         BigDecimal subtotal = BigDecimal.ZERO;
         for (Map.Entry<Integer, Integer> entry : cart.entrySet()) {
-            Product product = products.findById(entry.getKey());
+            Product product = products.findById(entry.getKey()).orElse(null);
             if (product == null) continue;
             BigDecimal lineTotal = product.getPrice().multiply(BigDecimal.valueOf(entry.getValue()));
             subtotal = subtotal.add(lineTotal);
