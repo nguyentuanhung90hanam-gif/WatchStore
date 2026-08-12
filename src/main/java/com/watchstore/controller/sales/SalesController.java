@@ -162,7 +162,6 @@ public class SalesController extends HttpServlet {
 
     private void showDashboard(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-
         List<Order> orders = orderRepository != null ? orderRepository.findAll() : MockDataStore.orders();
 
         double totalRevenue = orders.stream()
@@ -408,7 +407,6 @@ public class SalesController extends HttpServlet {
             throws IOException {
 
         String idParam = req.getParameter("id");
-
         if (idParam == null || idParam.trim().isEmpty()) {
             resp.sendRedirect(req.getContextPath() + "/manage/sales/customers");
             return;
@@ -795,7 +793,6 @@ public class SalesController extends HttpServlet {
             comments = getSampleComments();
             req.getSession().setAttribute("sampleComments", comments);
         }
-
         List<Map<String, Object>> filtered = new ArrayList<>(comments);
 
         if (keyword != null && !keyword.trim().isEmpty()) {
@@ -1152,7 +1149,6 @@ public class SalesController extends HttpServlet {
                 }
             } catch (NumberFormatException ignored) {}
         }
-
         String referer = req.getHeader("referer");
         if (referer != null && !referer.isEmpty()) {
             resp.sendRedirect(referer);
