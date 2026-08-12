@@ -39,12 +39,12 @@ public class CartController extends HttpServlet {
         List<Map<String, Object>> items = new ArrayList<>();
         BigDecimal subtotal = BigDecimal.ZERO;
         for (Map.Entry<Integer, Integer> entry : cart.entrySet()) {
-            Optional<Product> product = products.findById(entry.getKey());
-            if (product.isEmpty()) continue;
-            BigDecimal lineTotal = product.get().getPrice().multiply(BigDecimal.valueOf(entry.getValue()));
+            Product product = products.findById(entry.getKey());
+            if (product == null) continue;
+            BigDecimal lineTotal = product.getPrice().multiply(BigDecimal.valueOf(entry.getValue()));
             subtotal = subtotal.add(lineTotal);
             Map<String, Object> item = new HashMap<>();
-            item.put("product", product.get()); item.put("quantity", entry.getValue()); item.put("lineTotal", lineTotal);
+            item.put("product", product); item.put("quantity", entry.getValue()); item.put("lineTotal", lineTotal);
             items.add(item);
         }
         req.setAttribute("cartItems", items);

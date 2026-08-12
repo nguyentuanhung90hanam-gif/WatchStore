@@ -1,90 +1,503 @@
 <%@ page contentType="text/html;charset=UTF-8" %>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 
-<div class="dashboard">
+<!DOCTYPE html>
+<html lang="vi">
 
-    <h2 class="page-title">Tổng quan hệ thống</h2>
+<head>
+    <meta charset="UTF-8">
+    <title>Tổng quan bán hàng</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <div class="dashboard-cards">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
 
-        <div class="dashboard-card">
-            <div class="card-icon">
-                🕒
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background: #f5f6fa;
+            color: #333;
+        }
+
+        .container {
+            padding: 30px;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .page-header h1 {
+            margin: 0;
+            font-size: 28px;
+        }
+
+        .page-header p {
+            margin-top: 8px;
+            color: #777;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 12px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 16px 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .card-title {
+            color: #777;
+            font-size: 13px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .card-value {
+            font-size: 22px;
+            font-weight: bold;
+        }
+
+        .card-link {
+            display: inline-block;
+            margin-top: 10px;
+            text-decoration: none;
+            color: #2563eb;
+            font-size: 12px;
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+        }
+
+        .box {
+            background: white;
+            border-radius: 12px;
+            padding: 22px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+        }
+
+        .box h2 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table th,
+        table td {
+            padding: 13px 10px;
+            border-bottom: 1px solid #eee;
+            text-align: left;
+        }
+
+        table th {
+            font-size: 14px;
+            color: #666;
+        }
+
+        table td {
+            font-size: 14px;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .processing {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .shipping {
+            background: #cfe2ff;
+            color: #084298;
+        }
+
+        .completed {
+            background: #d1e7dd;
+            color: #0f5132;
+        }
+
+        .menu-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .menu-list li {
+            margin-bottom: 12px;
+        }
+
+        .menu-list a {
+            display: block;
+            padding: 13px 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #333;
+        }
+
+        .menu-list a:hover {
+            background: #e9ecef;
+        }
+
+        @media (max-width: 1200px) {
+            .cards {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .cards {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .cards {
+                grid-template-columns: 1fr;
+            }
+
+            .container {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="page-header">
+        <div>
+            <h1>Tổng quan bán hàng</h1>
+            <p>Xin chào nhân viên bán hàng, đây là tổng quan hoạt động bán hàng.</p>
+        </div>
+    </div>
+
+    <div class="cards">
+
+        <div class="card">
+            <div class="card-title">Doanh thu</div>
+            <div class="card-value">
+                <c:choose>
+                    <c:when test="${revenue != null}">
+                        <fmt:formatNumber value="${revenue}" pattern="#,##0"/> ₫
+                    </c:when>
+                    <c:otherwise>
+                        0 ₫
+                    </c:otherwise>
+                </c:choose>
             </div>
-            <div>
-                <h3>Sản phẩm</h3>
-                <p>120</p>
-                <span>Đang quản lý</span>
-            </div>
+            <a class="card-link" href="${pageContext.request.contextPath}/manage/sales/report">
+                Xem báo cáo →
+            </a>
         </div>
 
-
-        <div class="dashboard-card">
-            <div class="card-icon">
-                👥
+        <div class="card" style="border-left: 3px solid #d97706;">
+            <div class="card-title" style="color: #d97706;">Chờ xác nhận</div>
+            <div class="card-value">
+                <c:choose>
+                    <c:when test="${pendingConfirmOrders != null}">
+                        ${pendingConfirmOrders}
+                    </c:when>
+                    <c:otherwise>
+                        0
+                    </c:otherwise>
+                </c:choose>
             </div>
-            <div>
-                <h3>Tài khoản</h3>
-                <p>35</p>
-                <span>Người dùng</span>
-            </div>
+            <a class="card-link" href="${pageContext.request.contextPath}/manage/sales/orders?status=PENDING">
+                Xem đơn hàng →
+            </a>
         </div>
 
-
-        <div class="dashboard-card">
-            <div class="card-icon">
-                🏷
+        <div class="card">
+            <div class="card-title">Đơn đang xử lý</div>
+            <div class="card-value">
+                <c:choose>
+                    <c:when test="${processingOrders != null}">
+                        ${processingOrders}
+                    </c:when>
+                    <c:otherwise>
+                        0
+                    </c:otherwise>
+                </c:choose>
             </div>
-            <div>
-                <h3>Thương hiệu</h3>
-                <p>10</p>
-                <span>Đang hoạt động</span>
-            </div>
+            <a class="card-link" href="${pageContext.request.contextPath}/manage/sales/orders?status=CONFIRMED">
+                Xem đơn hàng →
+            </a>
         </div>
 
+        <div class="card">
+            <div class="card-title">Đơn đang giao</div>
+            <div class="card-value">
+                <c:choose>
+                    <c:when test="${shippingOrders != null}">
+                        ${shippingOrders}
+                    </c:when>
+                    <c:otherwise>
+                        0
+                    </c:otherwise>
+                </c:choose>
+            </div>
+            <a class="card-link" href="${pageContext.request.contextPath}/manage/sales/orders?status=SHIPPING">
+                Xem đơn hàng →
+            </a>
+        </div>
 
-        <div class="dashboard-card">
-            <div class="card-icon">
-                📦
+        <div class="card">
+            <div class="card-title">Đơn hoàn thành</div>
+            <div class="card-value">
+                <c:choose>
+                    <c:when test="${completedOrders != null}">
+                        ${completedOrders}
+                    </c:when>
+                    <c:otherwise>
+                        0
+                    </c:otherwise>
+                </c:choose>
             </div>
-            <div>
-                <h3>Đơn hàng</h3>
-                <p>56</p>
-                <span>Tổng đơn</span>
+            <a class="card-link" href="${pageContext.request.contextPath}/manage/sales/orders?status=COMPLETED">
+                Xem đơn hàng →
+            </a>
+        </div>
+
+        <div class="card" style="border-left: 4px solid #7c3aed;">
+            <div class="card-title" style="color: #7c3aed;">Bảo hành còn xử lý</div>
+            <div class="card-value" style="color: #7c3aed;">
+                <c:choose>
+                    <c:when test="${warrantyCount != null}">
+                        ${warrantyCount}
+                    </c:when>
+                    <c:otherwise>
+                        0
+                    </c:otherwise>
+                </c:choose>
             </div>
+            <a class="card-link" href="${pageContext.request.contextPath}/manage/sales/warranty">
+                Xem bảo hành →
+            </a>
         </div>
 
     </div>
 
+    <div class="content">
 
-    <div class="dashboard-content">
+        <div class="box">
+            <h2>Đơn hàng gần đây</h2>
 
-        <div class="dashboard-box">
-            <h3>Hoạt động gần đây</h3>
+            <table>
+                <thead>
+                <tr>
+                    <th>Mã đơn</th>
+                    <th>Khách hàng</th>
+                    <th>Tổng tiền</th>
+                    <th>Ngày đặt</th>
+                    <th>Trạng thái</th>
+                </tr>
+                </thead>
 
-            <ul>
-                <li>Thêm sản phẩm CASIO Edifice</li>
-                <li>Cập nhật thương hiệu SEIKO</li>
-                <li>Tạo tài khoản nhân viên mới</li>
-                <li>Cập nhật trạng thái đơn hàng</li>
-            </ul>
+                <tbody>
 
+                <c:choose>
+
+                    <c:when test="${not empty orders}">
+
+                        <c:forEach
+                                var="order"
+                                items="${orders}"
+                                varStatus="status"
+                        >
+
+                            <c:if test="${status.index < 5}">
+
+                                <tr>
+
+                                    <td>
+                                        <a
+                                                href="${pageContext.request.contextPath}/manage/sales/order-detail?id=${order.id}"
+                                                style="color: #2563eb; font-weight: 600; text-decoration: none;"
+                                        >
+                                            #${order.id}
+                                        </a>
+                                    </td>
+
+                                    <td style="font-weight: 500;">
+                                        ${order.customerName}
+                                    </td>
+
+                                    <td style="font-weight: 600;">
+                                        <fmt:formatNumber
+                                                value="${order.totalPrice}"
+                                                pattern="#,##0"
+                                        /> ₫
+                                    </td>
+
+                                    <td style="color: #666;">
+                                        <fmt:formatDate
+                                                value="${order.createdAt}"
+                                                pattern="dd/MM/yyyy HH:mm"
+                                        />
+                                    </td>
+
+                                    <td>
+
+                                        <c:choose>
+
+                                            <c:when test="${order.status == 'COMPLETED'}">
+                                                <span class="status completed">
+                                                    Hoàn thành
+                                                </span>
+                                            </c:when>
+
+                                            <c:when test="${order.status == 'SHIPPING' or order.status == 'DELIVERED'}">
+                                                <span class="status shipping">
+                                                    Đang giao
+                                                </span>
+                                            </c:when>
+
+                                            <c:when test="${order.status == 'CANCELLED'}">
+                                                <span
+                                                        class="status"
+                                                        style="background: #fee2e2; color: #991b1b;"
+                                                >
+                                                    Đã hủy
+                                                </span>
+                                            </c:when>
+
+                                            <c:when test="${order.status == 'CONFIRMED'}">
+                                                <span
+                                                        class="status processing"
+                                                        style="background: #fef3c7; color: #d97706;"
+                                                >
+                                                    Đã xác nhận
+                                                </span>
+                                            </c:when>
+
+                                            <c:otherwise>
+                                                <span class="status processing">
+                                                    ${order.status}
+                                                </span>
+                                            </c:otherwise>
+
+                                        </c:choose>
+
+                                    </td>
+
+                                </tr>
+
+                            </c:if>
+
+                        </c:forEach>
+
+                    </c:when>
+
+                    <c:otherwise>
+
+                        <tr>
+                            <td
+                                    colspan="5"
+                                    style="text-align: center; color: #888; padding: 30px;"
+                            >
+                                Chưa có đơn hàng.
+                            </td>
+                        </tr>
+
+                    </c:otherwise>
+
+                </c:choose>
+
+                </tbody>
+            </table>
         </div>
 
+        <div class="box">
 
-        <div class="dashboard-box">
-            <h3>Thông tin hệ thống</h3>
+            <h2>Chức năng nhanh</h2>
 
-            <p>
-                Website bán đồng hồ WatchStore
-            </p>
+            <ul class="menu-list">
 
-            <p>
-                Quản lý sản phẩm, thương hiệu,
-                tài khoản và đơn hàng.
-            </p>
+                <li>
+                    <a href="${pageContext.request.contextPath}/manage/sales/orders">
+                        Quản lý đơn hàng
+                    </a>
+                </li>
+
+                <li>
+                    <a href="${pageContext.request.contextPath}/manage/sales/customers">
+                        Quản lý khách hàng
+                    </a>
+                </li>
+
+                <li>
+                    <a href="${pageContext.request.contextPath}/manage/sales/delivery">
+                        Vận chuyển
+                    </a>
+                </li>
+
+                <li>
+                    <a href="${pageContext.request.contextPath}/manage/sales/returns">
+                        Đổi trả
+                    </a>
+                </li>
+
+                <li>
+                    <a href="${pageContext.request.contextPath}/manage/sales/reviews">
+                        Kiểm duyệt đánh giá
+                    </a>
+                </li>
+
+                <li>
+                    <a href="${pageContext.request.contextPath}/manage/sales/warranty">
+                        Quản lý bảo hành
+                    </a>
+                </li>
+
+                <li>
+                    <a href="${pageContext.request.contextPath}/manage/sales/report">
+                        Báo cáo bán hàng
+                    </a>
+                </li>
+
+            </ul>
 
         </div>
 
     </div>
 
 </div>
+
+</body>
+
+</html>

@@ -1,5 +1,7 @@
 package com.watchstore.model;
 
+import com.watchstore.enums.Role;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -8,23 +10,28 @@ import java.util.List;
 public class User {
 
     private int userId;
+    private String username;
+
     private String email;
     private String passwordHash;
     private String fullName;
     private String phone;
+    private String address;
+
     private String gender;
     private LocalDate dateOfBirth;
     private String avatarUrl;
     private String status;
+
     private LocalDateTime emailVerifiedAt;
     private LocalDateTime lastLoginAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    private List<Role> roles = new ArrayList<>();
+    private List<com.watchstore.model.Role> roles = new ArrayList<>();
     private String roleNames;
 
-    private com.watchstore.enums.Role role;
+    private Role role;
 
     public User() {
     }
@@ -34,7 +41,7 @@ public class User {
             String fullName,
             String email,
             String phone,
-            com.watchstore.enums.Role role
+            Role role
     ) {
         this.userId = id;
         this.fullName = fullName;
@@ -48,7 +55,7 @@ public class User {
             String fullName,
             String email,
             String phone,
-            com.watchstore.enums.Role role,
+            Role role,
             String gender,
             LocalDate dateOfBirth,
             String avatarUrl,
@@ -61,8 +68,54 @@ public class User {
         this.status = status;
     }
 
+    public User(
+            int id,
+            String username,
+            String password,
+            String fullName,
+            String email,
+            String phone,
+            String address,
+            String role
+    ) {
+        this.userId = id;
+        this.username = username;
+        this.passwordHash = password;
+        this.fullName = fullName;
+        this.email = email;
+        this.phone = phone;
+        this.address = address;
+        this.role = parseRole(role);
+    }
+
+    public User(
+            int id,
+            String username,
+            String password,
+            String fullName,
+            String email,
+            String phone,
+            String address,
+            Role role
+    ) {
+        this(
+                id,
+                username,
+                password,
+                fullName,
+                email,
+                phone,
+                address,
+                role == null ? "CUSTOMER" : role.name()
+        );
+    }
+
     public int getId() {
         return userId;
+    }
+
+    public void setId(int id) {
+        this.userId = id;
     }
 
     public int getUserId() {
@@ -71,6 +124,14 @@ public class User {
 
     public void setUserId(int userId) {
         this.userId = userId;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
     }
 
     public String getEmail() {
@@ -89,6 +150,14 @@ public class User {
         this.passwordHash = passwordHash;
     }
 
+    public String getPassword() {
+        return passwordHash;
+    }
+
+    public void setPassword(String password) {
+        this.passwordHash = password;
+    }
+
     public String getFullName() {
         return fullName;
     }
@@ -103,6 +172,14 @@ public class User {
 
     public void setPhone(String phone) {
         this.phone = phone;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
     }
 
     public String getGender() {
@@ -169,11 +246,11 @@ public class User {
         this.updatedAt = updatedAt;
     }
 
-    public List<Role> getRoles() {
+    public List<com.watchstore.model.Role> getRoles() {
         return roles;
     }
 
-    public void setRoles(List<Role> roles) {
+    public void setRoles(List<com.watchstore.model.Role> roles) {
         this.roles = roles;
     }
 
@@ -185,35 +262,81 @@ public class User {
         this.roleNames = roleNames;
     }
 
-    public com.watchstore.enums.Role getRole() {
+    public Role getRole() {
         if (role != null) {
             return role;
         }
 
         if (roles != null && !roles.isEmpty()) {
-            for (Role r : roles) {
-                if (r != null && r.getRoleCode() != null) {
-                    String code = r.getRoleCode().trim().toUpperCase();
+            for (com.watchstore.model.Role item : roles) {
+                if (item == null || item.getRoleCode() == null) {
+                    continue;
+                }
 
-                    if ("ADMIN".equals(code)) {
-                        return com.watchstore.enums.Role.ADMIN;
-                    }
+                String code = item.getRoleCode().trim().toUpperCase();
 
-                    if ("SALES".equals(code)) {
-                        return com.watchstore.enums.Role.SALES;
-                    }
+                if ("ADMIN".equals(code)) {
+                    return Role.ADMIN;
+                }
 
-                    if ("WAREHOUSE".equals(code)) {
-                        return com.watchstore.enums.Role.WAREHOUSE;
-                    }
+                if ("SALES".equals(code)) {
+                    return Role.SALES;
+                }
+
+                if ("WAREHOUSE".equals(code)) {
+                    return Role.WAREHOUSE;
+                }
+
+                if ("CUSTOMER".equals(code)) {
+                    return Role.CUSTOMER;
                 }
             }
         }
 
-        return com.watchstore.enums.Role.ADMIN;
+        return Role.CUSTOMER;
     }
 
-    public void setRole(com.watchstore.enums.Role role) {
+    public void setRole(Role role) {
         this.role = role;
+    }
+
+    public void setRole(String role) {
+        this.role = parseRole(role);
+    }
+
+    public String getRoleCode() {
+        return getRole().name();
+    }
+
+    public String getRoleLabel() {
+        Role currentRole = getRole();
+
+        if (currentRole == null) {
+            return "Khách hàng";
+        }
+
+        switch (currentRole) {
+            case ADMIN:
+                return "Quản trị viên";
+            case SALES:
+                return "Nhân viên bán hàng";
+            case WAREHOUSE:
+                return "Nhân viên kho";
+            case CUSTOMER:
+            default:
+                return "Khách hàng";
+        }
+    }
+
+    private Role parseRole(String roleCode) {
+        if (roleCode == null || roleCode.isBlank()) {
+            return Role.CUSTOMER;
+        }
+
+        try {
+            return Role.valueOf(roleCode.trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return Role.CUSTOMER;
+        }
     }
 }
