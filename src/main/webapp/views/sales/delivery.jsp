@@ -406,24 +406,24 @@
 
                                 <c:choose>
 
-                                    <c:when test="${order.status == 'CONFIRMED' or order.status == 'Chờ giao'}">
+                                    <c:when test="${order.statusCode == 'CONFIRMED' or order.statusCode == 'Chờ giao'}">
                                         <span class="status pending" style="display:inline-block;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600;background:#fef3c7;color:#92400e;">Chờ giao</span>
                                     </c:when>
 
-                                    <c:when test="${order.status == 'SHIPPING' or order.status == 'Đang giao'}">
+                                    <c:when test="${order.statusCode == 'SHIPPING' or order.statusCode == 'Đang giao'}">
                                         <span class="status shipping" style="display:inline-block;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600;background:#dbeafe;color:#1e40af;">Đang giao</span>
                                     </c:when>
 
-                                    <c:when test="${order.status == 'COMPLETED' or order.status == 'Giao thành công' or order.status == 'Hoàn thành'}">
+                                    <c:when test="${order.statusCode == 'COMPLETED' or order.statusCode == 'Giao thành công' or order.statusCode == 'Hoàn thành'}">
                                         <span class="status completed" style="display:inline-block;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600;background:#d1fae5;color:#065f46;">Giao thành công</span>
                                     </c:when>
 
-                                    <c:when test="${order.status == 'CANCELLED' or order.status == 'Giao thất bại' or order.status == 'Đã hủy'}">
+                                    <c:when test="${order.statusCode == 'CANCELLED' or order.statusCode == 'Giao thất bại' or order.statusCode == 'Đã hủy'}">
                                         <span class="status cancelled" style="display:inline-block;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600;background:#fee2e2;color:#991b1b;">Giao thất bại</span>
                                     </c:when>
 
                                     <c:otherwise>
-                                        <span class="status" style="display:inline-block;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600;background:#f1f5f9;color:#64748b;">${order.status}</span>
+                                        <span class="status" style="display:inline-block;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600;background:#f1f5f9;color:#64748b;">${order.statusCode}</span>
                                     </c:otherwise>
 
                                 </c:choose>
@@ -442,14 +442,14 @@
                                     </a>
                                     
                                     <c:choose>
-                                        <c:when test="${order.status == 'CONFIRMED' or order.status == 'Chờ giao'}">
+                                        <c:when test="${order.statusCode == 'CONFIRMED' or order.statusCode == 'Chờ giao'}">
                                             <button type="button" class="btn" style="background:#e2e8f0; color:#1e293b; padding:0 12px; font-size:13px; font-weight:600; cursor:pointer; border:none; border-radius:6px; height:32px;"
                                                     data-id="${order.id}"
                                                     data-code="${order.code}"
                                                     data-customer="${order.customerName}"
                                                     data-phone="${order.customerPhone}"
                                                     data-address="${order.shippingAddress}"
-                                                    data-status="${order.status}"
+                                                    data-status="${order.statusCode}"
                                                     data-total="${order.total}"
                                                     onclick="openUpdateModal(event)">
                                                 Cập nhật
@@ -459,14 +459,14 @@
                                                 Bắt đầu giao
                                             </button>
                                         </c:when>
-                                        <c:when test="${order.status == 'SHIPPING' or order.status == 'Đang giao'}">
+                                        <c:when test="${order.statusCode == 'SHIPPING' or order.statusCode == 'Đang giao'}">
                                             <button type="button" class="btn" style="background:#e2e8f0; color:#1e293b; padding:0 12px; font-size:13px; font-weight:600; cursor:pointer; border:none; border-radius:6px; height:32px;"
                                                     data-id="${order.id}"
                                                     data-code="${order.code}"
                                                     data-customer="${order.customerName}"
                                                     data-phone="${order.customerPhone}"
                                                     data-address="${order.shippingAddress}"
-                                                    data-status="${order.status}"
+                                                    data-status="${order.statusCode}"
                                                     data-total="${order.total}"
                                                     onclick="openUpdateModal(event)">
                                                 Cập nhật

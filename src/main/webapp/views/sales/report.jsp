@@ -426,20 +426,20 @@
                             </td>
                             <td>
                                 <c:choose>
-                                    <c:when test="${order.status == 'COMPLETED' or order.status == 'Hoàn thành'}">
+                                    <c:when test="${order.statusCode == 'COMPLETED' or order.statusCode == 'Hoàn thành'}">
                                         <span style="color:#16a34a;font-weight:600;background:#d1fae5;padding:4px 10px;border-radius:12px;font-size:12px;">Hoàn thành</span>
                                     </c:when>
-                                    <c:when test="${order.status == 'SHIPPING' or order.status == 'DELIVERED' or order.status == 'Đang giao'}">
+                                    <c:when test="${order.statusCode == 'SHIPPING' or order.statusCode == 'DELIVERED' or order.statusCode == 'Đang giao'}">
                                         <span style="color:#2563eb;font-weight:600;background:#dbeafe;padding:4px 10px;border-radius:12px;font-size:12px;">Đang giao</span>
                                     </c:when>
-                                    <c:when test="${order.status == 'PENDING' or order.status == 'CONFIRMED' or order.status == 'PACKING' or order.status == 'Đang xử lý'}">
+                                    <c:when test="${order.statusCode == 'PENDING' or order.statusCode == 'CONFIRMED' or order.statusCode == 'PACKING' or order.statusCode == 'Đang xử lý'}">
                                         <span style="color:#d97706;font-weight:600;background:#fef3c7;padding:4px 10px;border-radius:12px;font-size:12px;">Đang xử lý</span>
                                     </c:when>
-                                    <c:when test="${order.status == 'CANCELLED' or order.status == 'Đã hủy'}">
+                                    <c:when test="${order.statusCode == 'CANCELLED' or order.statusCode == 'Đã hủy'}">
                                         <span style="color:#dc2626;font-weight:600;background:#fee2e2;padding:4px 10px;border-radius:12px;font-size:12px;">Đã hủy</span>
                                     </c:when>
                                     <c:otherwise>
-                                        <span style="background:#f1f5f9;padding:4px 10px;border-radius:12px;font-size:12px;">${order.status}</span>
+                                        <span style="background:#f1f5f9;padding:4px 10px;border-radius:12px;font-size:12px;">${order.statusCode}</span>
                                     </c:otherwise>
                                 </c:choose>
                             </td>
@@ -469,7 +469,7 @@
                 id: "${order.id}",
                 customer: "${order.customerName}",
                 date: "<fmt:formatDate value="${order.createdAt}" pattern="yyyy-MM-dd"/>",
-                status: "${order.status}",
+                status: "${order.statusCode}",
                 total: ${order.total != null ? order.total.doubleValue() : 0.0}
             }${not status.last ? ',' : ''}
         </c:forEach>

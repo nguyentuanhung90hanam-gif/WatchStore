@@ -337,29 +337,29 @@
                             <td>
                                 <div>
                                     <c:choose>
-                                        <c:when test="${order.status == 'PENDING'}">
+                                        <c:when test="${order.statusCode == 'PENDING'}">
                                             <span class="status processing">Chờ xử lý</span>
                                         </c:when>
-                                        <c:when test="${order.status == 'CONFIRMED'}">
+                                        <c:when test="${order.statusCode == 'CONFIRMED'}">
                                             <span class="status processing">Đã xác nhận</span>
                                         </c:when>
-                                        <c:when test="${order.status == 'PACKING'}">
+                                        <c:when test="${order.statusCode == 'PACKING'}">
                                             <span class="status processing">Đang đóng gói</span>
                                         </c:when>
-                                        <c:when test="${order.status == 'SHIPPING'}">
+                                        <c:when test="${order.statusCode == 'SHIPPING'}">
                                             <span class="status shipping">Đang giao</span>
                                         </c:when>
-                                        <c:when test="${order.status == 'DELIVERED'}">
+                                        <c:when test="${order.statusCode == 'DELIVERED'}">
                                             <span class="status shipping">Đã giao</span>
                                         </c:when>
-                                        <c:when test="${order.status == 'COMPLETED'}">
+                                        <c:when test="${order.statusCode == 'COMPLETED'}">
                                             <span class="status completed">Hoàn thành</span>
                                         </c:when>
-                                        <c:when test="${order.status == 'CANCELLED'}">
+                                        <c:when test="${order.statusCode == 'CANCELLED'}">
                                             <span class="status cancelled">Đã hủy</span>
                                         </c:when>
                                         <c:otherwise>
-                                            <span class="status">${order.status}</span>
+                                            <span class="status">${order.statusCode}</span>
                                         </c:otherwise>
                                     </c:choose>
                                 </div>
@@ -384,17 +384,17 @@
                                     <a class="action" href="${pageContext.request.contextPath}/manage/sales/order-detail?id=${order.id}" style="color: #2563eb;">
                                         Chi tiết
                                     </a>
-                                    <c:if test="${order.status == 'PENDING'}">
+                                    <c:if test="${order.statusCode == 'PENDING'}">
                                         <a class="action" href="javascript:void(0);" onclick="confirmAction(${order.id}, 'confirm')" style="color: #059669; font-weight: bold;">
                                             | Xác nhận
                                         </a>
                                     </c:if>
-                                    <c:if test="${order.status != 'COMPLETED'}">
+                                    <c:if test="${order.statusCode != 'COMPLETED'}">
                                         <a class="action" href="${pageContext.request.contextPath}/manage/sales/order-edit?id=${order.id}" style="color: #d97706;">
                                             | Sửa
                                         </a>
                                     </c:if>
-                                    <c:if test="${order.status != 'COMPLETED' && order.status != 'CANCELLED'}">
+                                    <c:if test="${order.statusCode != 'COMPLETED' && order.statusCode != 'CANCELLED'}">
                                         <a class="action" href="javascript:void(0);" onclick="confirmAction(${order.id}, 'cancel')" style="color: #dc2626;">
                                             | Hủy
                                         </a>

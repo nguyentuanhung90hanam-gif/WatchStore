@@ -3,6 +3,7 @@ package com.watchstore.controller.sales;
 import com.watchstore.config.DBContext;
 import com.watchstore.model.Customer;
 import com.watchstore.model.Order;
+import com.watchstore.enums.OrderStatus;
 import com.watchstore.model.User; // Đã bổ sung import User
 import com.watchstore.repository.CustomerRepository;
 import com.watchstore.repository.MockDataStore;
@@ -165,24 +166,24 @@ public class SalesController extends HttpServlet {
         List<Order> orders = orderRepository != null ? orderRepository.findAll() : MockDataStore.orders();
 
         double totalRevenue = orders.stream()
-                .filter(o -> "COMPLETED".equalsIgnoreCase(o.getStatus()))
+                .filter(o -> o.getStatus() == OrderStatus.COMPLETED)
                 .mapToDouble(o -> o.getTotal() != null ? o.getTotal().doubleValue() : 0.0)
                 .sum();
 
         long completedCount = orders.stream()
-                .filter(o -> "COMPLETED".equalsIgnoreCase(o.getStatus()))
+                .filter(o -> o.getStatus() == OrderStatus.COMPLETED)
                 .count();
 
         long pendingConfirmCount = orders.stream()
-                .filter(o -> "PENDING".equalsIgnoreCase(o.getStatus()))
+                .filter(o -> o.getStatus() == OrderStatus.PENDING)
                 .count();
 
         long processingCount = orders.stream()
-                .filter(o -> "CONFIRMED".equalsIgnoreCase(o.getStatus()) || "PACKING".equalsIgnoreCase(o.getStatus()))
+                .filter(o -> o.getStatus() == OrderStatus.CONFIRMED)
                 .count();
 
         long shippingCount = orders.stream()
-                .filter(o -> "SHIPPING".equalsIgnoreCase(o.getStatus()) || "DELIVERED".equalsIgnoreCase(o.getStatus()))
+                .filter(o -> o.getStatus() == OrderStatus.SHIPPING)
                 .count();
 
         List<Map<String, Object>> warranties = warrantyRepository != null ? warrantyRepository.findAll() : new ArrayList<>();
@@ -333,7 +334,7 @@ public class SalesController extends HttpServlet {
 
             long totalOrdersCount = customerOrders.size();
             BigDecimal totalAmountSpent = customerOrders.stream()
-                    .filter(o -> !"CANCELLED".equalsIgnoreCase(o.getStatus()))
+                    .filter(o -> o.getStatus() != OrderStatus.CANCELLED)
                     .map(Order::getTotalPrice)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
@@ -571,10 +572,10 @@ public class SalesController extends HttpServlet {
         List<Order> allOrders = orderRepository != null ? orderRepository.findAll() : MockDataStore.orders();
 
         long totalCount = allOrders.size();
-        long pendingCount = allOrders.stream().filter(o -> "PENDING".equalsIgnoreCase(o.getStatus())).count();
-        long shippingCount = allOrders.stream().filter(o -> "SHIPPING".equalsIgnoreCase(o.getStatus())).count();
-        long completedCount = allOrders.stream().filter(o -> "COMPLETED".equalsIgnoreCase(o.getStatus())).count();
-        long cancelledCount = allOrders.stream().filter(o -> "CANCELLED".equalsIgnoreCase(o.getStatus())).count();
+        long pendingCount = allOrders.stream().filter(o -> o.getStatus() == OrderStatus.PENDING).count();
+        long shippingCount = allOrders.stream().filter(o -> o.getStatus() == OrderStatus.SHIPPING).count();
+        long completedCount = allOrders.stream().filter(o -> o.getStatus() == OrderStatus.COMPLETED).count();
+        long cancelledCount = allOrders.stream().filter(o -> o.getStatus() == OrderStatus.CANCELLED).count();
 
         req.setAttribute("orders", orders);
         req.setAttribute("keyword", keyword);
@@ -603,7 +604,7 @@ public class SalesController extends HttpServlet {
         if (status != null && !status.isBlank()) {
             String st = status.trim().toUpperCase();
             filtered = filtered.stream().filter(o -> {
-                String s = o.getStatus() != null ? o.getStatus().toUpperCase() : "";
+                String s = o.getStatus() != null ? o.getStatus().name() : "";
                 if ("COMPLETED".equals(st) || "HOÀN THÀNH".equals(st)) return "COMPLETED".equals(s) || "HOÀN THÀNH".equals(s);
                 if ("SHIPPING".equals(st)  || "ĐANG GIAO".equals(st))  return "SHIPPING".equals(s) || "DELIVERED".equals(s) || "ĐANG GIAO".equals(s);
                 if ("PENDING".equals(st)   || "ĐANG XỬ LÝ".equals(st)) return "PENDING".equals(s) || "CONFIRMED".equals(s) || "PACKING".equals(s) || "ĐANG XỬ LÝ".equals(s);
@@ -635,19 +636,19 @@ public class SalesController extends HttpServlet {
 
         long totalOrders = filtered.size();
         long pendingOrders = filtered.stream()
-                .filter(o -> "PENDING".equalsIgnoreCase(o.getStatus()) || "CONFIRMED".equalsIgnoreCase(o.getStatus()) || "PACKING".equalsIgnoreCase(o.getStatus()) || "ĐANG XỬ LÝ".equalsIgnoreCase(o.getStatus()))
+                .filter(o -> o.getStatus() == OrderStatus.PENDING || o.getStatus() == OrderStatus.CONFIRMED)
                 .count();
         long shippingOrders = filtered.stream()
-                .filter(o -> "SHIPPING".equalsIgnoreCase(o.getStatus()) || "DELIVERED".equalsIgnoreCase(o.getStatus()) || "ĐANG GIAO".equalsIgnoreCase(o.getStatus()))
+                .filter(o -> o.getStatus() == OrderStatus.SHIPPING)
                 .count();
         long completedOrders = filtered.stream()
-                .filter(o -> "COMPLETED".equalsIgnoreCase(o.getStatus()) || "HOÀN THÀNH".equalsIgnoreCase(o.getStatus()))
+                .filter(o -> o.getStatus() == OrderStatus.COMPLETED)
                 .count();
         long cancelledOrders = filtered.stream()
-                .filter(o -> "CANCELLED".equalsIgnoreCase(o.getStatus()) || "ĐÃ HỦY".equalsIgnoreCase(o.getStatus()))
+                .filter(o -> o.getStatus() == OrderStatus.CANCELLED)
                 .count();
         double totalRevenue = filtered.stream()
-                .filter(o -> "COMPLETED".equalsIgnoreCase(o.getStatus()) || "HOÀN THÀNH".equalsIgnoreCase(o.getStatus()))
+                .filter(o -> o.getStatus() == OrderStatus.COMPLETED)
                 .mapToDouble(o -> o.getTotal() != null ? o.getTotal().doubleValue() : 0.0)
                 .sum();
 
@@ -1025,7 +1026,7 @@ public class SalesController extends HttpServlet {
                 resp.sendRedirect(req.getContextPath() + "/manage/sales/orders");
                 return;
             }
-            if ("COMPLETED".equalsIgnoreCase(order.getStatus())) {
+            if (order.getStatus() == OrderStatus.COMPLETED) {
                 req.getSession().setAttribute("flash", "Lỗi: Không thể chỉnh sửa đơn hàng đã hoàn thành!");
                 resp.sendRedirect(req.getContextPath() + "/manage/sales/order-detail?id=" + id);
                 return;
@@ -1096,7 +1097,7 @@ public class SalesController extends HttpServlet {
 
             Order order = orderRepository != null ? orderRepository.findById(id) : null;
             if (order != null) {
-                if ("COMPLETED".equalsIgnoreCase(order.getStatus())) {
+                if (order.getStatus() == OrderStatus.COMPLETED) {
                     req.getSession().setAttribute("flash", "Lỗi: Không thể chỉnh sửa đơn hàng đã hoàn thành!");
                     resp.sendRedirect(req.getContextPath() + "/manage/sales/order-detail?id=" + id);
                     return;
@@ -1196,7 +1197,7 @@ public class SalesController extends HttpServlet {
                 int id = Integer.parseInt(idParam);
                 Order order = orderRepository != null ? orderRepository.findById(id) : null;
                 if (order != null) {
-                    if ("COMPLETED".equalsIgnoreCase(order.getStatus())) {
+                    if (order.getStatus() == OrderStatus.COMPLETED) {
                         req.getSession().setAttribute("flash", "Lỗi: Không thể sửa thông tin giao hàng của đơn đã hoàn thành!");
                     } else {
                         if (customerName != null) order.setCustomerName(customerName);
@@ -1251,11 +1252,11 @@ public class SalesController extends HttpServlet {
         if (status != null && !status.trim().isEmpty()) {
             String st = status.trim();
             orders = orders.stream().filter(o ->
-                    st.equalsIgnoreCase(o.getStatus()) ||
-                            (st.equals("Chờ giao") && "CONFIRMED".equalsIgnoreCase(o.getStatus())) ||
-                            (st.equals("Đang giao") && "SHIPPING".equalsIgnoreCase(o.getStatus())) ||
-                            (st.equals("Giao thành công") && "COMPLETED".equalsIgnoreCase(o.getStatus())) ||
-                            (st.equals("Giao thất bại") && "CANCELLED".equalsIgnoreCase(o.getStatus()))
+                    st.equalsIgnoreCase(o.getStatusCode()) ||
+                            (st.equals("Chờ giao") && o.getStatus() == OrderStatus.CONFIRMED) ||
+                            (st.equals("Đang giao") && o.getStatus() == OrderStatus.SHIPPING) ||
+                            (st.equals("Giao thành công") && o.getStatus() == OrderStatus.COMPLETED) ||
+                            (st.equals("Giao thất bại") && o.getStatus() == OrderStatus.CANCELLED)
             ).toList();
         }
 

@@ -14,7 +14,7 @@ import java.util.List;
 
 public class CustomerRepository {
 
-    private final UserRepository userRepository = new UserRepository();
+    private final UserRepository userRepository = new UserRepositoryImpl();
 
     /**
      * Lấy danh sách tất cả khách hàng kiểu List<Customer>
@@ -177,7 +177,7 @@ public class CustomerRepository {
         String sqlRole = "INSERT INTO UserRoles (UserID, RoleID) VALUES (?, (SELECT RoleID FROM Roles WHERE RoleCode = 'CUSTOMER'))";
         String sqlAddr = "INSERT INTO UserAddresses (UserID, RecipientName, RecipientPhone, Province, District, Ward, AddressLine, IsDefault) VALUES (?, ?, ?, ?, ?, ?, ?, 1)";
 
-        String defaultPassHash = userRepository.hashPassword("123456"); // Mật khẩu mặc định
+        String defaultPassHash = sha256("123456"); // Mật khẩu mặc định
 
         try (Connection con = DBContext.getConnection()) {
             con.setAutoCommit(false);
@@ -242,5 +242,19 @@ public class CustomerRepository {
         c.setPhone(rs.getString("Phone"));
         c.setAddress(rs.getString("Address") != null ? rs.getString("Address") : "Chưa cập nhật địa chỉ");
         return c;
+    }
+
+    private String sha256(String value) {
+        try {
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] bytes = digest.digest(value.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder(bytes.length * 2);
+            for (byte b : bytes) {
+                sb.append(String.format("%02X", b));
+            }
+            return sb.toString();
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new RuntimeException("SHA-256 algorithm not found", e);
+        }
     }
 }

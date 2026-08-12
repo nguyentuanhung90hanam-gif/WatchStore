@@ -375,19 +375,19 @@
 
                                         <c:choose>
 
-                                            <c:when test="${order.status == 'COMPLETED'}">
+                                            <c:when test="${order.statusCode == 'COMPLETED'}">
                                                 <span class="status completed">
                                                     Hoàn thành
                                                 </span>
                                             </c:when>
 
-                                            <c:when test="${order.status == 'SHIPPING' or order.status == 'DELIVERED'}">
+                                            <c:when test="${order.statusCode == 'SHIPPING' or order.statusCode == 'DELIVERED'}">
                                                 <span class="status shipping">
                                                     Đang giao
                                                 </span>
                                             </c:when>
 
-                                            <c:when test="${order.status == 'CANCELLED'}">
+                                            <c:when test="${order.statusCode == 'CANCELLED'}">
                                                 <span
                                                         class="status"
                                                         style="background: #fee2e2; color: #991b1b;"
@@ -396,7 +396,7 @@
                                                 </span>
                                             </c:when>
 
-                                            <c:when test="${order.status == 'CONFIRMED'}">
+                                            <c:when test="${order.statusCode == 'CONFIRMED'}">
                                                 <span
                                                         class="status processing"
                                                         style="background: #fef3c7; color: #d97706;"
@@ -407,7 +407,7 @@
 
                                             <c:otherwise>
                                                 <span class="status processing">
-                                                    ${order.status}
+                                                    ${order.statusCode}
                                                 </span>
                                             </c:otherwise>
 
