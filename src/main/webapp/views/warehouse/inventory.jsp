@@ -22,22 +22,7 @@
 
         </div>
 
-        <div class="inventory-header-actions">
-
-            <a href="${cp}/manage/warehouse/alerts"
-               class="button button-outline">
-                Cảnh báo tồn kho
-            </a>
-
-            <a href="${cp}/manage/warehouse/transactions"
-               class="button button-outline">
-                Lịch sử biến động
-            </a>
-
-        </div>
-
     </div>
-
 
     <!-- ==================== MESSAGE ==================== -->
 
@@ -539,18 +524,26 @@
 </div>
 
 
-<style>
 
+<style>
 /* =========================================================
    INVENTORY PAGE
+   Giao diện giữ nguyên cấu trúc MVC/JSP, chỉ tối ưu hiển thị.
    ========================================================= */
 
 .inventory-page {
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
+    font-family: inherit;
+    color: #222;
 }
 
+.inventory-page *,
+.inventory-page *::before,
+.inventory-page *::after {
+    box-sizing: border-box;
+}
 
 /* =========================================================
    HEADER
@@ -558,25 +551,32 @@
 
 .inventory-header {
     display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 24px;
-    margin-bottom: 22px;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 0;
+    margin-bottom: 24px;
+    width: 100%;
 }
 
 .inventory-header .module-title-area {
     min-width: 0;
+    width: 100%;
 }
 
-.inventory-header-actions {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 8px;
-    flex-wrap: wrap;
-    flex-shrink: 0;
+.inventory-header .eyebrow {
+    margin: 0 0 8px;
+    line-height: 1.2;
 }
 
+.inventory-header .module-title-area h2 {
+    margin: 0;
+    line-height: 1.25;
+}
+
+.inventory-header .module-desc {
+    margin: 8px 0 0;
+    line-height: 1.5;
+}
 
 /* =========================================================
    MESSAGE
@@ -586,13 +586,15 @@
     display: flex;
     align-items: center;
     gap: 10px;
+    width: 100%;
     min-height: 42px;
     padding: 10px 14px;
-    margin-bottom: 16px;
+    margin: 0 0 16px;
     border: 1px solid transparent;
-    border-radius: 8px;
+    border-radius: 6px;
     box-sizing: border-box;
     font-size: 13px;
+    line-height: 1.45;
 }
 
 .inventory-alert-success {
@@ -613,10 +615,11 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    flex: 0 0 20px;
     border-radius: 50%;
     font-size: 12px;
     font-weight: 700;
-    flex-shrink: 0;
+    line-height: 1;
 }
 
 .inventory-alert-success .inventory-alert-icon {
@@ -627,7 +630,6 @@
     background: #fee2e2;
 }
 
-
 /* =========================================================
    CARD
    ========================================================= */
@@ -636,8 +638,9 @@
 .inventory-adjust-card,
 .inventory-table-card {
     width: 100%;
+    max-width: 100%;
+    margin: 0 0 16px;
     box-sizing: border-box;
-    margin-bottom: 16px;
 }
 
 .inventory-table-card {
@@ -649,7 +652,12 @@
     align-items: center;
     justify-content: space-between;
     gap: 20px;
+    width: 100%;
     margin-bottom: 16px;
+}
+
+.inventory-card-header > div {
+    min-width: 0;
 }
 
 .inventory-card-header h3 {
@@ -657,15 +665,15 @@
     font-size: 16px;
     line-height: 1.4;
     font-weight: 700;
+    color: #222;
 }
 
 .inventory-card-header p {
-    margin: 4px 0 0;
+    margin: 5px 0 0;
     color: #777;
     font-size: 12px;
     line-height: 1.5;
 }
-
 
 /* =========================================================
    FILTER
@@ -675,7 +683,8 @@
     display: grid;
     grid-template-columns: minmax(280px, 1fr) minmax(220px, 280px) auto;
     align-items: end;
-    gap: 12px;
+    gap: 14px;
+    width: 100%;
 }
 
 .inventory-field {
@@ -683,31 +692,38 @@
 }
 
 .inventory-field label {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    margin: 0;
+    display: block;
+    margin: 0 0 6px;
+    color: #444;
     font-size: 12px;
     font-weight: 600;
-    color: #444;
+    line-height: 1.35;
 }
 
 .inventory-field input,
 .inventory-field select {
+    display: block;
     width: 100%;
     height: 40px;
-    box-sizing: border-box;
+    min-width: 0;
     padding: 0 11px;
     border: 1px solid #d7d7d7;
     border-radius: 6px;
+    outline: none;
     background: #fff;
     color: #333;
     font-family: inherit;
     font-size: 13px;
-    outline: none;
-    transition:
-        border-color .15s ease,
-        box-shadow .15s ease;
+    line-height: 40px;
+    transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+.inventory-field select {
+    line-height: normal;
+}
+
+.inventory-field input::placeholder {
+    color: #aaa;
 }
 
 .inventory-field input:focus,
@@ -721,12 +737,13 @@
     align-items: center;
     gap: 8px;
     height: 40px;
-}
-
-.inventory-filter-actions .button {
     white-space: nowrap;
 }
 
+.inventory-filter-actions .button {
+    height: 40px;
+    white-space: nowrap;
+}
 
 /* =========================================================
    MANUAL ADJUSTMENT
@@ -746,6 +763,7 @@
         auto;
     align-items: end;
     gap: 12px;
+    width: 100%;
 }
 
 .inventory-adjust-submit {
@@ -773,11 +791,10 @@
 }
 
 .inventory-note-label {
+    flex-shrink: 0;
     color: #8a6d35;
     font-weight: 700;
-    flex-shrink: 0;
 }
-
 
 /* =========================================================
    INVENTORY TABLE HEADER
@@ -798,8 +815,9 @@
     color: #666;
     font-size: 11px;
     font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
 }
-
 
 /* =========================================================
    TABLE
@@ -807,8 +825,10 @@
 
 .inventory-table-wrap {
     width: 100%;
+    max-width: 100%;
     overflow-x: auto;
     overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
 }
 
 .inventory-table {
@@ -821,12 +841,14 @@
 .inventory-table thead th {
     height: 42px;
     padding: 0 12px;
-    background: #fafafa;
     border-bottom: 1px solid #dedede;
+    background: #fafafa;
     color: #666;
     font-size: 11px;
     font-weight: 700;
     letter-spacing: .02em;
+    line-height: 1.3;
+    text-align: left;
     text-transform: uppercase;
     vertical-align: middle;
     white-space: nowrap;
@@ -837,6 +859,7 @@
     border-bottom: 1px solid #eeeeee;
     color: #333;
     font-size: 13px;
+    line-height: 1.4;
     vertical-align: middle;
 }
 
@@ -851,7 +874,6 @@
 .inventory-table tbody tr:last-child td {
     border-bottom: none;
 }
-
 
 /* =========================================================
    COLUMN WIDTH
@@ -879,7 +901,6 @@
     text-align: center;
 }
 
-
 /* =========================================================
    TABLE CONTENT
    ========================================================= */
@@ -890,12 +911,16 @@
 
 .warehouse-name {
     display: block;
+    overflow: hidden;
     line-height: 1.4;
     font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .inventory-sku {
     display: inline-block;
+    max-width: 100%;
     padding: 4px 6px;
     border-radius: 4px;
     background: #f5f5f5;
@@ -903,6 +928,7 @@
     font-family: monospace;
     font-size: 11px;
     font-weight: 700;
+    line-height: 1.2;
     white-space: nowrap;
 }
 
@@ -941,7 +967,6 @@
     text-align: center;
 }
 
-
 /* =========================================================
    QUANTITY
    ========================================================= */
@@ -966,7 +991,6 @@
     font-weight: 600;
 }
 
-
 /* =========================================================
    STATUS
    ========================================================= */
@@ -978,32 +1002,33 @@
     min-width: 72px;
     height: 24px;
     padding: 0 8px;
-    box-sizing: border-box;
+    border: 1px solid transparent;
     border-radius: 5px;
+    box-sizing: border-box;
     font-size: 10px;
     font-weight: 700;
     letter-spacing: .02em;
+    line-height: 1;
     white-space: nowrap;
 }
 
 .status-badge.success {
     background: #ecfdf3;
-    border: 1px solid #bbf7d0;
+    border-color: #bbf7d0;
     color: #15803d;
 }
 
 .status-badge.warning {
     background: #fffbeb;
-    border: 1px solid #fde68a;
+    border-color: #fde68a;
     color: #a16207;
 }
 
 .status-badge.danger {
     background: #fef2f2;
-    border: 1px solid #fecaca;
+    border-color: #fecaca;
     color: #b91c1c;
 }
-
 
 /* =========================================================
    EMPTY STATE
@@ -1026,6 +1051,7 @@
     border-radius: 50%;
     color: #999;
     font-size: 18px;
+    line-height: 1;
 }
 
 .inventory-empty strong {
@@ -1033,26 +1059,23 @@
     margin-bottom: 4px;
     color: #555;
     font-size: 13px;
+    line-height: 1.4;
 }
 
 .inventory-empty span {
     display: block;
     color: #999;
     font-size: 11px;
+    line-height: 1.5;
 }
-
 
 /* =========================================================
    RESPONSIVE
    ========================================================= */
 
 @media (max-width: 1200px) {
-
     .inventory-adjust-form {
-        grid-template-columns:
-            1fr
-            1fr
-            1fr;
+        grid-template-columns: 1fr 1fr 1fr;
     }
 
     .inventory-field-note {
@@ -1062,22 +1085,9 @@
     .inventory-adjust-submit {
         grid-column: span 1;
     }
-
 }
 
-
 @media (max-width: 900px) {
-
-    .inventory-header {
-        align-items: flex-start;
-        flex-direction: column;
-    }
-
-    .inventory-header-actions {
-        justify-content: flex-start;
-        width: 100%;
-    }
-
     .inventory-filter-form {
         grid-template-columns: 1fr 1fr;
     }
@@ -1089,24 +1099,9 @@
     .inventory-filter-actions {
         grid-column: span 2;
     }
-
 }
 
-
 @media (max-width: 700px) {
-
-    .inventory-header-actions {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        width: 100%;
-    }
-
-    .inventory-header-actions .button {
-        width: 100%;
-        text-align: center;
-        box-sizing: border-box;
-    }
-
     .inventory-filter-form {
         grid-template-columns: 1fr;
     }
@@ -1151,20 +1146,11 @@
     .inventory-count {
         align-self: flex-start;
     }
-
 }
 
-
 @media (max-width: 480px) {
-
-    .inventory-header-actions {
-        grid-template-columns: 1fr;
-    }
-
     .inventory-table {
         min-width: 900px;
     }
-
 }
-
 </style>
