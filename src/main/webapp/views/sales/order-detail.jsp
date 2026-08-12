@@ -239,6 +239,9 @@
             <button type="button" class="btn" style="background:#4b5563; width:auto; height:36px; padding:0 12px; font-weight:600; display:inline-flex; align-items:center; gap:5px; vertical-align:middle; cursor:pointer;" onclick="window.print()">
                 🖨️ In đơn hàng
             </button>
+            <button type="button" class="btn" style="background:#d97706; color:white; width:auto; height:36px; padding:0 12px; font-weight:600; display:inline-flex; align-items:center; gap:5px; vertical-align:middle; cursor:pointer;" onclick="window.open('${pageContext.request.contextPath}/manage/sales/pos/print?id=${order.id}', '_blank', 'width=450,height=650')">
+                📄 In hóa đơn bán lẻ
+            </button>
         </div>
 
         <a class="back"

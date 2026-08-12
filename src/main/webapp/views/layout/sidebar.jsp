@@ -14,6 +14,7 @@
         <c:choose>
             <c:when test="${adminArea == 'sales'}">
                 <a href="${cp}/manage/sales/dashboard">▦ Tổng quan</a>
+                <a href="${cp}/manage/sales/pos" style="color: #d97706; font-weight: bold;">➕ Bán hàng POS</a>
                 <a href="${cp}/manage/sales/orders">▣ Đơn hàng</a>
                 <a href="${cp}/manage/sales/customers">♙ Khách hàng</a>
                 <a href="${cp}/manage/sales/reviews">★ Đánh giá</a>

@@ -1,7 +1,9 @@
 package com.watchstore.controller.sales;
 
+import com.watchstore.config.DBContext;
 import com.watchstore.model.Customer;
 import com.watchstore.model.Order;
+import com.watchstore.model.User; // Đã bổ sung import User
 import com.watchstore.repository.CustomerRepository;
 import com.watchstore.repository.MockDataStore;
 import com.watchstore.repository.OrderRepository;
@@ -10,10 +12,20 @@ import com.watchstore.util.ViewRouter;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.*;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,7 +49,8 @@ public class SalesController extends HttpServlet {
             Map.entry("/delivery", new String[]{"delivery", "Vận chuyển"}),
             Map.entry("/returns", new String[]{"return", "Yêu cầu đổi trả"}),
             Map.entry("/warranty", new String[]{"warranty", "Quản lý bảo hành"}),
-            Map.entry("/report", new String[]{"report", "Báo cáo bán hàng"})
+            Map.entry("/report", new String[]{"report", "Báo cáo bán hàng"}),
+            Map.entry("/pos", new String[]{"pos", "Bán hàng tại quầy (POS)"})
     );
 
     @Override
@@ -55,6 +68,11 @@ public class SalesController extends HttpServlet {
             throws ServletException, IOException {
 
         String path = req.getPathInfo();
+
+        if (path != null && path.startsWith("/pos")) {
+            handlePOSGet(path, req, resp);
+            return;
+        }
 
         if (path == null || path.isBlank() || "/dashboard".equals(path)) {
             showDashboard(req, resp);
@@ -167,13 +185,13 @@ public class SalesController extends HttpServlet {
                 .filter(o -> "SHIPPING".equalsIgnoreCase(o.getStatus()) || "DELIVERED".equalsIgnoreCase(o.getStatus()))
                 .count();
 
-        List<Map<String, Object>> warranties = warrantyRepository != null ? warrantyRepository.findAll() : new java.util.ArrayList<>();
+        List<Map<String, Object>> warranties = warrantyRepository != null ? warrantyRepository.findAll() : new ArrayList<>();
         long pendingWarrantyCount = warranties.stream()
                 .filter(w -> {
                     String st = String.valueOf(w.get("status"));
                     return "Đang bảo hành".equalsIgnoreCase(st) || "ACTIVE".equalsIgnoreCase(st) ||
-                           "Đang sửa chữa".equalsIgnoreCase(st) || "REPAIR".equalsIgnoreCase(st) ||
-                           "Đã sửa xong".equalsIgnoreCase(st);
+                            "Đang sửa chữa".equalsIgnoreCase(st) || "REPAIR".equalsIgnoreCase(st) ||
+                            "Đã sửa xong".equalsIgnoreCase(st);
                 })
                 .count();
 
@@ -195,6 +213,11 @@ public class SalesController extends HttpServlet {
 
         req.setCharacterEncoding("UTF-8");
         String path = req.getPathInfo();
+
+        if (path != null && path.startsWith("/pos")) {
+            handlePOSPost(path, req, resp);
+            return;
+        }
 
         if ("/customer-add".equals(path)) {
             createCustomer(req, resp);
@@ -309,10 +332,10 @@ public class SalesController extends HttpServlet {
             List<Order> customerOrders = orderRepository != null ? orderRepository.findByCustomerId(id) : new ArrayList<>();
 
             long totalOrdersCount = customerOrders.size();
-            java.math.BigDecimal totalAmountSpent = customerOrders.stream()
-                .filter(o -> !"CANCELLED".equalsIgnoreCase(o.getStatus()))
-                .map(Order::getTotalPrice)
-                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+            BigDecimal totalAmountSpent = customerOrders.stream()
+                    .filter(o -> !"CANCELLED".equalsIgnoreCase(o.getStatus()))
+                    .map(Order::getTotalPrice)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
 
             req.setAttribute("customer", customer);
             req.setAttribute("customerOrders", customerOrders);
@@ -439,7 +462,7 @@ public class SalesController extends HttpServlet {
             throws ServletException, IOException {
         String keyword = req.getParameter("keyword");
         String status  = req.getParameter("status");
-        req.setAttribute("warranties", warrantyRepository != null ? warrantyRepository.search(keyword, status) : java.util.Collections.emptyList());
+        req.setAttribute("warranties", warrantyRepository != null ? warrantyRepository.search(keyword, status) : Collections.emptyList());
         req.setAttribute("moduleTitle", "Quản lý bảo hành");
         ViewRouter.admin(req, resp, "sales/warranty", "Quản lý bảo hành", "sales");
     }
@@ -458,7 +481,6 @@ public class SalesController extends HttpServlet {
             int months       = Integer.parseInt(req.getParameter("months"));
             String note      = req.getParameter("note");
 
-            // 1. Kiểm tra đơn hàng có tồn tại
             if (orderRepository == null) {
                 req.getSession().setAttribute("flash", "Lỗi hệ thống: Không thể kết nối cơ sở dữ liệu đơn hàng.");
                 resp.sendRedirect(req.getContextPath() + "/manage/sales/warranty");
@@ -471,14 +493,13 @@ public class SalesController extends HttpServlet {
                 return;
             }
 
-            // 2. Kiểm tra sản phẩm có trong đơn hàng
             List<Map<String, Object>> items = orderRepository.getOrderItems(orderId);
             boolean exists = items.stream().anyMatch(item -> {
                 String pName = String.valueOf(item.get("ProductName"));
                 String vName = String.valueOf(item.get("VariantName"));
                 return productName.equalsIgnoreCase(pName) || productName.equalsIgnoreCase(vName) ||
-                       pName.toLowerCase().contains(productName.toLowerCase()) ||
-                       vName.toLowerCase().contains(productName.toLowerCase());
+                        pName.toLowerCase().contains(productName.toLowerCase()) ||
+                        vName.toLowerCase().contains(productName.toLowerCase());
             });
 
             if (!exists) {
@@ -487,7 +508,6 @@ public class SalesController extends HttpServlet {
                 return;
             }
 
-            // 3. Tiến hành tạo phiếu
             warrantyRepository.insert(orderId, productName, serial, months, note);
             req.getSession().setAttribute("flash", "Đã tạo phiếu bảo hành thành công!");
         } catch (NumberFormatException e) {
@@ -513,7 +533,7 @@ public class SalesController extends HttpServlet {
                     java.sql.Date receiveDate = java.sql.Date.valueOf(receiveDateStr);
                     warrantyRepository.updateReceive(id, receiveDate, receiveNote);
                     req.getSession().setAttribute("flash", "Đã tiếp nhận sản phẩm bảo hành thành công!");
-                } 
+                }
                 else if ("repair".equalsIgnoreCase(action)) {
                     String repairContent = req.getParameter("repairContent");
                     String componentReplaced = req.getParameter("componentReplaced");
@@ -522,13 +542,13 @@ public class SalesController extends HttpServlet {
                     java.sql.Date completeDate = java.sql.Date.valueOf(completeDateStr);
                     warrantyRepository.updateRepair(id, repairContent, componentReplaced, repairNote, completeDate);
                     req.getSession().setAttribute("flash", "Đã ghi nhận kết quả sửa chữa thành công!");
-                } 
+                }
                 else if ("return".equalsIgnoreCase(action)) {
                     String returnDateStr = req.getParameter("returnDate");
                     java.sql.Date returnDate = java.sql.Date.valueOf(returnDateStr);
                     warrantyRepository.updateReturn(id, returnDate);
                     req.getSession().setAttribute("flash", "Đã xác nhận trả máy cho khách thành công!");
-                } 
+                }
                 else if (status != null) {
                     warrantyRepository.updateStatus(id, status);
                     req.getSession().setAttribute("flash", "Đã cập nhật trạng thái bảo hành!");
@@ -580,7 +600,6 @@ public class SalesController extends HttpServlet {
         List<Order> allOrders = orderRepository != null ? orderRepository.findAll() : MockDataStore.orders();
         List<Order> filtered  = new ArrayList<>(allOrders);
 
-        // 1. Lọc theo trạng thái
         if (status != null && !status.isBlank()) {
             String st = status.trim().toUpperCase();
             filtered = filtered.stream().filter(o -> {
@@ -593,29 +612,27 @@ public class SalesController extends HttpServlet {
             }).toList();
         }
 
-        // 2. Lọc theo ngày
         if (fromDate != null && !fromDate.isBlank()) {
             try {
-                java.time.LocalDate fd = java.time.LocalDate.parse(fromDate);
+                LocalDate fd = LocalDate.parse(fromDate);
                 filtered = filtered.stream().filter(o -> {
                     if (o.getCreatedAt() == null) return false;
-                    java.time.LocalDate od = o.getCreatedAt().toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate();
+                    LocalDate od = o.getCreatedAt().toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
                     return !od.isBefore(fd);
                 }).toList();
             } catch (Exception ignored) {}
         }
         if (toDate != null && !toDate.isBlank()) {
             try {
-                java.time.LocalDate td = java.time.LocalDate.parse(toDate);
+                LocalDate td = LocalDate.parse(toDate);
                 filtered = filtered.stream().filter(o -> {
                     if (o.getCreatedAt() == null) return false;
-                    java.time.LocalDate od = o.getCreatedAt().toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate();
+                    LocalDate od = o.getCreatedAt().toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
                     return !od.isAfter(td);
                 }).toList();
             } catch (Exception ignored) {}
         }
 
-        // 3. Tính toán các chỉ số
         long totalOrders = filtered.size();
         long pendingOrders = filtered.stream()
                 .filter(o -> "PENDING".equalsIgnoreCase(o.getStatus()) || "CONFIRMED".equalsIgnoreCase(o.getStatus()) || "PACKING".equalsIgnoreCase(o.getStatus()) || "ĐANG XỬ LÝ".equalsIgnoreCase(o.getStatus()))
@@ -652,56 +669,56 @@ public class SalesController extends HttpServlet {
     private List<Map<String, Object>> getSampleReviews() {
         List<Map<String, Object>> list = new ArrayList<>();
         list.add(new HashMap<>(Map.ofEntries(
-            Map.entry("id", 1), 
-            Map.entry("customerName", "Lê Thành Công"), 
-            Map.entry("email", "cong.le@example.com"),
-            Map.entry("phone", "0988000007"),
-            Map.entry("productName", "Rolex Datejust 41"), 
-            Map.entry("rating", 5), 
-            Map.entry("content", "Đồng hồ chạy cực chuẩn, mẫu đẹp hơn mong đợi!"), 
-            Map.entry("status", "APPROVED"), 
-            Map.entry("createdAt", "2026-08-05"),
-            Map.entry("orderCode", "WS8504"),
-            Map.entry("reply", "Cảm ơn anh Lê Thành Công đã tin tưởng lựa chọn Rolex tại WatchStore. Rất mong được phục vụ anh trong các đơn hàng tới!")
+                Map.entry("id", 1),
+                Map.entry("customerName", "Lê Thành Công"),
+                Map.entry("email", "cong.le@example.com"),
+                Map.entry("phone", "0988000007"),
+                Map.entry("productName", "Rolex Datejust 41"),
+                Map.entry("rating", 5),
+                Map.entry("content", "Đồng hồ chạy cực chuẩn, mẫu đẹp hơn mong đợi!"),
+                Map.entry("status", "APPROVED"),
+                Map.entry("createdAt", "2026-08-05"),
+                Map.entry("orderCode", "WS8504"),
+                Map.entry("reply", "Cảm ơn anh Lê Thành Công đã tin tưởng lựa chọn Rolex tại WatchStore. Rất mong được phục vụ anh trong các đơn hàng tới!")
         )));
         list.add(new HashMap<>(Map.ofEntries(
-            Map.entry("id", 2), 
-            Map.entry("customerName", "Trần Minh Đức"), 
-            Map.entry("email", "duc.tran@example.com"),
-            Map.entry("phone", "0988000006"),
-            Map.entry("productName", "Casio G-Shock GA-2100"), 
-            Map.entry("rating", 4), 
-            Map.entry("content", "Giao hàng nhanh, đóng gói chắc chắn."), 
-            Map.entry("status", "PENDING"), 
-            Map.entry("createdAt", "2026-08-04"),
-            Map.entry("orderCode", "WS8503"),
-            Map.entry("reply", "")
+                Map.entry("id", 2),
+                Map.entry("customerName", "Trần Minh Đức"),
+                Map.entry("email", "duc.tran@example.com"),
+                Map.entry("phone", "0988000006"),
+                Map.entry("productName", "Casio G-Shock GA-2100"),
+                Map.entry("rating", 4),
+                Map.entry("content", "Giao hàng nhanh, đóng gói chắc chắn."),
+                Map.entry("status", "PENDING"),
+                Map.entry("createdAt", "2026-08-04"),
+                Map.entry("orderCode", "WS8503"),
+                Map.entry("reply", "")
         )));
         list.add(new HashMap<>(Map.ofEntries(
-            Map.entry("id", 3), 
-            Map.entry("customerName", "Nguyễn Văn An"), 
-            Map.entry("email", "an.nguyen@example.com"),
-            Map.entry("phone", "0988000005"),
-            Map.entry("productName", "Seiko 5 Sports Automatic"), 
-            Map.entry("rating", 5), 
-            Map.entry("content", "Máy cơ bền bỉ, tích cót lâu."), 
-            Map.entry("status", "APPROVED"), 
-            Map.entry("createdAt", "2026-08-02"),
-            Map.entry("orderCode", "WS8502"),
-            Map.entry("reply", "")
+                Map.entry("id", 3),
+                Map.entry("customerName", "Nguyễn Văn An"),
+                Map.entry("email", "an.nguyen@example.com"),
+                Map.entry("phone", "0988000005"),
+                Map.entry("productName", "Seiko 5 Sports Automatic"),
+                Map.entry("rating", 5),
+                Map.entry("content", "Máy cơ bền bỉ, tích cót lâu."),
+                Map.entry("status", "APPROVED"),
+                Map.entry("createdAt", "2026-08-02"),
+                Map.entry("orderCode", "WS8502"),
+                Map.entry("reply", "")
         )));
         list.add(new HashMap<>(Map.ofEntries(
-            Map.entry("id", 4), 
-            Map.entry("customerName", "Phạm Quốc Bảo"), 
-            Map.entry("email", "bao.pham@example.com"),
-            Map.entry("phone", "0988000004"),
-            Map.entry("productName", "Citizen Eco-Drive"), 
-            Map.entry("rating", 1), 
-            Map.entry("content", "Hàng bị trầy xước nhẹ ở mặt kính."), 
-            Map.entry("status", "REJECTED"), 
-            Map.entry("createdAt", "2026-08-01"),
-            Map.entry("orderCode", "WS8501"),
-            Map.entry("reply", "")
+                Map.entry("id", 4),
+                Map.entry("customerName", "Phạm Quốc Bảo"),
+                Map.entry("email", "bao.pham@example.com"),
+                Map.entry("phone", "0988000004"),
+                Map.entry("productName", "Citizen Eco-Drive"),
+                Map.entry("rating", 1),
+                Map.entry("content", "Hàng bị trầy xước nhẹ ở mặt kính."),
+                Map.entry("status", "REJECTED"),
+                Map.entry("createdAt", "2026-08-01"),
+                Map.entry("orderCode", "WS8501"),
+                Map.entry("reply", "")
         )));
         return list;
     }
@@ -733,19 +750,19 @@ public class SalesController extends HttpServlet {
         if (keyword != null && !keyword.trim().isEmpty()) {
             String k = keyword.trim().toLowerCase();
             filtered = filtered.stream().filter(r ->
-                (r.get("customerName") != null && r.get("customerName").toString().toLowerCase().contains(k)) ||
-                (r.get("productName")  != null && r.get("productName").toString().toLowerCase().contains(k))  ||
-                (r.get("content")      != null && r.get("content").toString().toLowerCase().contains(k))
+                    (r.get("customerName") != null && r.get("customerName").toString().toLowerCase().contains(k)) ||
+                            (r.get("productName")  != null && r.get("productName").toString().toLowerCase().contains(k))  ||
+                            (r.get("content")      != null && r.get("content").toString().toLowerCase().contains(k))
             ).toList();
         }
 
         if (status != null && !status.trim().isEmpty()) {
             String st = status.trim();
             filtered = filtered.stream().filter(r ->
-                st.equalsIgnoreCase(r.get("status").toString()) ||
-                (st.equals("Chờ duyệt") && "PENDING".equalsIgnoreCase(r.get("status").toString())) ||
-                (st.equals("Đã duyệt")  && "APPROVED".equalsIgnoreCase(r.get("status").toString())) ||
-                (st.equals("Đã từ chối") && "REJECTED".equalsIgnoreCase(r.get("status").toString()))
+                    st.equalsIgnoreCase(r.get("status").toString()) ||
+                            (st.equals("Chờ duyệt") && "PENDING".equalsIgnoreCase(r.get("status").toString())) ||
+                            (st.equals("Đã duyệt")  && "APPROVED".equalsIgnoreCase(r.get("status").toString())) ||
+                            (st.equals("Đã từ chối") && "REJECTED".equalsIgnoreCase(r.get("status").toString()))
             ).toList();
         }
 
@@ -753,7 +770,7 @@ public class SalesController extends HttpServlet {
             try {
                 int rVal = Integer.parseInt(ratingParam.trim());
                 filtered = filtered.stream().filter(r ->
-                    Integer.valueOf(rVal).equals(r.get("rating"))
+                        Integer.valueOf(rVal).equals(r.get("rating"))
                 ).toList();
             } catch (NumberFormatException ignored) {}
         }
@@ -783,19 +800,19 @@ public class SalesController extends HttpServlet {
         if (keyword != null && !keyword.trim().isEmpty()) {
             String k = keyword.trim().toLowerCase();
             filtered = filtered.stream().filter(c ->
-                (c.get("customerName") != null && c.get("customerName").toString().toLowerCase().contains(k)) ||
-                (c.get("productName")  != null && c.get("productName").toString().toLowerCase().contains(k))  ||
-                (c.get("content")      != null && c.get("content").toString().toLowerCase().contains(k))
+                    (c.get("customerName") != null && c.get("customerName").toString().toLowerCase().contains(k)) ||
+                            (c.get("productName")  != null && c.get("productName").toString().toLowerCase().contains(k))  ||
+                            (c.get("content")      != null && c.get("content").toString().toLowerCase().contains(k))
             ).toList();
         }
 
         if (status != null && !status.trim().isEmpty()) {
             String st = status.trim();
             filtered = filtered.stream().filter(c ->
-                st.equalsIgnoreCase(c.get("status").toString()) ||
-                (st.equals("Chờ duyệt") && "PENDING".equalsIgnoreCase(c.get("status").toString())) ||
-                (st.equals("Hiển thị")  && "APPROVED".equalsIgnoreCase(c.get("status").toString())) ||
-                (st.equals("Ẩn")        && "HIDDEN".equalsIgnoreCase(c.get("status").toString()))
+                    st.equalsIgnoreCase(c.get("status").toString()) ||
+                            (st.equals("Chờ duyệt") && "PENDING".equalsIgnoreCase(c.get("status").toString())) ||
+                            (st.equals("Hiển thị")  && "APPROVED".equalsIgnoreCase(c.get("status").toString())) ||
+                            (st.equals("Ẩn")        && "HIDDEN".equalsIgnoreCase(c.get("status").toString()))
             ).toList();
         }
 
@@ -809,42 +826,42 @@ public class SalesController extends HttpServlet {
     private List<Map<String, Object>> getSampleReturns() {
         List<Map<String, Object>> list = new ArrayList<>();
         list.add(new HashMap<>(Map.ofEntries(
-            Map.entry("id", 1), 
-            Map.entry("orderId", 4), 
-            Map.entry("orderCode", "WS8504"),
-            Map.entry("customerName", "Lê Thành Công"), 
-            Map.entry("customerPhone", "0988000007"),
-            Map.entry("customerEmail", "cong.le@example.com"),
-            Map.entry("reason", "Kích thước dây đeo không vừa"), 
-            Map.entry("requestDate", "2026-08-05"), 
-            Map.entry("status", "Chờ xử lý"),
-            Map.entry("productName", "Rolex Datejust 41"),
-            Map.entry("quantity", 1),
-            Map.entry("evidenceImg", "Ảnh chụp dây đeo bị rộng"),
-            Map.entry("orderDate", "2026-08-03"),
-            Map.entry("totalPrice", "9,940,000"),
-            Map.entry("isWithinPeriod", "Còn trong thời hạn (2 ngày từ khi mua, tối đa 7 ngày)"),
-            Map.entry("isCorrectCondition", "Đúng điều kiện (Hàng còn nguyên tem mác, hộp đựng)"),
-            Map.entry("isStoreError", "Không (Lỗi chọn nhầm size của khách)")
+                Map.entry("id", 1),
+                Map.entry("orderId", 4),
+                Map.entry("orderCode", "WS8504"),
+                Map.entry("customerName", "Lê Thành Công"),
+                Map.entry("customerPhone", "0988000007"),
+                Map.entry("customerEmail", "cong.le@example.com"),
+                Map.entry("reason", "Kích thước dây đeo không vừa"),
+                Map.entry("requestDate", "2026-08-05"),
+                Map.entry("status", "Chờ xử lý"),
+                Map.entry("productName", "Rolex Datejust 41"),
+                Map.entry("quantity", 1),
+                Map.entry("evidenceImg", "Ảnh chụp dây đeo bị rộng"),
+                Map.entry("orderDate", "2026-08-03"),
+                Map.entry("totalPrice", "9,940,000"),
+                Map.entry("isWithinPeriod", "Còn trong thời hạn (2 ngày từ khi mua, tối đa 7 ngày)"),
+                Map.entry("isCorrectCondition", "Đúng điều kiện (Hàng còn nguyên tem mác, hộp đựng)"),
+                Map.entry("isStoreError", "Không (Lỗi chọn nhầm size của khách)")
         )));
         list.add(new HashMap<>(Map.ofEntries(
-            Map.entry("id", 2), 
-            Map.entry("orderId", 2), 
-            Map.entry("orderCode", "WS8502"),
-            Map.entry("customerName", "Nguyễn Văn An"), 
-            Map.entry("customerPhone", "0988000005"),
-            Map.entry("customerEmail", "an.nguyen@example.com"),
-            Map.entry("reason", "Đổi sang màu mặt số xanh navy"), 
-            Map.entry("requestDate", "2026-08-03"), 
-            Map.entry("status", "Đã duyệt"),
-            Map.entry("productName", "Seiko 5 Sports Automatic"),
-            Map.entry("quantity", 1),
-            Map.entry("evidenceImg", "Ảnh chụp mặt số nguyên bản"),
-            Map.entry("orderDate", "2026-07-28"),
-            Map.entry("totalPrice", "4,250,000"),
-            Map.entry("isWithinPeriod", "Còn trong thời hạn (6 ngày từ khi mua, tối đa 7 ngày)"),
-            Map.entry("isCorrectCondition", "Đúng điều kiện (Chưa qua sử dụng, còn seal)"),
-            Map.entry("isStoreError", "Không (Khách thay đổi ý định)")
+                Map.entry("id", 2),
+                Map.entry("orderId", 2),
+                Map.entry("orderCode", "WS8502"),
+                Map.entry("customerName", "Nguyễn Văn An"),
+                Map.entry("customerPhone", "0988000005"),
+                Map.entry("customerEmail", "an.nguyen@example.com"),
+                Map.entry("reason", "Đổi sang màu mặt số xanh navy"),
+                Map.entry("requestDate", "2026-08-03"),
+                Map.entry("status", "Đã duyệt"),
+                Map.entry("productName", "Seiko 5 Sports Automatic"),
+                Map.entry("quantity", 1),
+                Map.entry("evidenceImg", "Ảnh chụp mặt số nguyên bản"),
+                Map.entry("orderDate", "2026-07-28"),
+                Map.entry("totalPrice", "4,250,000"),
+                Map.entry("isWithinPeriod", "Còn trong thời hạn (6 ngày từ khi mua, tối đa 7 ngày)"),
+                Map.entry("isCorrectCondition", "Đúng điều kiện (Chưa qua sử dụng, còn seal)"),
+                Map.entry("isStoreError", "Không (Khách thay đổi ý định)")
         )));
         return list;
     }
@@ -866,22 +883,22 @@ public class SalesController extends HttpServlet {
         if (keyword != null && !keyword.trim().isEmpty()) {
             String k = keyword.trim().toLowerCase();
             filtered = filtered.stream().filter(r ->
-                (r.get("customerName") != null && r.get("customerName").toString().toLowerCase().contains(k)) ||
-                (r.get("reason")       != null && r.get("reason").toString().toLowerCase().contains(k))       ||
-                (r.get("orderId")      != null && ("#" + r.get("orderId")).toLowerCase().contains(k))
+                    (r.get("customerName") != null && r.get("customerName").toString().toLowerCase().contains(k)) ||
+                            (r.get("reason")       != null && r.get("reason").toString().toLowerCase().contains(k))       ||
+                            (r.get("orderId")      != null && ("#" + r.get("orderId")).toLowerCase().contains(k))
             ).toList();
         }
 
         if (status != null && !status.trim().isEmpty()) {
             String st = status.trim();
             filtered = filtered.stream().filter(r ->
-                st.equalsIgnoreCase(r.get("status").toString()) ||
-                (st.equals("PENDING") && "Chờ xử lý".equalsIgnoreCase(r.get("status").toString())) ||
-                (st.equals("APPROVED") && "Đã duyệt".equalsIgnoreCase(r.get("status").toString())) ||
-                (st.equals("RECEIVED") && "Đã nhận hàng".equalsIgnoreCase(r.get("status").toString())) ||
-                (st.equals("REPLACED") && "Đã đổi hàng".equalsIgnoreCase(r.get("status").toString())) ||
-                (st.equals("REFUNDED") && "Đã hoàn tiền".equalsIgnoreCase(r.get("status").toString())) ||
-                (st.equals("REJECTED") && "Từ chối".equalsIgnoreCase(r.get("status").toString()))
+                    st.equalsIgnoreCase(r.get("status").toString()) ||
+                            (st.equals("PENDING") && "Chờ xử lý".equalsIgnoreCase(r.get("status").toString())) ||
+                            (st.equals("APPROVED") && "Đã duyệt".equalsIgnoreCase(r.get("status").toString())) ||
+                            (st.equals("RECEIVED") && "Đã nhận hàng".equalsIgnoreCase(r.get("status").toString())) ||
+                            (st.equals("REPLACED") && "Đã đổi hàng".equalsIgnoreCase(r.get("status").toString())) ||
+                            (st.equals("REFUNDED") && "Đã hoàn tiền".equalsIgnoreCase(r.get("status").toString())) ||
+                            (st.equals("REJECTED") && "Từ chối".equalsIgnoreCase(r.get("status").toString()))
             ).toList();
         }
 
@@ -1031,9 +1048,9 @@ public class SalesController extends HttpServlet {
         String paymentStatus = req.getParameter("paymentStatus");
 
         try {
-            java.math.BigDecimal totalPrice = new java.math.BigDecimal(totalPriceStr);
+            BigDecimal totalPrice = new BigDecimal(totalPriceStr);
             String code = "WS" + (8500 + (orderRepository != null ? orderRepository.findAll().size() : 0) + 1);
-            
+
             Order order = new Order();
             order.setCode(code);
             order.setCustomerName(customerName);
@@ -1042,7 +1059,7 @@ public class SalesController extends HttpServlet {
             order.setTotalPrice(totalPrice);
             order.setStatus(status);
             order.setPaymentStatus(paymentStatus != null ? paymentStatus : "UNPAID");
-            order.setUserId(4); // Default customer user
+            order.setUserId(4);
             order.setCreatedAt(new java.util.Date());
 
             if (orderRepository != null) {
@@ -1075,8 +1092,8 @@ public class SalesController extends HttpServlet {
 
         try {
             int id = Integer.parseInt(idParam);
-            java.math.BigDecimal totalPrice = new java.math.BigDecimal(totalPriceStr);
-            
+            BigDecimal totalPrice = new BigDecimal(totalPriceStr);
+
             Order order = orderRepository != null ? orderRepository.findById(id) : null;
             if (order != null) {
                 if ("COMPLETED".equalsIgnoreCase(order.getStatus())) {
@@ -1092,7 +1109,7 @@ public class SalesController extends HttpServlet {
                 if (paymentStatus != null) {
                     order.setPaymentStatus(paymentStatus);
                 }
-                
+
                 orderRepository.update(order);
                 req.getSession().setAttribute("flash", "Cập nhật đơn hàng thành công!");
                 resp.sendRedirect(req.getContextPath() + "/manage/sales/order-detail?id=" + id);
@@ -1134,8 +1151,7 @@ public class SalesController extends HttpServlet {
                 }
             } catch (NumberFormatException ignored) {}
         }
-        
-        // Redirect back to referring page or orders list
+
         String referer = req.getHeader("referer");
         if (referer != null && !referer.isEmpty()) {
             resp.sendRedirect(referer);
@@ -1150,15 +1166,14 @@ public class SalesController extends HttpServlet {
         if (idParam != null) {
             try {
                 int id = Integer.parseInt(idParam);
-                if (orderRepository != null && orderRepository.updateStatus(id, "CANCELLED")) {
-                    req.getSession().setAttribute("flash", "Đã hủy đơn hàng thành công!");
+                if (orderRepository != null && orderRepository.cancelOrderAndRestoreStock(id)) {
+                    req.getSession().setAttribute("flash", "Đã hủy đơn hàng và hoàn lại tồn kho thành công!");
                 } else {
                     req.getSession().setAttribute("flash", "Lỗi khi hủy đơn hàng.");
                 }
             } catch (NumberFormatException ignored) {}
         }
-        
-        // Redirect back to referring page or orders list
+
         String referer = req.getHeader("referer");
         if (referer != null && !referer.isEmpty()) {
             resp.sendRedirect(referer);
@@ -1187,11 +1202,11 @@ public class SalesController extends HttpServlet {
                         if (customerName != null) order.setCustomerName(customerName);
                         if (phone != null) order.setPhone(phone);
                         if (shippingAddress != null) order.setShippingAddress(shippingAddress);
-                        
+
                         if (status != null && !status.trim().isEmpty()) {
                             order.setStatus(status.trim());
                         }
-                        
+
                         if (orderRepository != null && orderRepository.update(order)) {
                             if (status != null && !status.trim().isEmpty()) {
                                 orderRepository.updateStatus(id, status.trim());
@@ -1225,22 +1240,22 @@ public class SalesController extends HttpServlet {
         if (keyword != null && !keyword.trim().isEmpty()) {
             String k = keyword.trim().toLowerCase();
             orders = orders.stream().filter(o ->
-                (String.valueOf(o.getId()).contains(k)) ||
-                (o.getCode() != null && o.getCode().toLowerCase().contains(k)) ||
-                (o.getCustomerName() != null && o.getCustomerName().toLowerCase().contains(k)) ||
-                (o.getPhone() != null && o.getPhone().toLowerCase().contains(k)) ||
-                (o.getShippingAddress() != null && o.getShippingAddress().toLowerCase().contains(k))
+                    (String.valueOf(o.getId()).contains(k)) ||
+                            (o.getCode() != null && o.getCode().toLowerCase().contains(k)) ||
+                            (o.getCustomerName() != null && o.getCustomerName().toLowerCase().contains(k)) ||
+                            (o.getPhone() != null && o.getPhone().toLowerCase().contains(k)) ||
+                            (o.getShippingAddress() != null && o.getShippingAddress().toLowerCase().contains(k))
             ).toList();
         }
 
         if (status != null && !status.trim().isEmpty()) {
             String st = status.trim();
             orders = orders.stream().filter(o ->
-                st.equalsIgnoreCase(o.getStatus()) ||
-                (st.equals("Chờ giao") && "CONFIRMED".equalsIgnoreCase(o.getStatus())) ||
-                (st.equals("Đang giao") && "SHIPPING".equalsIgnoreCase(o.getStatus())) ||
-                (st.equals("Giao thành công") && "COMPLETED".equalsIgnoreCase(o.getStatus())) ||
-                (st.equals("Giao thất bại") && "CANCELLED".equalsIgnoreCase(o.getStatus()))
+                    st.equalsIgnoreCase(o.getStatus()) ||
+                            (st.equals("Chờ giao") && "CONFIRMED".equalsIgnoreCase(o.getStatus())) ||
+                            (st.equals("Đang giao") && "SHIPPING".equalsIgnoreCase(o.getStatus())) ||
+                            (st.equals("Giao thành công") && "COMPLETED".equalsIgnoreCase(o.getStatus())) ||
+                            (st.equals("Giao thất bại") && "CANCELLED".equalsIgnoreCase(o.getStatus()))
             ).toList();
         }
 
@@ -1249,5 +1264,441 @@ public class SalesController extends HttpServlet {
         req.setAttribute("status", status);
         req.setAttribute("moduleTitle", "Vận chuyển");
         ViewRouter.admin(req, resp, "sales/delivery", "Vận chuyển", "sales");
+    }
+
+    private void handlePOSGet(String path, HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
+        if ("/pos".equals(path)) {
+            showPOS(req, resp);
+        } else if ("/pos/search-products".equals(path)) {
+            searchPOSProducts(req, resp);
+        } else if ("/pos/search-customers".equals(path)) {
+            searchPOSCustomers(req, resp);
+        } else if ("/pos/print".equals(path)) {
+            printPOSInvoice(req, resp);
+        } else {
+            resp.sendError(HttpServletResponse.SC_NOT_FOUND);
+        }
+    }
+
+    private void handlePOSPost(String path, HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
+        if ("/pos/add-customer".equals(path)) {
+            addPOSCustomer(req, resp);
+        } else if ("/pos/check-voucher".equals(path)) {
+            checkPOSVoucher(req, resp);
+        } else if ("/pos/checkout".equals(path)) {
+            checkoutPOS(req, resp);
+        } else {
+            resp.sendError(HttpServletResponse.SC_NOT_FOUND);
+        }
+    }
+
+    private void showPOS(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
+        List<Map<String, Object>> categories = new ArrayList<>();
+        List<Map<String, Object>> brands = new ArrayList<>();
+        List<Map<String, Object>> vouchers = new ArrayList<>();
+
+        String queryCategories = "SELECT CategoryID, CategoryName FROM Categories ORDER BY CategoryName ASC";
+        String queryBrands = "SELECT BrandID, BrandName FROM Brands ORDER BY BrandName ASC";
+        String queryVouchers = """
+            SELECT VoucherID, VoucherCode, VoucherName, DiscountType, DiscountValue, MinimumOrderValue 
+            FROM Vouchers 
+            WHERE Status = 'ACTIVE' AND GETDATE() BETWEEN StartAt AND EndAt
+            """;
+
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement psCat = conn.prepareStatement(queryCategories);
+             ResultSet rsCat = psCat.executeQuery();
+             PreparedStatement psBrand = conn.prepareStatement(queryBrands);
+             ResultSet rsBrand = psBrand.executeQuery();
+             PreparedStatement psVoucher = conn.prepareStatement(queryVouchers);
+             ResultSet rsVoucher = psVoucher.executeQuery()) {
+
+            while (rsCat.next()) {
+                Map<String, Object> cat = new HashMap<>();
+                cat.put("id", rsCat.getInt("CategoryID"));
+                cat.put("name", rsCat.getString("CategoryName"));
+                categories.add(cat);
+            }
+
+            while (rsBrand.next()) {
+                Map<String, Object> br = new HashMap<>();
+                br.put("id", rsBrand.getInt("BrandID"));
+                br.put("name", rsBrand.getString("BrandName"));
+                brands.add(br);
+            }
+
+            while (rsVoucher.next()) {
+                Map<String, Object> vc = new HashMap<>();
+                vc.put("id", rsVoucher.getInt("VoucherID"));
+                vc.put("code", rsVoucher.getString("VoucherCode"));
+                vc.put("name", rsVoucher.getString("VoucherName"));
+                vc.put("discountType", rsVoucher.getString("DiscountType"));
+                vc.put("discountValue", rsVoucher.getBigDecimal("DiscountValue"));
+                vc.put("minOrder", rsVoucher.getBigDecimal("MinimumOrderValue"));
+                vouchers.add(vc);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        List<Order> orders = orderRepository != null ? orderRepository.findAll() : new ArrayList<>();
+        req.setAttribute("ordersSize", orders.size());
+
+        req.setAttribute("categories", categories);
+        req.setAttribute("brands", brands);
+        req.setAttribute("vouchersList", vouchers);
+        req.setAttribute("moduleTitle", "Bán hàng tại quầy (POS)");
+
+        ViewRouter.admin(req, resp, "sales/pos", "Bán hàng tại quầy (POS)", "sales");
+    }
+
+    private void searchPOSProducts(HttpServletRequest req, HttpServletResponse resp)
+            throws IOException {
+        String keyword = req.getParameter("keyword");
+        String catIdParam = req.getParameter("categoryId");
+        String brandIdParam = req.getParameter("brandId");
+
+        StringBuilder query = new StringBuilder("""
+            SELECT pv.VariantID, p.ProductName, pv.VariantName, pv.SKU, pv.Barcode, pv.SalePrice, pv.CompareAtPrice, ib.QuantityOnHand, b.BrandName, c.CategoryName
+            FROM ProductVariants pv
+            JOIN Products p ON pv.ProductID = p.ProductID
+            LEFT JOIN Brands b ON p.BrandID = b.BrandID
+            LEFT JOIN Categories c ON p.CategoryID = c.CategoryID
+            LEFT JOIN InventoryBalances ib ON pv.VariantID = ib.VariantID
+            WHERE p.Status = 'ACTIVE' AND pv.Status = 'ACTIVE'
+            """);
+
+        List<Object> params = new ArrayList<>();
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            query.append(" AND (LOWER(p.ProductName) LIKE ? OR LOWER(pv.VariantName) LIKE ? OR LOWER(pv.SKU) LIKE ? OR pv.Barcode = ?)");
+            String pattern = "%" + keyword.trim().toLowerCase() + "%";
+            params.add(pattern);
+            params.add(pattern);
+            params.add(pattern);
+            params.add(keyword.trim());
+        }
+        if (catIdParam != null && !catIdParam.trim().isEmpty()) {
+            try {
+                int catId = Integer.parseInt(catIdParam.trim());
+                query.append(" AND p.CategoryID = ?");
+                params.add(catId);
+            } catch (NumberFormatException ignored) {}
+        }
+        if (brandIdParam != null && !brandIdParam.trim().isEmpty()) {
+            try {
+                int brandId = Integer.parseInt(brandIdParam.trim());
+                query.append(" AND p.BrandID = ?");
+                params.add(brandId);
+            } catch (NumberFormatException ignored) {}
+        }
+
+        query.append(" ORDER BY p.ProductName ASC, pv.VariantName ASC");
+
+        StringBuilder sb = new StringBuilder("[");
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(query.toString())) {
+
+            for (int i = 0; i < params.size(); i++) {
+                ps.setObject(i + 1, params.get(i));
+            }
+
+            try (ResultSet rs = ps.executeQuery()) {
+                boolean first = true;
+                while (rs.next()) {
+                    if (!first) sb.append(",");
+                    first = false;
+                    sb.append("{");
+                    sb.append("\"variantId\":").append(rs.getInt("VariantID")).append(",");
+                    sb.append("\"productName\":\"").append(escapeJson(rs.getString("ProductName"))).append("\",");
+                    sb.append("\"variantName\":\"").append(escapeJson(rs.getString("VariantName"))).append("\",");
+                    sb.append("\"sku\":\"").append(escapeJson(rs.getString("SKU"))).append("\",");
+                    sb.append("\"barcode\":\"").append(escapeJson(rs.getString("Barcode") != null ? rs.getString("Barcode") : "")).append("\",");
+                    sb.append("\"price\":").append(rs.getBigDecimal("SalePrice")).append(",");
+                    sb.append("\"oldPrice\":").append(rs.getBigDecimal("CompareAtPrice") != null ? rs.getBigDecimal("CompareAtPrice") : rs.getBigDecimal("SalePrice")).append(",");
+                    sb.append("\"stock\":").append(rs.getInt("QuantityOnHand")).append(",");
+                    sb.append("\"brand\":\"").append(escapeJson(rs.getString("BrandName") != null ? rs.getString("BrandName") : "")).append("\",");
+                    sb.append("\"category\":\"").append(escapeJson(rs.getString("CategoryName") != null ? rs.getString("CategoryName") : "")).append("\"");
+                    sb.append("}");
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        sb.append("]");
+        writeJson(resp, sb.toString());
+    }
+
+    private void searchPOSCustomers(HttpServletRequest req, HttpServletResponse resp)
+            throws IOException {
+        String keyword = req.getParameter("keyword");
+
+        StringBuilder query = new StringBuilder("""
+            SELECT u.UserID, u.FullName, u.Phone, u.Email,
+                   (SELECT TOP 1 AddressLine + ', ' + Ward + ', ' + District + ', ' + Province FROM UserAddresses WHERE UserID = u.UserID ORDER BY IsDefault DESC) AS Address
+            FROM Users u
+            JOIN UserRoles ur ON u.UserID = ur.UserID
+            JOIN Roles r ON ur.RoleID = r.RoleID
+            WHERE r.RoleCode = 'CUSTOMER' AND u.Status = 'ACTIVE'
+            """);
+
+        List<Object> params = new ArrayList<>();
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            query.append(" AND (LOWER(u.FullName) LIKE ? OR u.Phone LIKE ? OR LOWER(u.Email) LIKE ?)");
+            String pattern = "%" + keyword.trim().toLowerCase() + "%";
+            params.add(pattern);
+            params.add("%" + keyword.trim() + "%");
+            params.add(pattern);
+        }
+
+        query.append(" ORDER BY u.FullName ASC");
+
+        StringBuilder sb = new StringBuilder("[");
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(query.toString())) {
+
+            for (int i = 0; i < params.size(); i++) {
+                ps.setObject(i + 1, params.get(i));
+            }
+
+            try (ResultSet rs = ps.executeQuery()) {
+                boolean first = true;
+                while (rs.next()) {
+                    if (!first) sb.append(",");
+                    first = false;
+                    sb.append("{");
+                    sb.append("\"id\":").append(rs.getInt("UserID")).append(",");
+                    sb.append("\"fullName\":\"").append(escapeJson(rs.getString("FullName"))).append("\",");
+                    sb.append("\"phone\":\"").append(escapeJson(rs.getString("Phone"))).append("\",");
+                    sb.append("\"email\":\"").append(escapeJson(rs.getString("Email"))).append("\",");
+                    sb.append("\"address\":\"").append(escapeJson(rs.getString("Address") != null ? rs.getString("Address") : "Chưa cập nhật địa chỉ")).append("\"");
+                    sb.append("}");
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        sb.append("]");
+        writeJson(resp, sb.toString());
+    }
+
+    private void addPOSCustomer(HttpServletRequest req, HttpServletResponse resp)
+            throws IOException {
+        String fullName = req.getParameter("fullName");
+        String phone = req.getParameter("phone");
+        String email = req.getParameter("email");
+        String address = req.getParameter("address");
+
+        if (fullName == null || fullName.trim().isEmpty() || phone == null || phone.trim().isEmpty() || email == null || email.trim().isEmpty()) {
+            writeJson(resp, "{\"status\":\"error\",\"message\":\"Vui lòng điền đầy đủ Họ tên, Số điện thoại và Email.\"}");
+            return;
+        }
+
+        Customer customer = new Customer();
+        customer.setFullName(fullName.trim());
+        customer.setPhone(phone.trim());
+        customer.setEmail(email.trim());
+        customer.setAddress(address != null ? address.trim() : "");
+
+        boolean success = customerRepository != null && customerRepository.insert(customer);
+        if (success) {
+            Customer created = null;
+            List<Customer> list = customerRepository.search(phone.trim());
+            if (!list.isEmpty()) {
+                created = list.get(0);
+            }
+            if (created != null) {
+                writeJson(resp, String.format("{\"status\":\"success\",\"id\":%d,\"fullName\":\"%s\",\"phone\":\"%s\",\"address\":\"%s\"}",
+                        created.getId(), escapeJson(created.getFullName()), escapeJson(created.getPhone()), escapeJson(created.getAddress())));
+            } else {
+                writeJson(resp, "{\"status\":\"error\",\"message\":\"Không tìm thấy khách hàng sau khi tạo\"}");
+            }
+        } else {
+            writeJson(resp, "{\"status\":\"error\",\"message\":\"Email hoặc Số điện thoại đã tồn tại trong hệ thống.\"}");
+        }
+    }
+
+    private void checkPOSVoucher(HttpServletRequest req, HttpServletResponse resp)
+            throws IOException {
+        String code = req.getParameter("code");
+        String subtotalParam = req.getParameter("subtotal");
+
+        if (code == null || code.trim().isEmpty() || subtotalParam == null || subtotalParam.trim().isEmpty()) {
+            writeJson(resp, "{\"status\":\"invalid\",\"message\":\"Dữ liệu kiểm tra voucher không hợp lệ\"}");
+            return;
+        }
+
+        double subtotal = Double.parseDouble(subtotalParam.trim());
+        String sql = """
+            SELECT VoucherID, VoucherCode, VoucherName, DiscountType, DiscountValue, MaximumDiscount, MinimumOrderValue, UsageLimit, UsedCount 
+            FROM Vouchers 
+            WHERE VoucherCode = ? AND Status = 'ACTIVE' AND GETDATE() BETWEEN StartAt AND EndAt
+            """;
+
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, code.trim());
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    int usageLimit = rs.getInt("UsageLimit");
+                    int usedCount = rs.getInt("UsedCount");
+                    if (usageLimit > 0 && usedCount >= usageLimit) {
+                        writeJson(resp, "{\"status\":\"invalid\",\"message\":\"Voucher này đã hết lượt sử dụng\"}");
+                        return;
+                    }
+
+                    double minOrder = rs.getBigDecimal("MinimumOrderValue").doubleValue();
+                    if (subtotal < minOrder) {
+                        writeJson(resp, String.format("{\"status\":\"invalid\",\"message\":\"Chưa đạt giá trị đơn hàng tối thiểu để áp dụng (Yêu cầu ít nhất %,.0f ₫)\"}", minOrder));
+                        return;
+                    }
+
+                    String discountType = rs.getString("DiscountType");
+                    double discountValue = rs.getBigDecimal("DiscountValue").doubleValue();
+                    double maxDiscount = rs.getBigDecimal("MaximumDiscount").doubleValue();
+
+                    double discountAmount = 0.0;
+                    if ("PERCENT".equalsIgnoreCase(discountType)) {
+                        discountAmount = subtotal * (discountValue / 100.0);
+                        if (maxDiscount > 0 && discountAmount > maxDiscount) {
+                            discountAmount = maxDiscount;
+                        }
+                    } else if ("AMOUNT".equalsIgnoreCase(discountType)) {
+                        discountAmount = discountValue;
+                    }
+
+                    writeJson(resp, String.format("{\"status\":\"valid\",\"voucherId\":%d,\"code\":\"%s\",\"discountAmount\":%.2f,\"message\":\"Áp dụng voucher thành công!\"}",
+                            rs.getInt("VoucherID"), rs.getString("VoucherCode"), discountAmount));
+                } else {
+                    writeJson(resp, "{\"status\":\"invalid\",\"message\":\"Voucher không tồn tại hoặc đã hết hạn sử dụng\"}");
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            writeJson(resp, "{\"status\":\"invalid\",\"message\":\"Lỗi hệ thống khi kiểm tra voucher: " + e.getMessage() + "\"}");
+        }
+    }
+
+    private void checkoutPOS(HttpServletRequest req, HttpServletResponse resp)
+            throws IOException {
+        String customerIdParam = req.getParameter("customerId");
+        String voucherIdParam = req.getParameter("voucherId");
+        String discountAmountParam = req.getParameter("discountAmount");
+        String customerName = req.getParameter("customerName");
+        String phone = req.getParameter("phone");
+        String address = req.getParameter("address");
+        String itemsJson = req.getParameter("items");
+
+        if (itemsJson == null || itemsJson.trim().isEmpty()) {
+            writeJson(resp, "{\"status\":\"error\",\"message\":\"Không có sản phẩm nào trong hóa đơn\"}");
+            return;
+        }
+
+        try {
+            int customerId = Integer.parseInt(customerIdParam.trim());
+            int voucherId = Integer.parseInt(voucherIdParam.trim());
+            BigDecimal discountAmount = new BigDecimal(discountAmountParam.trim());
+
+            List<Map<String, Object>> items = parseItemsJson(itemsJson);
+            if (items.isEmpty()) {
+                writeJson(resp, "{\"status\":\"error\",\"message\":\"Giỏ hàng rỗng hoặc định dạng không hợp lệ\"}");
+                return;
+            }
+
+            User staff = (User) req.getSession().getAttribute("user");
+            int staffId = staff != null ? staff.getId() : 2;
+
+            String code = "WS" + (8500 + (orderRepository != null ? orderRepository.findAll().size() : 0) + 1);
+
+            Order order = new Order();
+            order.setCode(code);
+            order.setUserId(customerId);
+            order.setCustomerName(customerName != null && !customerName.trim().isEmpty() ? customerName.trim() : "Khách mua tại quầy");
+            order.setPhone(phone != null ? phone.trim() : "");
+            order.setShippingAddress(address != null && !address.trim().isEmpty() ? address.trim() : "Mua tại quầy");
+
+            long orderId = orderRepository.createPOSOrder(order, items, voucherId, discountAmount, staffId);
+            writeJson(resp, String.format("{\"status\":\"success\",\"orderId\":%d,\"orderCode\":\"%s\"}", orderId, code));
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            writeJson(resp, "{\"status\":\"error\",\"message\":\"Lỗi thanh toán: " + escapeJson(e.getMessage()) + "\"}");
+        }
+    }
+
+    private void printPOSInvoice(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
+        String idParam = req.getParameter("id");
+        if (idParam != null) {
+            try {
+                int id = Integer.parseInt(idParam);
+                Order order = orderRepository != null ? orderRepository.findById(id) : null;
+                if (order != null) {
+                    req.setAttribute("order", order);
+                    req.setAttribute("orderItems", orderRepository != null ? orderRepository.getOrderItems(id) : new ArrayList<>());
+                    req.getRequestDispatcher("/views/sales/pos-print.jsp").forward(req, resp);
+                    return;
+                }
+            } catch (NumberFormatException ignored) {}
+        }
+        resp.sendError(HttpServletResponse.SC_NOT_FOUND, "Không tìm thấy hóa đơn");
+    }
+
+    private void writeJson(HttpServletResponse resp, String json) throws IOException {
+        resp.setContentType("application/json");
+        resp.setCharacterEncoding("UTF-8");
+        resp.getWriter().write(json);
+    }
+
+    private String escapeJson(String s) {
+        if (s == null) return "";
+        return s.replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\b", "\\b")
+                .replace("\f", "\\f")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r")
+                .replace("\t", "\\t");
+    }
+
+    private List<Map<String, Object>> parseItemsJson(String json) {
+        List<Map<String, Object>> list = new ArrayList<>();
+        if (json == null || json.trim().isEmpty() || "[]".equals(json.trim())) {
+            return list;
+        }
+        String cleaned = json.trim().replace("[", "").replace("]", "").replace(" ", "");
+        if (cleaned.isEmpty()) return list;
+
+        String[] parts = cleaned.split("\\},\\{");
+        for (String part : parts) {
+            String cleanPart = part.replace("{", "").replace("}", "").replace("\"", "");
+            String[] pairs = cleanPart.split(",");
+            int variantId = 0;
+            int quantity = 0;
+            for (String pair : pairs) {
+                String[] kv = pair.split(":");
+                if (kv.length == 2) {
+                    if ("variantId".equalsIgnoreCase(kv[0])) {
+                        try {
+                            variantId = Integer.parseInt(kv[1]);
+                        } catch (NumberFormatException ignored) {}
+                    } else if ("quantity".equalsIgnoreCase(kv[0])) {
+                        try {
+                            quantity = Integer.parseInt(kv[1]);
+                        } catch (NumberFormatException ignored) {}
+                    }
+                }
+            }
+            if (variantId > 0 && quantity > 0) {
+                Map<String, Object> item = new HashMap<>();
+                item.put("variantId", variantId);
+                item.put("quantity", quantity);
+                list.add(item);
+            }
+        }
+        return list;
     }
 }

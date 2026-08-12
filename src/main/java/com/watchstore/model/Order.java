@@ -18,6 +18,7 @@ public class Order {
     private String status;
     private String paymentStatus;
     private Date createdAt;
+    private BigDecimal discountAmount;
 
     public Order() {
         this.createdAt = new Date();
@@ -121,4 +122,11 @@ public class Order {
     public void setCreatedAt(Date createdAt) { this.createdAt = createdAt; }
 
     public Date getOrderDate() { return createdAt; }
+
+    public BigDecimal getDiscountAmount() {
+        return discountAmount != null ? discountAmount : BigDecimal.ZERO;
+    }
+    public void setDiscountAmount(BigDecimal discountAmount) {
+        this.discountAmount = discountAmount;
+    }
 }
