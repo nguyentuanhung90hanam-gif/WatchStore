@@ -1,33 +1,100 @@
 package com.watchstore.controller.warehouse;
 
-import com.watchstore.repository.ProductRepository;
+import com.watchstore.repository.InventoryRepository;
 import com.watchstore.util.ViewRouter;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.*;
-import java.io.IOException;
-import java.util.Map;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
-@WebServlet("/manage/warehouse/*")
+import java.io.IOException;
+
+@WebServlet(urlPatterns = {
+        "/manage/warehouse",
+        "/manage/warehouse/dashboard"
+})
 public class WarehouseController extends HttpServlet {
-    private ProductRepository products;
-    private static final Map<String, String[]> PAGES = Map.ofEntries(
-        Map.entry("/dashboard", new String[]{"dashboard", "Tổng quan kho"}),
-        Map.entry("/receipts", new String[]{"receipt-list", "Phiếu nhập kho"}),
-        Map.entry("/receipt-create", new String[]{"receipt-create", "Tạo phiếu nhập"}),
-        Map.entry("/exports", new String[]{"export-list", "Phiếu xuất kho"}),
-        Map.entry("/export-create", new String[]{"export-create", "Tạo phiếu xuất"}),
-        Map.entry("/inventory", new String[]{"inventory", "Tồn kho"}),
-        Map.entry("/stocktake", new String[]{"stocktake", "Kiểm kê"}),
-        Map.entry("/variants", new String[]{"variant", "Biến thể sản phẩm"}),
-        Map.entry("/alerts", new String[]{"stock-alert", "Cảnh báo tồn kho"})
-    );
-    @Override public void init() { products = (ProductRepository) getServletContext().getAttribute("productRepository"); }
-    @Override protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        String path = req.getPathInfo() == null ? "/dashboard" : req.getPathInfo();
-        String[] page = PAGES.getOrDefault(path, PAGES.get("/dashboard"));
-        req.setAttribute("products", products.findAll());
-        req.setAttribute("moduleTitle", page[1]);
-        ViewRouter.admin(req, resp, "warehouse/" + page[0], page[1], "warehouse");
+
+    private InventoryRepository inventoryRepo;
+
+    @Override
+    public void init() {
+        inventoryRepo = new InventoryRepository();
+    }
+
+    @Override
+    protected void doGet(
+            HttpServletRequest req,
+            HttpServletResponse resp
+    ) throws ServletException, IOException {
+
+        try {
+
+            req.setAttribute(
+                    "totalQuantity",
+                    inventoryRepo.getTotalQuantityOnHand()
+            );
+
+            req.setAttribute(
+                    "lowStockCount",
+                    inventoryRepo.getLowStockAlertCount()
+            );
+
+            req.setAttribute(
+                    "outOfStockCount",
+                    inventoryRepo.getOutOfStockCount()
+            );
+
+            req.setAttribute(
+                    "inventoryItemCount",
+                    inventoryRepo.getInventoryItemCount()
+            );
+
+            req.setAttribute(
+                    "cp",
+                    req.getContextPath()
+            );
+
+            req.setAttribute(
+                    "moduleTitle",
+                    "Tổng quan kho"
+            );
+
+            ViewRouter.admin(
+                    req,
+                    resp,
+                    "warehouse/dashboard",
+                    "Tổng quan kho",
+                    "warehouse"
+            );
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
+
+            req.getSession().setAttribute(
+                    "errorMsg",
+                    getErrorMessage(e)
+            );
+
+            resp.sendRedirect(
+                    req.getContextPath()
+                            + "/manage/warehouse"
+            );
+        }
+    }
+
+    private String getErrorMessage(
+            Exception e
+    ) {
+
+        if (e.getMessage() == null ||
+                e.getMessage().trim().isEmpty()) {
+
+            return "Có lỗi xảy ra khi tải tổng quan kho.";
+        }
+
+        return e.getMessage();
     }
 }

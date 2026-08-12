@@ -3,6 +3,7 @@ package com.watchstore.controller.guest;
 import com.watchstore.model.User;
 import com.watchstore.repository.MockDataStore;
 import com.watchstore.repository.ProductRepository;
+import com.watchstore.repository.UserAccountRepository;
 import com.watchstore.util.SessionCart;
 import com.watchstore.util.ViewRouter;
 import jakarta.servlet.ServletException;
@@ -14,8 +15,9 @@ import java.util.Map;
 @WebServlet("/page/*")
 public class PageController extends HttpServlet {
     private ProductRepository products;
+    private UserAccountRepository accountRepo;
 
-    @Override public void init() { products = (ProductRepository) getServletContext().getAttribute("productRepository"); }
+    @Override public void init() { products = (ProductRepository) getServletContext().getAttribute("productRepository"); accountRepo = new UserAccountRepository(); }
 
     @Override protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         String path = req.getPathInfo() == null ? "/home" : req.getPathInfo();
@@ -54,17 +56,37 @@ public class PageController extends HttpServlet {
     }
 
     @Override protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        if ("/profile".equals(req.getPathInfo())) {
-            User user = (User) req.getSession().getAttribute("user");
-            if (user != null) {
-                user.setFullName(req.getParameter("fullName"));
-                user.setPhone(req.getParameter("phone"));
-                req.getSession().setAttribute("flash", "Cập nhật thông tin thành công");
+        req.setCharacterEncoding("UTF-8");
+        String path=req.getPathInfo()==null?"/home":req.getPathInfo();
+        try {
+            User user=(User) req.getSession().getAttribute("user");
+            if(user==null){ resp.sendRedirect(req.getContextPath()+"/auth/login?required=1"); return; }
+            if("/profile".equals(path)){
+                String fullName=req.getParameter("fullName");
+                String phone=req.getParameter("phone");
+                accountRepo.updateProfile(user.getId(),fullName,phone,req.getParameter("gender"),parseDate(req.getParameter("dateOfBirth")));
+                user = accountRepo.findById(user.getId());
+                req.getSession().setAttribute("user",user);
+                req.getSession().setAttribute("flash","Cập nhật thông tin thành công");
+            } else if("/change-password".equals(path)){
+                accountRepo.changePassword(user.getId(),req.getParameter("currentPassword"),req.getParameter("newPassword"),req.getParameter("confirmPassword"));
+                req.getSession().setAttribute("flash","Đổi mật khẩu thành công.");
             }
+        } catch(Exception e){
+            req.getSession().setAttribute("errorMsg", e.getMessage()==null?"Không thể cập nhật tài khoản.":e.getMessage());
         }
-        resp.sendRedirect(req.getContextPath() + "/page" + (req.getPathInfo() == null ? "/home" : req.getPathInfo()));
+        resp.sendRedirect(req.getContextPath()+"/page"+path);
     }
 
     private boolean isProtected(String path) { return path.matches("/(profile|change-password|address|wishlist|reviews|notifications)"); }
+    private java.time.LocalDate parseDate(String value) {
+        if (value == null || value.isBlank()) return null;
+        try {
+            return java.time.LocalDate.parse(value);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Ngày sinh không hợp lệ.");
+        }
+    }
+
     private int parseInt(String value, int fallback) { try { return Integer.parseInt(value); } catch (Exception ignored) { return fallback; } }
 }
