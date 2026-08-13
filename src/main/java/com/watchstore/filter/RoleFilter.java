@@ -35,6 +35,15 @@ public class RoleFilter implements Filter {
             return;
         }
 
+        try {
+            java.util.Set<String> freshPermissions = new com.watchstore.repository.UserAccountRepository().loadPermissions(user.getId());
+            user.setPermissions(freshPermissions);
+        } catch (Exception e) {
+            req.getSession().setAttribute("flash", "Lỗi tải quyền hạn. Vui lòng đăng nhập lại.");
+            resp.sendRedirect(req.getContextPath() + "/auth/login");
+            return;
+        }
+
         if (user.getRole() == Role.ADMIN) {
             chain.doFilter(request, response);
             return;
