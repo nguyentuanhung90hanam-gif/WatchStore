@@ -5,9 +5,12 @@
     <article class="product-card pro-product-card">
         <div class="product-media">
             <c:if test="${not empty cardProduct.badge}"><span class="product-badge">${cardProduct.badge}</span></c:if>
-            <a class="wish-button" href="${cp}/page/wishlist" aria-label="Thêm ${cardProduct.name} vào yêu thích">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z"/></svg>
-            </a>
+            <form action="${cp}/wishlist" method="post" style="display:inline;">
+                <input type="hidden" name="productId" value="${cardProduct.id}">
+                <button type="submit" class="wish-button" aria-label="Thêm ${cardProduct.name} vào yêu thích">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z"/></svg>
+                </button>
+            </form>
             <a class="product-image-link" href="${cp}/page/product?id=${cardProduct.id}"><img src="${cp}/assets/images/${cardProduct.image}" alt="${cardProduct.name}" loading="lazy"></a>
             <form action="${cp}/cart/add" method="post"><input type="hidden" name="id" value="${cardProduct.id}"><button class="quick-add"><span>+</span> Thêm vào giỏ hàng</button></form>
         </div>
