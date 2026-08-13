@@ -25,58 +25,129 @@
 
     <nav>
 
-        <c:choose>
+        <c:if test="${sessionScope.user.hasPermission('DASHBOARD_VIEW')}">
+            <div style="margin-top: 15px; padding: 8px 12px 4px 12px; font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.5px;">
+                TỔNG QUAN
+            </div>
+            <a href="${cp}/manage/dashboard">Dashboard</a>
+        </c:if>
 
-            <c:when test="${adminArea == 'sales'}">
-                <a href="${cp}/manage/sales/dashboard">Tổng quan</a>
-                <a href="${cp}/manage/sales/pos">Bán hàng POS</a>
+        <c:if test="${sessionScope.user.hasAnyPermission('ORDERS_VIEW', 'ORDERS_MANAGE', 'CUSTOMERS_VIEW', 'CUSTOMERS_MANAGE', 'DELIVERY_VIEW', 'RETURNS_VIEW', 'RETURNS_MANAGE', 'WARRANTY_VIEW')}">
+            <div style="margin-top: 15px; padding: 8px 12px 4px 12px; font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.5px;">
+                BÁN HÀNG
+            </div>
+            <c:if test="${sessionScope.user.hasAnyPermission('ORDERS_VIEW', 'ORDERS_MANAGE')}">
                 <a href="${cp}/manage/sales/orders">Đơn hàng</a>
+            </c:if>
+            <c:if test="${sessionScope.user.hasAnyPermission('CUSTOMERS_VIEW', 'CUSTOMERS_MANAGE')}">
                 <a href="${cp}/manage/sales/customers">Khách hàng</a>
-                <a href="${cp}/manage/sales/reviews">Đánh giá</a>
-                <a href="${cp}/manage/sales/delivery">Vận chuyển</a>
+            </c:if>
+            <c:if test="${sessionScope.user.hasPermission('DELIVERY_VIEW')}">
+                <a href="${cp}/manage/sales/delivery">Giao hàng</a>
+            </c:if>
+            <c:if test="${sessionScope.user.hasAnyPermission('RETURNS_VIEW', 'RETURNS_MANAGE')}">
                 <a href="${cp}/manage/sales/returns">Đổi trả</a>
+            </c:if>
+            <c:if test="${sessionScope.user.hasPermission('WARRANTY_VIEW')}">
                 <a href="${cp}/manage/sales/warranty">Bảo hành</a>
-                <a href="${cp}/manage/sales/report">Báo cáo</a>
-            </c:when>
+            </c:if>
+        </c:if>
 
-            <c:when test="${adminArea == 'warehouse'}">
-                <a href="${cp}/manage/warehouse/dashboard">Tổng quan</a>
-                <a href="${cp}/manage/warehouse/search">Tra cứu</a>
-                <a href="${cp}/manage/warehouse/receipts">Phiếu nhập</a>
-                <a href="${cp}/manage/warehouse/exports">Phiếu xuất</a>
+        <c:if test="${sessionScope.user.hasAnyPermission('INVENTORY_VIEW', 'INVENTORY_MANAGE', 'STOCK_RECEIPT_VIEW', 'STOCK_RECEIPT_MANAGE', 'STOCK_EXPORT_VIEW', 'STOCK_EXPORT_MANAGE', 'STOCKTAKE_VIEW', 'STOCKTAKE_MANAGE', 'VARIANTS_VIEW', 'VARIANTS_MANAGE', 'SUPPLIERS_VIEW')}">
+            <div style="margin-top: 15px; padding: 8px 12px 4px 12px; font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.5px;">
+                KHO HÀNG
+            </div>
+            <c:if test="${sessionScope.user.hasAnyPermission('INVENTORY_VIEW', 'INVENTORY_MANAGE')}">
                 <a href="${cp}/manage/warehouse/inventory">Tồn kho</a>
-                <a href="${cp}/manage/warehouse/transactions">Biến động</a>
+            </c:if>
+            <c:if test="${sessionScope.user.hasAnyPermission('STOCK_RECEIPT_VIEW', 'STOCK_RECEIPT_MANAGE')}">
+                <a href="${cp}/manage/warehouse/receipts">Phiếu nhập</a>
+            </c:if>
+            <c:if test="${sessionScope.user.hasAnyPermission('STOCK_EXPORT_VIEW', 'STOCK_EXPORT_MANAGE')}">
+                <a href="${cp}/manage/warehouse/exports">Phiếu xuất</a>
+            </c:if>
+            <c:if test="${sessionScope.user.hasAnyPermission('STOCKTAKE_VIEW', 'STOCKTAKE_MANAGE')}">
                 <a href="${cp}/manage/warehouse/stocktake">Kiểm kê</a>
+            </c:if>
+            <c:if test="${sessionScope.user.hasAnyPermission('VARIANTS_VIEW', 'VARIANTS_MANAGE')}">
                 <a href="${cp}/manage/warehouse/variants">Biến thể</a>
-                <a href="${cp}/manage/warehouse/alerts">Cảnh báo</a>
-                <a href="${cp}/manage/warehouse/reports">Báo cáo</a>
-                <a href="${cp}/manage/warehouse/account">Tài khoản cá nhân</a>
-            </c:when>
+            </c:if>
+            <c:if test="${sessionScope.user.hasPermission('SUPPLIERS_VIEW')}">
+                <a href="${cp}/manage/warehouse/suppliers">Nhà cung cấp</a>
+            </c:if>
+        </c:if>
 
-            <c:otherwise>
-                <a href="${cp}/manage/admin/dashboard">Tổng quan</a>
-                <a href="${cp}/manage/admin/accounts">Tài khoản</a>
-                <a href="${cp}/manage/admin/roles">Vai trò</a>
-                <a href="${cp}/manage/admin/permissions">Phân quyền</a>
+        <c:if test="${sessionScope.user.hasAnyPermission('PRODUCTS_VIEW', 'PRODUCTS_MANAGE', 'CATEGORIES_VIEW', 'CATEGORIES_MANAGE', 'BRANDS_VIEW', 'BRANDS_MANAGE', 'VOUCHERS_VIEW', 'VOUCHERS_MANAGE')}">
+            <div style="margin-top: 15px; padding: 8px 12px 4px 12px; font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.5px;">
+                SẢN PHẨM
+            </div>
+            <c:if test="${sessionScope.user.hasAnyPermission('PRODUCTS_VIEW', 'PRODUCTS_MANAGE')}">
                 <a href="${cp}/manage/admin/products">Sản phẩm</a>
+            </c:if>
+            <c:if test="${sessionScope.user.hasAnyPermission('CATEGORIES_VIEW', 'CATEGORIES_MANAGE')}">
                 <a href="${cp}/manage/admin/categories">Danh mục</a>
+            </c:if>
+            <c:if test="${sessionScope.user.hasAnyPermission('BRANDS_VIEW', 'BRANDS_MANAGE')}">
                 <a href="${cp}/manage/admin/brands">Thương hiệu</a>
+            </c:if>
+            <c:if test="${sessionScope.user.hasAnyPermission('VOUCHERS_VIEW', 'VOUCHERS_MANAGE')}">
                 <a href="${cp}/manage/admin/vouchers">Voucher</a>
+            </c:if>
+        </c:if>
+
+        <c:if test="${sessionScope.user.hasAnyPermission('BANNERS_VIEW', 'BANNERS_MANAGE', 'POSTS_VIEW', 'POSTS_MANAGE', 'NOTIFICATIONS_VIEW', 'NOTIFICATIONS_MANAGE')}">
+            <div style="margin-top: 15px; padding: 8px 12px 4px 12px; font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.5px;">
+                MARKETING
+            </div>
+            <c:if test="${sessionScope.user.hasAnyPermission('BANNERS_VIEW', 'BANNERS_MANAGE')}">
                 <a href="${cp}/manage/admin/banners">Banner</a>
+            </c:if>
+            <c:if test="${sessionScope.user.hasAnyPermission('POSTS_VIEW', 'POSTS_MANAGE')}">
                 <a href="${cp}/manage/admin/posts">Bài viết</a>
+            </c:if>
+            <c:if test="${sessionScope.user.hasAnyPermission('NOTIFICATIONS_VIEW', 'NOTIFICATIONS_MANAGE')}">
                 <a href="${cp}/manage/admin/notifications">Thông báo</a>
+            </c:if>
+        </c:if>
+
+        <c:if test="${sessionScope.user.hasAnyPermission('STATISTICS_VIEW', 'REPORTS_VIEW')}">
+            <div style="margin-top: 15px; padding: 8px 12px 4px 12px; font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.5px;">
+                BÁO CÁO
+            </div>
+            <c:if test="${sessionScope.user.hasPermission('STATISTICS_VIEW')}">
                 <a href="${cp}/manage/admin/statistics">Thống kê</a>
-                <a href="${cp}/manage/admin/reports">Báo cáo</a>
-            </c:otherwise>
+            </c:if>
+            <c:if test="${sessionScope.user.hasPermission('REPORTS_VIEW')}">
+                <a href="${cp}/manage/warehouse/reports">Báo cáo</a>
+            </c:if>
+        </c:if>
 
-        </c:choose>
+        <c:if test="${sessionScope.user.hasAnyPermission('ACCOUNTS_VIEW', 'ACCOUNTS_MANAGE', 'ROLES_VIEW', 'ROLES_MANAGE', 'PERMISSIONS_VIEW', 'PERMISSIONS_MANAGE')}">
+            <div style="margin-top: 15px; padding: 8px 12px 4px 12px; font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.5px;">
+                HỆ THỐNG
+            </div>
+            <c:if test="${sessionScope.user.hasAnyPermission('ACCOUNTS_VIEW', 'ACCOUNTS_MANAGE')}">
+                <a href="${cp}/manage/admin/accounts">Tài khoản</a>
+            </c:if>
+            <c:if test="${sessionScope.user.hasAnyPermission('ROLES_VIEW', 'ROLES_MANAGE')}">
+                <a href="${cp}/manage/admin/roles">Vai trò</a>
+            </c:if>
+            <c:if test="${sessionScope.user.hasAnyPermission('PERMISSIONS_VIEW', 'PERMISSIONS_MANAGE')}">
+                <a href="${cp}/manage/admin/permissions">Phân quyền</a>
+            </c:if>
+        </c:if>
 
-        <div style="margin-top: 15px; padding: 8px 12px 4px 12px; font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.5px;">
-            TÀI KHOẢN
-        </div>
-
-        <a href="${cp}/page/profile">Thông tin cá nhân</a>
-        <a href="${cp}/page/change-password">Đổi mật khẩu</a>
+        <c:if test="${sessionScope.user.hasAnyPermission('PROFILE_VIEW', 'PROFILE_MANAGE')}">
+            <div style="margin-top: 15px; padding: 8px 12px 4px 12px; font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.5px;">
+                TÀI KHOẢN
+            </div>
+            <c:if test="${sessionScope.user.hasAnyPermission('PROFILE_VIEW', 'PROFILE_MANAGE')}">
+                <a href="${cp}/page/profile">Thông tin cá nhân</a>
+            </c:if>
+            <c:if test="${sessionScope.user.hasPermission('PROFILE_MANAGE')}">
+                <a href="${cp}/page/change-password">Đổi mật khẩu</a>
+            </c:if>
+        </c:if>
 
     </nav>
 

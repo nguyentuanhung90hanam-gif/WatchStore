@@ -139,10 +139,11 @@ public class AdminController extends HttpServlet {
             HttpServletResponse resp
     ) throws ServletException, IOException {
 
-        String path =
-                req.getPathInfo() == null
-                        ? "/dashboard"
-                        : req.getPathInfo();
+        String path = req.getPathInfo();
+        if (path == null || path.isBlank() || "/dashboard".equals(path)) {
+            resp.sendRedirect(req.getContextPath() + "/manage/dashboard");
+            return;
+        }
 
         String[] page =
                 PAGES.getOrDefault(

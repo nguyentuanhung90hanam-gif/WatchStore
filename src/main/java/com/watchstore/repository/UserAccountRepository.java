@@ -12,6 +12,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.Set;
 
 public class UserAccountRepository {
 
@@ -155,6 +157,34 @@ public class UserAccountRepository {
         if (roleCode == null) return Role.CUSTOMER;
         try { return Role.valueOf(roleCode.toUpperCase()); }
         catch (IllegalArgumentException e) { return Role.CUSTOMER; }
+    }
+
+    public Set<String> loadPermissions(int userId) throws Exception {
+        Set<String> permissions = new HashSet<>();
+        if (userId <= 0) return permissions;
+
+        String sql = "SELECT p.PermissionCode " +
+                "FROM dbo.Permissions p " +
+                "JOIN dbo.RolePermissions rp ON p.PermissionID = rp.PermissionID " +
+                "JOIN dbo.UserRoles ur ON rp.RoleID = ur.RoleID " +
+                "WHERE ur.UserID = ?";
+
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String code = rs.getString("PermissionCode");
+                    if (code != null && !code.isBlank()) {
+                        permissions.add(code.trim().toUpperCase());
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            throw new Exception("Không thể tải danh sách quyền của người dùng.", e);
+        }
+
+        return permissions;
     }
 
     private String sha256(String value) throws Exception {

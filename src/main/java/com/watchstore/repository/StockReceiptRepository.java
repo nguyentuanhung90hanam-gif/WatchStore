@@ -621,4 +621,28 @@ public class StockReceiptRepository {
             }
         }
     }
+
+    public List<java.util.Map<String, Object>> getSuppliers() {
+        List<java.util.Map<String, Object>> list = new ArrayList<>();
+        String sql = "SELECT SupplierName, COUNT(StockReceiptID) as ReceiptCount, SUM(TotalCost) as TotalValue, MAX(ReceiptDate) as LastReceiptDate " +
+                     "FROM dbo.StockReceipts " +
+                     "WHERE SupplierName IS NOT NULL AND SupplierName <> '' " +
+                     "GROUP BY SupplierName " +
+                     "ORDER BY TotalValue DESC";
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                java.util.Map<String, Object> map = new java.util.HashMap<>();
+                map.put("supplierName", rs.getString("SupplierName"));
+                map.put("receiptCount", rs.getInt("ReceiptCount"));
+                map.put("totalValue", rs.getBigDecimal("TotalValue"));
+                map.put("lastReceiptDate", rs.getTimestamp("LastReceiptDate"));
+                list.add(map);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
 }

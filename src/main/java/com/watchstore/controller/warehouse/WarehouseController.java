@@ -29,60 +29,7 @@ public class WarehouseController extends HttpServlet {
             HttpServletResponse resp
     ) throws ServletException, IOException {
 
-        try {
-
-            req.setAttribute(
-                    "totalQuantity",
-                    inventoryRepo.getTotalQuantityOnHand()
-            );
-
-            req.setAttribute(
-                    "lowStockCount",
-                    inventoryRepo.getLowStockAlertCount()
-            );
-
-            req.setAttribute(
-                    "outOfStockCount",
-                    inventoryRepo.getOutOfStockCount()
-            );
-
-            req.setAttribute(
-                    "inventoryItemCount",
-                    inventoryRepo.getInventoryItemCount()
-            );
-
-            req.setAttribute(
-                    "cp",
-                    req.getContextPath()
-            );
-
-            req.setAttribute(
-                    "moduleTitle",
-                    "Tổng quan kho"
-            );
-
-            ViewRouter.admin(
-                    req,
-                    resp,
-                    "warehouse/dashboard",
-                    "Tổng quan kho",
-                    "warehouse"
-            );
-
-        } catch (Exception e) {
-
-            e.printStackTrace();
-
-            req.getSession().setAttribute(
-                    "errorMsg",
-                    getErrorMessage(e)
-            );
-
-            resp.sendRedirect(
-                    req.getContextPath()
-                            + "/manage/warehouse"
-            );
-        }
+        resp.sendRedirect(req.getContextPath() + "/manage/dashboard");
     }
 
     private String getErrorMessage(

@@ -279,4 +279,34 @@ public class WarrantyRepository {
         m.put("returnDate",        rs.getDate("ReturnDate"));
         return m;
     }
+
+    public List<Map<String, Object>> getWarrantiesFromReturnRequests() {
+        List<Map<String, Object>> list = new ArrayList<>();
+        String sql = "SELECT r.ReturnRequestID, r.ReturnCode, r.OrderID, o.OrderCode, " +
+                     "u.FullName as CustomerName, r.Status, r.Reason, r.CreatedAt " +
+                     "FROM dbo.ReturnRequests r " +
+                     "JOIN dbo.Orders o ON r.OrderID = o.OrderID " +
+                     "JOIN dbo.Users u ON r.CustomerID = u.UserID " +
+                     "WHERE r.RequestType = 'WARRANTY' " +
+                     "ORDER BY r.CreatedAt DESC";
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                Map<String, Object> map = new java.util.HashMap<>();
+                map.put("returnRequestId", rs.getLong("ReturnRequestID"));
+                map.put("returnCode", rs.getString("ReturnCode"));
+                map.put("orderId", rs.getLong("OrderID"));
+                map.put("orderCode", rs.getString("OrderCode"));
+                map.put("customerName", rs.getString("CustomerName"));
+                map.put("status", rs.getString("Status"));
+                map.put("reason", rs.getString("Reason"));
+                map.put("createdAt", rs.getTimestamp("CreatedAt"));
+                list.add(map);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
 }

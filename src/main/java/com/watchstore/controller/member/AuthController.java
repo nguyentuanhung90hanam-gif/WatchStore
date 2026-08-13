@@ -3,6 +3,7 @@ package com.watchstore.controller.member;
 import com.watchstore.config.DBContext;
 import com.watchstore.enums.Role;
 import com.watchstore.model.User;
+import com.watchstore.repository.UserAccountRepository;
 import com.watchstore.util.ViewRouter;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -116,6 +117,8 @@ public class AuthController extends HttpServlet {
                 return;
             }
 
+            user.setPermissions(new UserAccountRepository().loadPermissions(user.getId()));
+
             req.getSession().setAttribute(
                     "user",
                     user
@@ -126,25 +129,13 @@ public class AuthController extends HttpServlet {
                     "Đăng nhập thành công"
             );
 
-            if (user.getRole() == Role.ADMIN) {
+            if (user.getRole() == Role.CUSTOMER) {
                 resp.sendRedirect(
-                        req.getContextPath()
-                                + "/manage/admin/dashboard"
-                );
-            } else if (user.getRole() == Role.SALES) {
-                resp.sendRedirect(
-                        req.getContextPath()
-                                + "/manage/sales/dashboard"
-                );
-            } else if (user.getRole() == Role.WAREHOUSE) {
-                resp.sendRedirect(
-                        req.getContextPath()
-                                + "/manage/warehouse/dashboard"
+                        req.getContextPath() + "/page/home"
                 );
             } else {
                 resp.sendRedirect(
-                        req.getContextPath()
-                                + "/page/home"
+                        req.getContextPath() + "/manage/dashboard"
                 );
             }
 

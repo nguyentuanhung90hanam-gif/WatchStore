@@ -5,7 +5,10 @@ import com.watchstore.enums.Role;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class User {
 
@@ -32,6 +35,8 @@ public class User {
     private String roleNames;
 
     private Role role;
+
+    private Set<String> permissions = new HashSet<>();
 
     public User() {
     }
@@ -338,5 +343,26 @@ public class User {
         } catch (IllegalArgumentException e) {
             return Role.CUSTOMER;
         }
+    }
+
+    public Set<String> getPermissions() {
+        return permissions == null ? Collections.emptySet() : Collections.unmodifiableSet(permissions);
+    }
+
+    public void setPermissions(Set<String> permissions) {
+        this.permissions = permissions == null ? new HashSet<>() : new HashSet<>(permissions);
+    }
+
+    public boolean hasPermission(String permissionCode) {
+        if (permissions == null || permissionCode == null) return false;
+        return permissions.contains(permissionCode);
+    }
+
+    public boolean hasAnyPermission(String... codes) {
+        if (permissions == null) return false;
+        for (String code : codes) {
+            if (permissions.contains(code)) return true;
+        }
+        return false;
     }
 }
