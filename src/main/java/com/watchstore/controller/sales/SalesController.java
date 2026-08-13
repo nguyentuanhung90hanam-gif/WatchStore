@@ -69,6 +69,18 @@ public class SalesController extends HttpServlet {
 
         String path = req.getPathInfo();
 
+        com.watchstore.model.User currentUser = (com.watchstore.model.User) req.getSession().getAttribute("user");
+        boolean isAdmin = (currentUser != null && currentUser.getRole() == com.watchstore.enums.Role.ADMIN);
+
+        if (path != null && (path.equals("/customer-add") || path.equals("/order-add") || path.equals("/order-edit"))) {
+            String requiredPerm = path.startsWith("/customer") ? "CUSTOMERS_MANAGE" : "ORDERS_MANAGE";
+            if (currentUser == null || (!currentUser.hasPermission(requiredPerm) && !isAdmin)) {
+                req.getSession().setAttribute("errorMessage", "Bạn không có quyền sử dụng chức năng này.");
+                resp.sendRedirect(req.getContextPath() + "/manage/sales/dashboard");
+                return;
+            }
+        }
+
         if (path != null && path.startsWith("/pos")) {
             handlePOSGet(path, req, resp);
             return;
@@ -213,6 +225,28 @@ public class SalesController extends HttpServlet {
 
         req.setCharacterEncoding("UTF-8");
         String path = req.getPathInfo();
+
+        com.watchstore.model.User currentUser = (com.watchstore.model.User) req.getSession().getAttribute("user");
+        boolean isAdmin = (currentUser != null && currentUser.getRole() == com.watchstore.enums.Role.ADMIN);
+
+        if (path != null) {
+            String requiredPermission = null;
+            if (path.startsWith("/customer-")) {
+                requiredPermission = "CUSTOMERS_MANAGE";
+            } else if (path.startsWith("/order-")) {
+                requiredPermission = "ORDERS_MANAGE";
+            } else if (path.equals("/returns")) {
+                requiredPermission = "RETURNS_MANAGE";
+            }
+            
+            if (requiredPermission != null) {
+                if (currentUser == null || (!currentUser.hasPermission(requiredPermission) && !isAdmin)) {
+                    req.getSession().setAttribute("errorMessage", "Bạn không có quyền sử dụng chức năng này.");
+                    resp.sendRedirect(req.getContextPath() + "/manage/sales/dashboard");
+                    return;
+                }
+            }
+        }
 
         if (path != null && path.startsWith("/pos")) {
             handlePOSPost(path, req, resp);

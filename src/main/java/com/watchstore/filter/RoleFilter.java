@@ -45,17 +45,17 @@ public class RoleFilter implements Filter {
 
         if (uri.contains("/manage/dashboard") || uri.endsWith("/manage") || uri.endsWith("/manage/")) allowed = user.hasPermission("DASHBOARD_VIEW");
 
-        else if (uri.contains("/manage/sales/orders")) allowed = user.hasAnyPermission("ORDERS_VIEW", "ORDERS_MANAGE");
-        else if (uri.contains("/manage/sales/customers")) allowed = user.hasAnyPermission("CUSTOMERS_VIEW", "CUSTOMERS_MANAGE");
+        else if (uri.contains("/manage/sales/orders") || uri.contains("/manage/sales/order-")) allowed = user.hasAnyPermission("ORDERS_VIEW", "ORDERS_MANAGE");
+        else if (uri.contains("/manage/sales/customers") || uri.contains("/manage/sales/customer-")) allowed = user.hasAnyPermission("CUSTOMERS_VIEW", "CUSTOMERS_MANAGE");
         else if (uri.contains("/manage/sales/delivery")) allowed = user.hasPermission("DELIVERY_VIEW");
         else if (uri.contains("/manage/sales/returns")) allowed = user.hasAnyPermission("RETURNS_VIEW", "RETURNS_MANAGE");
         else if (uri.contains("/manage/sales/warranty")) allowed = user.hasPermission("WARRANTY_VIEW");
 
         else if (uri.contains("/manage/warehouse/inventory")) allowed = user.hasAnyPermission("INVENTORY_VIEW", "INVENTORY_MANAGE");
-        else if (uri.contains("/manage/warehouse/receipts")) allowed = user.hasAnyPermission("STOCK_RECEIPT_VIEW", "STOCK_RECEIPT_MANAGE");
-        else if (uri.contains("/manage/warehouse/exports")) allowed = user.hasAnyPermission("STOCK_EXPORT_VIEW", "STOCK_EXPORT_MANAGE");
-        else if (uri.contains("/manage/warehouse/stocktake")) allowed = user.hasAnyPermission("STOCKTAKE_VIEW", "STOCKTAKE_MANAGE");
-        else if (uri.contains("/manage/warehouse/variants")) allowed = user.hasAnyPermission("VARIANTS_VIEW", "VARIANTS_MANAGE");
+        else if (uri.contains("/manage/warehouse/receipts") || uri.contains("/manage/warehouse/receipt-")) allowed = user.hasAnyPermission("STOCK_RECEIPT_VIEW", "STOCK_RECEIPT_MANAGE");
+        else if (uri.contains("/manage/warehouse/exports") || uri.contains("/manage/warehouse/export-")) allowed = user.hasAnyPermission("STOCK_EXPORT_VIEW", "STOCK_EXPORT_MANAGE");
+        else if (uri.contains("/manage/warehouse/stocktake") || uri.contains("/manage/warehouse/stocktake-")) allowed = user.hasAnyPermission("STOCKTAKE_VIEW", "STOCKTAKE_MANAGE");
+        else if (uri.contains("/manage/warehouse/variants") || uri.contains("/manage/warehouse/variant-")) allowed = user.hasAnyPermission("VARIANTS_VIEW", "VARIANTS_MANAGE");
         else if (uri.contains("/manage/warehouse/suppliers")) allowed = user.hasPermission("SUPPLIERS_VIEW");
         else if (uri.contains("/manage/warehouse/reports")) allowed = user.hasPermission("REPORTS_VIEW");
 

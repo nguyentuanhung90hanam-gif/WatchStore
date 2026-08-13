@@ -461,143 +461,92 @@
 
     <c:when test="${tableKind == 'permissions'}">
 
-        <div class="dashboard-card">
-
-            <div class="table-wrap">
-
-                <c:choose>
-
-                    <c:when test="${not empty permissions}">
-
-                        <table>
-
-                            <thead>
-
-                            <tr>
-                                <th>STT</th>
-                                <th>Mã quyền</th>
-                                <th>Tên quyền</th>
-                                <th>Module</th>
-                                <th>Mô tả</th>
-                            </tr>
-
-                            </thead>
-
-                            <tbody>
-
-                            <c:forEach items="${permissions}" var="perm" varStatus="status">
-
-                                <tr>
-
-                                    <td>${status.index + 1}</td>
-
-                                    <td>
-                                        <b style="font-family:monospace;color:var(--gold-dark,#b8860b);">
-                                            ${perm.permissionCode}
-                                        </b>
-                                    </td>
-
-                                    <td>
-                                        <b>${perm.permissionName}</b>
-                                    </td>
-
-                                    <td>
-                                        <span class="status-badge"
-                                              style="background:#e3f2fd;color:#0d47a1;">
-                                            ${perm.moduleCode}
-                                        </span>
-                                    </td>
-
-                                    <td>
-                                        <small style="color:#555;">
-                                            ${not empty perm.description ? perm.description : '—'}
-                                        </small>
-                                    </td>
-
-                                </tr>
-
-                            </c:forEach>
-
-                            </tbody>
-
-                        </table>
-
-                    </c:when>
-
-                    <c:otherwise>
-
-                        <div class="permission-matrix">
-
-                            <table>
-
-                                <thead>
-
-                                <tr>
-                                    <th>Module</th>
-                                    <th>Xem</th>
-                                    <th>Thêm</th>
-                                    <th>Sửa</th>
-                                    <th>Duyệt</th>
-                                    <th>Xuất báo cáo</th>
-                                </tr>
-
-                                </thead>
-
-                                <tbody>
-
-                                <c:forTokens
-                                        items="Sản phẩm,Đơn hàng,Khách hàng,Kho hàng,Voucher,Báo cáo"
-                                        delims=","
-                                        var="item">
-
-                                    <tr>
-
-                                        <td>
-                                            <b>${item}</b>
-                                        </td>
-
-                                        <td>
-                                            <input type="checkbox" checked>
-                                        </td>
-
-                                        <td>
-                                            <input type="checkbox" checked>
-                                        </td>
-
-                                        <td>
-                                            <input type="checkbox" checked>
-                                        </td>
-
-                                        <td>
-                                            <input type="checkbox">
-                                        </td>
-
-                                        <td>
-                                            <input type="checkbox">
-                                        </td>
-
-                                    </tr>
-
-                                </c:forTokens>
-
-                                </tbody>
-
-                            </table>
-
-                            <button class="button button-dark"
-                                    data-demo-toast="Đã lưu ma trận phân quyền">
-                                Lưu phân quyền
-                            </button>
-
-                        </div>
-
-                    </c:otherwise>
-
-                </c:choose>
-
+        <div class="dashboard-card" style="margin-bottom: 20px;">
+            <div style="padding: 20px;">
+                <form method="get" action="${pageContext.request.contextPath}/manage/admin/permissions">
+                    <label for="roleId" style="font-weight: bold; margin-right: 10px;">Chọn vai trò:</label>
+                    <select name="roleId" id="roleId" onchange="this.form.submit()" style="padding: 8px; border-radius: 4px; border: 1px solid #ddd;">
+                        <option value="">-- Chọn vai trò --</option>
+                        <c:forEach items="${roles}" var="role">
+                            <option value="${role.roleId}" ${selectedRoleId == role.roleId ? 'selected' : ''}>
+                                ${role.roleCode} - ${role.roleName}
+                            </option>
+                        </c:forEach>
+                    </select>
+                </form>
             </div>
-
         </div>
+
+        <c:if test="${not empty selectedRoleId}">
+            <div class="dashboard-card">
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                        <tr>
+                            <th>Chức năng</th>
+                            <th>Permission</th>
+                            <th>Mô tả</th>
+                            <th>Trạng thái</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <c:forEach items="${permissions}" var="perm">
+                            <tr>
+                                <td>
+                                    <span class="status-badge" style="background:#e3f2fd;color:#0d47a1;">
+                                        ${perm.moduleCode}
+                                    </span>
+                                </td>
+                                <td>
+                                    <b style="font-family:monospace;color:var(--gold-dark,#b8860b);">
+                                        ${perm.permissionCode}
+                                    </b>
+                                </td>
+                                <td>
+                                    <small style="color:#555;">
+                                        ${perm.permissionName}
+                                    </small>
+                                </td>
+                                <td>
+                                    <c:set var="isAssigned" value="false" />
+                                    <c:forEach items="${assignedPermissionIds}" var="assignedId">
+                                        <c:if test="${assignedId == perm.permissionId}">
+                                            <c:set var="isAssigned" value="true" />
+                                        </c:if>
+                                    </c:forEach>
+                                    
+                                    <form method="POST" action="${pageContext.request.contextPath}/manage/admin/permissions/toggle" style="display:inline-block; margin: 0;">
+                                        <input type="hidden" name="roleId" value="${selectedRoleId}" />
+                                        <input type="hidden" name="permissionId" value="${perm.permissionId}" />
+                                        <c:choose>
+                                            <c:when test="${isAssigned}">
+                                                <input type="hidden" name="action" value="close" />
+                                                <button type="submit" class="button button-dark" style="padding: 4px 10px; font-size: 12px; background: #e74c3c; border-color: #e74c3c;">
+                                                    [KHÓA]
+                                                </button>
+                                            </c:when>
+                                            <c:otherwise>
+                                                <input type="hidden" name="action" value="open" />
+                                                <button type="submit" class="button button-gold" style="padding: 4px 10px; font-size: 12px; background: #27ae60; border-color: #27ae60; color: white;">
+                                                    [MỞ]
+                                                </button>
+                                            </c:otherwise>
+                                        </c:choose>
+                                    </form>
+                                </td>
+                            </tr>
+                        </c:forEach>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </c:if>
+        
+        <c:if test="${empty selectedRoleId}">
+            <div style="padding: 20px; text-align: center; color: #888;">
+                Vui lòng chọn vai trò để thiết lập phân quyền.
+            </div>
+        </c:if>
 
     </c:when>
 

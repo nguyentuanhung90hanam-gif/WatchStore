@@ -72,6 +72,14 @@ public class StockReceiptController extends HttpServlet {
                     return;
 
                 case "/manage/warehouse/receipt-create":
+                    {
+                        com.watchstore.model.User user = (com.watchstore.model.User) req.getSession().getAttribute("user");
+                        if (user == null || (!user.hasPermission("STOCK_RECEIPT_MANAGE") && user.getRole() != com.watchstore.enums.Role.ADMIN)) {
+                            req.getSession().setAttribute("errorMessage", "Bạn không có quyền sử dụng chức năng này.");
+                            resp.sendRedirect(req.getContextPath() + "/manage/warehouse/receipts");
+                            return;
+                        }
+                    }
 
                     handleReceiptCreateForm(req);
 
@@ -138,6 +146,13 @@ public class StockReceiptController extends HttpServlet {
         req.setCharacterEncoding("UTF-8");
 
         String path = req.getServletPath();
+
+        com.watchstore.model.User currentUser = (com.watchstore.model.User) req.getSession().getAttribute("user");
+        if (currentUser == null || (!currentUser.hasPermission("STOCK_RECEIPT_MANAGE") && currentUser.getRole() != com.watchstore.enums.Role.ADMIN)) {
+            req.getSession().setAttribute("errorMessage", "Bạn không có quyền sử dụng chức năng này.");
+            resp.sendRedirect(req.getContextPath() + "/manage/warehouse/receipts");
+            return;
+        }
 
         try {
 

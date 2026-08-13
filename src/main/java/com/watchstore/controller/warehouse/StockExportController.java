@@ -63,6 +63,14 @@ public class StockExportController extends HttpServlet {
                                         return;
 
                                 case "/manage/warehouse/export-create":
+                                        {
+                                                com.watchstore.model.User user = (com.watchstore.model.User) req.getSession().getAttribute("user");
+                                                if (user == null || (!user.hasPermission("STOCK_EXPORT_MANAGE") && user.getRole() != com.watchstore.enums.Role.ADMIN)) {
+                                                        req.getSession().setAttribute("errorMessage", "Bạn không có quyền sử dụng chức năng này.");
+                                                        resp.sendRedirect(req.getContextPath() + "/manage/warehouse/exports");
+                                                        return;
+                                                }
+                                        }
                                         handleExportCreateForm(req);
 
                                         render(
@@ -112,6 +120,13 @@ public class StockExportController extends HttpServlet {
                 req.setCharacterEncoding("UTF-8");
 
                 String path = req.getServletPath();
+
+                com.watchstore.model.User currentUser = (com.watchstore.model.User) req.getSession().getAttribute("user");
+                if (currentUser == null || (!currentUser.hasPermission("STOCK_EXPORT_MANAGE") && currentUser.getRole() != com.watchstore.enums.Role.ADMIN)) {
+                        req.getSession().setAttribute("errorMessage", "Bạn không có quyền sử dụng chức năng này.");
+                        resp.sendRedirect(req.getContextPath() + "/manage/warehouse/exports");
+                        return;
+                }
 
                 try {
                         int userId = getCurrentUserId(req);
