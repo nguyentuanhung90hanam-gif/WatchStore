@@ -146,6 +146,20 @@ public class OrderRepository {
         return list;
     }
 
+    public long createFromCart(int userId, int addressId, String voucher, String payment, String note) throws SQLException {
+        try(Connection c=DBContext.getConnection();java.sql.CallableStatement cs=c.prepareCall("{call dbo.sp_CreateOrderFromCart(?,?,?,?,?,?)}")){
+            cs.setInt(1,userId);cs.setInt(2,addressId);
+            if(voucher==null||voucher.isBlank())cs.setNull(3,Types.VARCHAR);else cs.setString(3,voucher.trim());
+            cs.setString(4,payment==null||payment.isBlank()?"COD":payment);
+            if(note==null)cs.setNull(5,Types.NVARCHAR);else cs.setString(5,note);
+            cs.registerOutParameter(6,Types.BIGINT);cs.execute();return cs.getLong(6);
+        }
+    }
+
+    public void cancel(long orderId, int userId, String reason) throws SQLException {
+        try(Connection c=DBContext.getConnection();java.sql.CallableStatement cs=c.prepareCall("{call dbo.sp_CancelOrder(?,?,?)}")){cs.setLong(1,orderId);cs.setInt(2,userId);cs.setString(3,reason);cs.execute();}
+    }
+
     public List<Order> search(String keyword, String status) {
         return search(keyword, status, null, null);
     }

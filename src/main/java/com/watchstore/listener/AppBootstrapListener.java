@@ -90,5 +90,20 @@ public class AppBootstrapListener implements ServletContextListener {
                 "appName",
                 "WatchStore"
         );
+
+        com.watchstore.repository.OtpRepository otpRepository = new com.watchstore.repository.OtpRepository();
+        com.watchstore.service.EmailService emailService = new com.watchstore.service.EmailService();
+        sce.getServletContext().setAttribute("otpRepository", otpRepository);
+        sce.getServletContext().setAttribute("emailService", emailService);
+        sce.getServletContext().setAttribute("otpService", new com.watchstore.service.OtpService(otpRepository, emailService));
+
+        com.watchstore.repository.AddressRepository addressRepository = new com.watchstore.repository.AddressRepository();
+        sce.getServletContext().setAttribute("addressRepository", addressRepository);
+
+        com.watchstore.repository.WishlistRepository wishlistRepository = new com.watchstore.repository.WishlistRepository();
+        sce.getServletContext().setAttribute("wishlistRepository", wishlistRepository);
+
+        com.watchstore.repository.CartRepository cartRepository = new com.watchstore.repository.CartRepository();
+        sce.getServletContext().setAttribute("cartRepository", cartRepository);
     }
 }
