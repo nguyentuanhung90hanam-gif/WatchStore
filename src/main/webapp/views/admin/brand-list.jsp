@@ -124,7 +124,7 @@
 
                 <tr>
 
-                    <th>ID</th>
+                    <th>STT</th>
 
                     <th>Mã thương hiệu</th>
 
@@ -146,14 +146,14 @@
 
 
 
-                <c:forEach items="${brands}" var="b">
+                <c:forEach items="${brands}" var="b" varStatus="status">
 
 
                     <tr>
 
 
                         <td class="center">
-                            #${b.brandID}
+                            ${status.index + 1}
                         </td>
 
 

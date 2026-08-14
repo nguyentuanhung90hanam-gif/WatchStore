@@ -1,1 +1,234 @@
-<%@ page contentType="text/html;charset=UTF-8" %><%@ taglib prefix="c" uri="jakarta.tags.core" %><c:set var="dashboardLabel" value="ĐIỀU HÀNH HỆ THỐNG"/><c:set var="metric1Label" value="Tổng doanh thu"/><c:set var="metric1Value" value="1,28 tỷ"/><c:set var="metric2Label" value="Đơn hàng"/><c:set var="metric2Value" value="142"/><c:set var="metric3Label" value="Khách hàng"/><c:set var="metric3Value" value="2.840"/><c:set var="metric4Label" value="Tồn kho"/><c:set var="metric4Value" value="456"/><c:set var="chartTitle" value="Doanh thu toàn hệ thống"/><c:set var="task1" value="Đơn hàng chờ duyệt"/><c:set var="task2" value="Người dùng mới"/><c:set var="task3" value="Sản phẩm sắp hết"/><c:set var="tableTitle" value="Đơn hàng vừa thực hiện"/><jsp:include page="/views/shared/management-dashboard.jsp"/>
+<%@ page contentType="text/html;charset=UTF-8" %>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<c:set var="cp" value="${pageContext.request.contextPath}" />
+
+<div class="portal-welcome">
+    <div>
+        <p class="eyebrow dark">ĐIỀU HÀNH HỆ THỐNG</p>
+        <h2>Xin chào, ${empty sessionScope.user.fullName ? 'Quản trị viên' : sessionScope.user.fullName}</h2>
+        <span>Hệ thống quản lý dữ liệu đồng hồ chính hãng WatchStore.</span>
+    </div>
+    <div class="date-chip">
+        TRANG TỔNG QUAN REAL-TIME
+    </div>
+</div>
+
+<!-- 1. 4 STATISTIC CARDS PHÍA TRÊN -->
+<div class="admin-metric-grid">
+    <article class="stat-card">
+        <div class="stat-card-header">
+            <div class="stat-icon icon-gold">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="9" cy="21" r="1"></circle>
+                    <circle cx="20" cy="21" r="1"></circle>
+                    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                </svg>
+            </div>
+            <span class="stat-title">TỔNG ĐƠN HÀNG</span>
+        </div>
+        <div class="stat-value"><fmt:formatNumber value="${totalOrders}" pattern="#,##0" /></div>
+        <div class="stat-desc">
+            <c:choose>
+                <c:when test="${pendingOrders > 0}">
+                    <span class="stat-badge warning">⚠ ${pendingOrders} đơn chờ xác nhận</span>
+                </c:when>
+                <c:otherwise>
+                    <span class="stat-badge success">✓ Tất cả đơn đã xử lý</span>
+                </c:otherwise>
+            </c:choose>
+        </div>
+    </article>
+
+    <article class="stat-card">
+        <div class="stat-card-header">
+            <div class="stat-icon icon-emerald">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="1" x2="12" y2="23"></line>
+                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                </svg>
+            </div>
+            <span class="stat-title">DOANH THU</span>
+        </div>
+        <div class="stat-value gold-text">
+            <c:choose>
+                <c:when test="${not empty totalRevenue and totalRevenue > 0}">
+                    <fmt:formatNumber value="${totalRevenue}" pattern="#,##0" /> ₫
+                </c:when>
+                <c:otherwise>0 ₫</c:otherwise>
+            </c:choose>
+        </div>
+        <div class="stat-desc">
+            <span class="stat-badge info">Thống kê thực tế từ Orders</span>
+        </div>
+    </article>
+
+    <article class="stat-card">
+        <div class="stat-card-header">
+            <div class="stat-icon icon-dark">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="7"></circle>
+                    <polyline points="12 9 12 12 13.5 13.5"></polyline>
+                    <path d="M16.51 17.35l-.85 3.19a1 1 0 0 1-1.22.71l-4.88-1.3a1 1 0 0 1-.71-1.22l.85-3.19"></path>
+                    <path d="M7.49 6.65l.85-3.19a1 1 0 0 1 1.22-.71l4.88 1.3a1 1 0 0 1 .71 1.22l-.85 3.19"></path>
+                </svg>
+            </div>
+            <span class="stat-title">SẢN PHẨM</span>
+        </div>
+        <div class="stat-value"><fmt:formatNumber value="${empty totalProducts ? 0 : totalProducts}" pattern="#,##0" /></div>
+        <div class="stat-desc">
+            <span class="stat-badge neutral">Active: ${empty activeProducts ? 0 : activeProducts} đang kinh doanh</span>
+        </div>
+    </article>
+
+    <article class="stat-card">
+        <div class="stat-card-header">
+            <div class="stat-icon icon-blue">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+            </div>
+            <span class="stat-title">KHÁCH HÀNG</span>
+        </div>
+        <div class="stat-value"><fmt:formatNumber value="${empty totalUsers ? 0 : totalUsers}" pattern="#,##0" /></div>
+        <div class="stat-desc">
+            <span class="stat-badge success">Hoạt động: ${empty activeUsers ? 0 : activeUsers} tài khoản</span>
+        </div>
+    </article>
+</div>
+
+<!-- 2. BIỂU ĐỒ DOANH THU 7 NGÀY & KHỐI CẦN XỬ LÝ -->
+<div class="dashboard-grid">
+    <!-- Chart Card -->
+    <article class="dashboard-card chart-card">
+        <div class="card-title">
+            <div>
+                <b>Doanh thu 7 ngày gần nhất</b>
+                <span>Dữ liệu biến động doanh thu thực tế từ đơn hàng</span>
+            </div>
+            <span class="chart-tag">Realtime DB</span>
+        </div>
+
+        <div class="revenue-chart-container">
+            <div class="revenue-bars">
+                <c:forEach items="${last7DaysSales}" var="day">
+                    <div class="bar-column">
+                        <div class="bar-tooltip">
+                            <b>
+                                <c:choose>
+                                    <c:when test="${not empty day.revenue and day.revenue > 0}">
+                                        <fmt:formatNumber value="${day.revenue}" pattern="#,##0" /> ₫
+                                    </c:when>
+                                    <c:otherwise>0 ₫</c:otherwise>
+                                </c:choose>
+                            </b>
+                            <small>${day.ordersCount} đơn hàng</small>
+                        </div>
+                        <div class="bar-track">
+                            <div class="bar-fill ${day.isMax ? 'gold' : 'dark'}" style="height: ${day.heightPercent}%;"></div>
+                        </div>
+                        <span class="bar-date-label">${day.dateLabel}</span>
+                    </div>
+                </c:forEach>
+            </div>
+        </div>
+    </article>
+
+    <!-- 3. KHỐI CẦN XỬ LÝ -->
+    <article class="dashboard-card action-needed-card">
+        <div class="card-title">
+            <div>
+                <b>Cần xử lý</b>
+                <span>Thông báo & tác vụ vận hành DB</span>
+            </div>
+        </div>
+
+        <div class="action-task-list">
+            <div class="action-item">
+                <div class="action-icon warning-bg">⚠</div>
+                <div class="action-info">
+                    <b>Đơn hàng chờ xác nhận</b>
+                    <small>Đơn hàng mới chưa duyệt</small>
+                </div>
+                <div class="action-value">
+                    <span class="count-badge warning">${empty pendingOrders ? 0 : pendingOrders}</span>
+                    <a href="${cp}/manage/admin/reports" class="action-link">Xem &rarr;</a>
+                </div>
+            </div>
+
+            <div class="action-item">
+                <div class="action-icon danger-bg">📦</div>
+                <div class="action-info">
+                    <b>Sản phẩm sắp hết hàng</b>
+                    <small>Số lượng tồn kho chạm mức báo động</small>
+                </div>
+                <div class="action-value">
+                    <span class="count-badge danger">${empty lowStockCount ? 0 : lowStockCount}</span>
+                    <a href="${cp}/manage/admin/products" class="action-link">Xem &rarr;</a>
+                </div>
+            </div>
+
+            <div class="action-item">
+                <div class="action-icon info-bg">🏷</div>
+                <div class="action-info">
+                    <b>Voucher sắp hết hạn</b>
+                    <small>Mã giảm giá đang/sắp hết hiệu lực</small>
+                </div>
+                <div class="action-value">
+                    <span class="count-badge info">${empty expiringVouchersCount ? 0 : expiringVouchersCount}</span>
+                    <a href="${cp}/manage/admin/vouchers" class="action-link">Xem &rarr;</a>
+                </div>
+            </div>
+        </div>
+    </article>
+</div>
+
+<!-- 4. BẢNG DỮ LIỆU VẬN HÀNH GẦN NHẤT -->
+<article class="dashboard-card latest-table">
+    <div class="card-title">
+        <div>
+            <b>Dữ liệu vận hành gần nhất</b>
+            <span>Danh sách các đơn hàng mới nhất từ database</span>
+        </div>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>MÃ</th>
+                    <th>THÔNG TIN</th>
+                    <th>THỜI GIAN</th>
+                    <th>GIÁ TRỊ</th>
+                    <th>TRẠNG THÁI</th>
+                </tr>
+            </thead>
+            <tbody>
+                <c:forEach items="${orders}" var="order">
+                    <tr>
+                        <td><b class="order-code">#${order.code}</b></td>
+                        <td>
+                            <div class="customer-info-cell">
+                                <span class="customer-name">${order.customerName}</span>
+                            </div>
+                        </td>
+                        <td class="time-cell">${order.createdAt}</td>
+                        <td class="amount-cell"><fmt:formatNumber value="${order.total}" pattern="#,##0" /> ₫</td>
+                        <td>
+                            <span class="status-pill status-${order.status.cssClass}">${order.status.label}</span>
+                        </td>
+                    </tr>
+                </c:forEach>
+                <c:if test="${empty orders}">
+                    <tr>
+                        <td colspan="5" class="empty-table-msg">
+                            Chưa có đơn hàng nào trong hệ thống.
+                        </td>
+                    </tr>
+                </c:if>
+            </tbody>
+        </table>
+    </div>
+</article>

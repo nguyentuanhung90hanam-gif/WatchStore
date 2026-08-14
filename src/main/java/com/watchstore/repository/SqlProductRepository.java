@@ -178,4 +178,39 @@ public class SqlProductRepository implements ProductRepository {
         p.setQuantity(rs.getInt("Quantity"));
         return p;
     }
+
+    @Override
+    public boolean insert(Product product) {
+        return fallback != null && fallback.insert(product);
+    }
+
+    @Override
+    public boolean update(Product product) {
+        return fallback != null && fallback.update(product);
+    }
+
+    @Override
+    public boolean delete(int id) {
+        return fallback != null && fallback.delete(id);
+    }
+
+    @Override
+    public boolean existsByCode(String code, Integer excludeId) {
+        return fallback != null && fallback.existsByCode(code, excludeId);
+    }
+
+    @Override
+    public boolean existsBySlug(String slug, Integer excludeId) {
+        return fallback != null && fallback.existsBySlug(slug, excludeId);
+    }
+
+    @Override
+    public boolean existsBySku(String sku, Integer excludeId) {
+        return fallback != null && fallback.existsBySku(sku, excludeId);
+    }
+
+    @Override
+    public boolean isProductInUse(int productId) {
+        return fallback != null && fallback.isProductInUse(productId);
+    }
 }
