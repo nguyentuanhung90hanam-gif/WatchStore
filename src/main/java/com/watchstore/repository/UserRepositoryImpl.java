@@ -416,4 +416,158 @@ public class UserRepositoryImpl implements UserRepository {
             ps.setString(index, value.trim());
         }
     }
+
+    @Override
+    public User findByEmail(String email) {
+        if (email == null || email.isBlank()) return null;
+        String sql = "SELECT * FROM Users WHERE LOWER(Email) = LOWER(?)";
+        try (Connection con = getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, email.trim());
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                User u = mapRow(rs);
+                List<Role> roles = loadRoles(con, u.getUserId());
+                u.setRoles(roles);
+                u.setRoleNames(buildRoleNames(roles));
+                return u;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    @Override
+    public User findByPhone(String phone) {
+        if (phone == null || phone.isBlank()) return null;
+        String sql = "SELECT * FROM Users WHERE Phone = ?";
+        try (Connection con = getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, phone.trim());
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                User u = mapRow(rs);
+                List<Role> roles = loadRoles(con, u.getUserId());
+                u.setRoles(roles);
+                u.setRoleNames(buildRoleNames(roles));
+                return u;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    @Override
+    public List<User> searchByName(String keyword) {
+        return search(keyword);
+    }
+
+    @Override
+    public boolean update(User user) {
+        if (user == null) return false;
+        if (user.getPhone() != null && !user.getPhone().isBlank() && !user.getPhone().matches("\\d{9,11}")) return false;
+        String sql = "UPDATE Users SET FullName = ?, Email = ?, Phone = ?, UpdatedAt = SYSDATETIME() WHERE UserID = ?";
+        try (Connection con = getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, user.getFullName());
+            ps.setString(2, user.getEmail());
+            ps.setString(3, user.getPhone());
+            ps.setInt(4, user.getId());
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    @Override
+    public String hashPassword(String password) {
+        if (password == null) return "";
+        try {
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(password.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) hexString.append('0');
+                hexString.append(hex);
+            }
+            return hexString.toString().toUpperCase();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return password;
+        }
+    }
+
+    @Override
+    public boolean updatePassword(int userId, String oldPassword, String newPassword) {
+        User user = findById(userId);
+        if (user == null) return false;
+
+        if (oldPassword != null && !oldPassword.isBlank() && user.getPasswordHash() != null && !user.getPasswordHash().isBlank()) {
+            String oldHash = hashPassword(oldPassword);
+            if (!oldHash.equalsIgnoreCase(user.getPasswordHash())) {
+                return false;
+            }
+        }
+
+        String newHash = hashPassword(newPassword);
+        String sql = "UPDATE Users SET PasswordHash = ? WHERE UserID = ?";
+        try (Connection con = getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, newHash);
+            ps.setInt(2, userId);
+            int updated = ps.executeUpdate();
+            if (updated > 0) {
+                user.setPasswordHash(newHash);
+                return true;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    @Override
+    public User login(String email, String password) throws Exception {
+        try (Connection con = getConnection();
+             CallableStatement cs = con.prepareCall("{call dbo.sp_Login(?,?)}")) {
+            cs.setString(1, email);
+            cs.setString(2, password);
+            try (ResultSet rs = cs.executeQuery()) {
+                return rs.next() ? mapLogin(rs) : null;
+            }
+        }
+    }
+
+    @Override
+    public User register(String fullName, String email, String phone, String password) throws Exception {
+        try (Connection con = getConnection();
+             CallableStatement cs = con.prepareCall("{call dbo.sp_RegisterCustomer(?,?,?,?,?,?,?,?,?,?,?,?)}")) {
+            cs.setString(1, email);
+            cs.setString(2, password);
+            cs.setString(3, fullName);
+            if (phone == null || phone.isBlank()) cs.setNull(4, java.sql.Types.VARCHAR);
+            else cs.setString(4, phone);
+            cs.setNull(5, java.sql.Types.VARCHAR);
+            cs.setNull(6, java.sql.Types.DATE);
+            for (int i = 7; i <= 12; i++) cs.setNull(i, java.sql.Types.NVARCHAR);
+            try (ResultSet rs = cs.executeQuery()) {
+                return rs.next() ? mapLogin(rs) : null;
+            }
+        }
+    }
+
+    private User mapLogin(ResultSet rs) throws SQLException {
+        User u = new User();
+        u.setId(rs.getInt("UserID"));
+        u.setEmail(rs.getString("Email"));
+        u.setFullName(rs.getString("FullName"));
+        u.setPhone(rs.getString("Phone"));
+        String roleCode = rs.getString("RoleCode");
+        u.setRole(roleCode);
+        return u;
+    }
 }

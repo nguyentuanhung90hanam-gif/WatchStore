@@ -1,288 +1,308 @@
 package com.watchstore.controller.member;
 
-import com.watchstore.config.DBContext;
-import com.watchstore.enums.Role;
+import com.watchstore.model.PendingRegistration;
 import com.watchstore.model.User;
-import com.watchstore.repository.UserAccountRepository;
+import com.watchstore.repository.UserRepository;
+import com.watchstore.service.OtpService;
 import com.watchstore.util.ViewRouter;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
 
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 
 @WebServlet("/auth/*")
 public class AuthController extends HttpServlet {
+    private UserRepository users;
+    private OtpService otpService;
 
     @Override
-    protected void doGet(
-            HttpServletRequest req,
-            HttpServletResponse resp
-    ) throws ServletException, IOException {
+    public void init() {
+        users = (UserRepository) getServletContext().getAttribute("userRepository");
+        otpService = (OtpService) getServletContext().getAttribute("otpService");
+    }
 
-        String path = req.getPathInfo() == null
-                ? "/login"
-                : req.getPathInfo();
-
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        String path = req.getPathInfo() == null ? "/login" : req.getPathInfo();
         if ("/logout".equals(path)) {
             req.getSession().invalidate();
-            resp.sendRedirect(
-                    req.getContextPath() + "/page/home"
-            );
+            resp.sendRedirect(req.getContextPath() + "/page/home");
             return;
         }
-
         if ("/register".equals(path)) {
-            ViewRouter.customer(
-                    req,
-                    resp,
-                    "guest/register",
-                    "Đăng ký tài khoản"
-            );
-        } else {
-            ViewRouter.customer(
-                    req,
-                    resp,
-                    "guest/login",
-                    "Đăng nhập"
-            );
+            ViewRouter.customer(req, resp, "guest/register", "Đăng ký tài khoản");
+            return;
         }
+        if ("/forgot-password".equals(path)) {
+            ViewRouter.customer(req, resp, "guest/forgot-password", "Quên mật khẩu");
+            return;
+        }
+        if ("/verify-otp".equals(path)) {
+            String purpose = req.getParameter("purpose");
+            req.setAttribute("otpPurpose", purpose == null ? "REGISTER" : purpose.toUpperCase());
+            ViewRouter.customer(req, resp, "guest/verify-otp", "Xác thực mã OTP");
+            return;
+        }
+        if ("/reset-password".equals(path)) {
+            Boolean verified = (Boolean) req.getSession().getAttribute("otpVerifiedForReset");
+            if (verified == null || !verified) {
+                resp.sendRedirect(req.getContextPath() + "/auth/forgot-password");
+                return;
+            }
+            ViewRouter.customer(req, resp, "guest/reset-password", "Đặt lại mật khẩu");
+            return;
+        }
+        ViewRouter.customer(req, resp, "guest/login", "Đăng nhập");
     }
 
     @Override
-    protected void doPost(
-            HttpServletRequest req,
-            HttpServletResponse resp
-    ) throws ServletException, IOException {
-
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         req.setCharacterEncoding("UTF-8");
-
-        String path = req.getPathInfo() == null
-                ? "/login"
-                : req.getPathInfo();
-
-        if ("/register".equals(path)) {
-            handleRegister(req, resp);
-            return;
-        }
-
-        handleLogin(req, resp);
-    }
-
-    private void handleLogin(
-            HttpServletRequest req,
-            HttpServletResponse resp
-    ) throws IOException {
-
-        String email = value(
-                req.getParameter("email"),
-                ""
-        ).toLowerCase();
-
-        if (email.isEmpty()) {
-            req.getSession().setAttribute(
-                    "errorMsg",
-                    "Vui lòng nhập email."
-            );
-            resp.sendRedirect(
-                    req.getContextPath() + "/auth/login"
-            );
-            return;
-        }
+        String path = req.getPathInfo() == null ? "/login" : req.getPathInfo();
 
         try {
-            String password = value(req.getParameter("password"), "");
-            User user = findUserByEmail(email);
-
-            if (user == null) {
-                req.getSession().setAttribute(
-                        "errorMsg",
-                        "Tài khoản không tồn tại hoặc đã bị khóa."
-                );
-                resp.sendRedirect(
-                        req.getContextPath() + "/auth/login"
-                );
+            if ("/register".equals(path)) {
+                handleRegister(req, resp);
                 return;
             }
-
-            if (!isPasswordValid(user.getId(), password)) {
-                req.getSession().setAttribute("errorMsg", "Email hoặc mật khẩu không đúng.");
-                resp.sendRedirect(req.getContextPath() + "/auth/login");
+            if ("/forgot-password".equals(path)) {
+                handleForgotPassword(req, resp);
                 return;
             }
-
-            user.setPermissions(new UserAccountRepository().loadPermissions(user.getId()));
-
-            req.getSession().setAttribute(
-                    "user",
-                    user
-            );
-
-            req.getSession().setAttribute(
-                    "flash",
-                    "Đăng nhập thành công"
-            );
-
-            if (user.getRole() == Role.CUSTOMER) {
-                resp.sendRedirect(
-                        req.getContextPath() + "/page/home"
-                );
-            } else {
-                resp.sendRedirect(
-                        req.getContextPath() + "/manage/dashboard"
-                );
+            if ("/verify-otp".equals(path)) {
+                handleVerifyOtp(req, resp);
+                return;
             }
-
+            if ("/resend-otp".equals(path)) {
+                handleResendOtp(req, resp);
+                return;
+            }
+            if ("/reset-password".equals(path)) {
+                handleResetPassword(req, resp);
+                return;
+            }
+            if ("/login".equals(path)) {
+                handleLogin(req, resp);
+                return;
+            }
+            resp.sendRedirect(req.getContextPath() + "/auth/login");
         } catch (Exception e) {
-            e.printStackTrace();
-
-            req.getSession().setAttribute(
-                    "errorMsg",
-                    "Không thể đăng nhập: " +
-                            getErrorMessage(e)
-            );
-
-            resp.sendRedirect(
-                    req.getContextPath() + "/auth/login"
-            );
-        }
-    }
-
-    private User findUserByEmail(
-            String email
-    ) throws SQLException {
-
-        String sql =
-                "SELECT TOP 1 " +
-                        "u.UserID, " +
-                        "u.FullName, " +
-                        "u.Email, " +
-                        "u.Phone, " +
-                        "r.RoleCode " +
-                        "FROM dbo.Users u " +
-                        "LEFT JOIN dbo.UserRoles ur " +
-                        "ON ur.UserID = u.UserID " +
-                        "LEFT JOIN dbo.Roles r " +
-                        "ON r.RoleID = ur.RoleID " +
-                        "WHERE LOWER(u.Email) = ? " +
-                        "AND u.Status = 'ACTIVE' " +
-                        "ORDER BY CASE r.RoleCode " +
-                        "WHEN 'ADMIN' THEN 1 " +
-                        "WHEN 'SALES' THEN 2 " +
-                        "WHEN 'WAREHOUSE' THEN 3 " +
-                        "WHEN 'CUSTOMER' THEN 4 " +
-                        "ELSE 5 END";
-
-        try (
-                Connection conn = DBContext.getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql)
-        ) {
-            ps.setString(1, email);
-
-            try (ResultSet rs = ps.executeQuery()) {
-                if (!rs.next()) {
-                    return null;
-                }
-
-                return new User(
-                        rs.getInt("UserID"),
-                        rs.getString("FullName"),
-                        rs.getString("Email"),
-                        rs.getString("Phone"),
-                        parseRole(rs.getString("RoleCode"))
-                );
+            req.setAttribute("error", message(e));
+            if ("/register".equals(path)) {
+                ViewRouter.customer(req, resp, "guest/register", "Đăng ký tài khoản");
+            } else if ("/forgot-password".equals(path)) {
+                ViewRouter.customer(req, resp, "guest/forgot-password", "Quên mật khẩu");
+            } else if ("/verify-otp".equals(path)) {
+                String purpose = req.getParameter("purpose");
+                req.setAttribute("otpPurpose", purpose == null ? "REGISTER" : purpose.toUpperCase());
+                ViewRouter.customer(req, resp, "guest/verify-otp", "Xác thực mã OTP");
+            } else if ("/reset-password".equals(path)) {
+                ViewRouter.customer(req, resp, "guest/reset-password", "Đặt lại mật khẩu");
+            } else {
+                ViewRouter.customer(req, resp, "guest/login", "Đăng nhập");
             }
         }
     }
 
-    private boolean isPasswordValid(int userId, String password) throws Exception {
-        String sql="SELECT PasswordHash FROM dbo.Users WHERE UserID=? AND Status='ACTIVE'";
-        try(Connection conn=DBContext.getConnection(); PreparedStatement ps=conn.prepareStatement(sql)){
-            ps.setInt(1,userId);
-            try(ResultSet rs=ps.executeQuery()){
-                if(!rs.next()) return false;
-                return rs.getString("PasswordHash").equals(sha256(password));
+    private void handleLogin(HttpServletRequest req, HttpServletResponse resp) throws Exception {
+        String email = trim(req.getParameter("email")).toLowerCase();
+        String pass = req.getParameter("password");
+        if (email.isBlank() || pass == null || pass.isBlank()) {
+            throw new IllegalArgumentException("Vui lòng nhập đầy đủ email và mật khẩu.");
+        }
+        User u = users.login(email, pass);
+        if (u == null) {
+            throw new IllegalArgumentException("Email hoặc mật khẩu không chính xác.");
+        }
+        req.getSession().setAttribute("user", u);
+        req.getSession().setAttribute("flash", "Đăng nhập thành công!");
+        switch (u.getRole()) {
+            case ADMIN -> resp.sendRedirect(req.getContextPath() + "/manage/admin/dashboard");
+            case SALES -> resp.sendRedirect(req.getContextPath() + "/manage/sales/dashboard");
+            case WAREHOUSE -> resp.sendRedirect(req.getContextPath() + "/manage/warehouse/dashboard");
+            default -> resp.sendRedirect(req.getContextPath() + "/page/home");
+        }
+    }
+
+    private void handleRegister(HttpServletRequest req, HttpServletResponse resp) throws IOException, IllegalArgumentException {
+        String name = trim(req.getParameter("fullName"));
+        String email = trim(req.getParameter("email")).toLowerCase();
+        String phone = trim(req.getParameter("phone"));
+        String pass = req.getParameter("password");
+        String confirm = req.getParameter("confirmPassword");
+
+        if (name.length() < 2 || name.length() > 100) {
+            throw new IllegalArgumentException("Họ tên phải từ 2 đến 100 ký tự.");
+        }
+        if (!email.matches("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")) {
+            throw new IllegalArgumentException("Email không đúng định dạng.");
+        }
+        if (!phone.isBlank() && !phone.matches("\\d{9,11}")) {
+            throw new IllegalArgumentException("Số điện thoại chỉ được nhập 9-11 chữ số.");
+        }
+        if (pass == null || pass.length() < 6 || pass.length() > 100) {
+            throw new IllegalArgumentException("Mật khẩu phải từ 6 đến 100 ký tự.");
+        }
+        if (!pass.equals(confirm)) {
+            throw new IllegalArgumentException("Mật khẩu xác nhận không khớp.");
+        }
+
+        // Check if email already exists
+        User existing = users.findByEmail(email);
+        if (existing != null) {
+            throw new IllegalArgumentException("Email này đã được đăng ký tài khoản. Vui lòng đăng nhập.");
+        }
+
+        PendingRegistration pendingReg = new PendingRegistration(name, email, phone, pass);
+        req.getSession().setAttribute("pendingReg", pendingReg);
+
+        OtpService.OtpResult result = otpService.generateAndSendOtp(email, "REGISTER");
+        if (!result.isSuccess()) {
+            throw new IllegalArgumentException(result.getMessage());
+        }
+
+        req.getSession().setAttribute("flash", result.getMessage());
+        resp.sendRedirect(req.getContextPath() + "/auth/verify-otp?purpose=REGISTER");
+    }
+
+    private void handleForgotPassword(HttpServletRequest req, HttpServletResponse resp) throws IOException, IllegalArgumentException {
+        String email = trim(req.getParameter("email")).toLowerCase();
+        if (!email.matches("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")) {
+            throw new IllegalArgumentException("Email không đúng định dạng.");
+        }
+
+        User user = users.findByEmail(email);
+        if (user == null) {
+            throw new IllegalArgumentException("Email không tồn tại trong hệ thống WatchStore.");
+        }
+
+        req.getSession().setAttribute("forgotEmail", email);
+
+        OtpService.OtpResult result = otpService.generateAndSendOtp(email, "FORGOT_PASSWORD");
+        if (!result.isSuccess()) {
+            throw new IllegalArgumentException(result.getMessage());
+        }
+
+        req.getSession().setAttribute("flash", result.getMessage());
+        resp.sendRedirect(req.getContextPath() + "/auth/verify-otp?purpose=FORGOT_PASSWORD");
+    }
+
+    private void handleVerifyOtp(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        String purpose = trim(req.getParameter("purpose")).toUpperCase();
+        if (!"REGISTER".equals(purpose) && !"FORGOT_PASSWORD".equals(purpose)) {
+            purpose = "REGISTER";
+        }
+        String otpCode = trim(req.getParameter("otpCode"));
+
+        String email = null;
+        if ("REGISTER".equals(purpose)) {
+            PendingRegistration reg = (PendingRegistration) req.getSession().getAttribute("pendingReg");
+            if (reg != null) email = reg.getEmail();
+        } else {
+            email = (String) req.getSession().getAttribute("forgotEmail");
+        }
+
+        if (email == null || email.isBlank()) {
+            req.setAttribute("error", "Phiên làm việc đã hết hạn. Vui lòng thực hiện lại từ đầu.");
+            req.setAttribute("otpPurpose", purpose);
+            ViewRouter.customer(req, resp, "guest/verify-otp", "Xác thực mã OTP");
+            return;
+        }
+
+        OtpService.OtpResult result = otpService.verifyOtp(email, purpose, otpCode);
+        if (!result.isSuccess()) {
+            req.setAttribute("error", result.getMessage());
+            req.setAttribute("otpPurpose", purpose);
+            ViewRouter.customer(req, resp, "guest/verify-otp", "Xác thực mã OTP");
+            return;
+        }
+
+        if ("REGISTER".equals(purpose)) {
+            PendingRegistration reg = (PendingRegistration) req.getSession().getAttribute("pendingReg");
+            if (reg == null) {
+                req.setAttribute("error", "Không tìm thấy thông tin đăng ký. Vui lòng đăng ký lại.");
+                ViewRouter.customer(req, resp, "guest/register", "Đăng ký tài khoản");
+                return;
             }
+            try {
+                User u = users.register(reg.getFullName(), reg.getEmail(), reg.getPhone(), reg.getPassword());
+                req.getSession().removeAttribute("pendingReg");
+                req.getSession().setAttribute("user", u);
+                req.getSession().setAttribute("flash", "Đăng ký tài khoản thành công!");
+                resp.sendRedirect(req.getContextPath() + "/page/home");
+            } catch (Exception ex) {
+                req.setAttribute("error", "Lỗi tạo tài khoản: " + message(ex));
+                ViewRouter.customer(req, resp, "guest/register", "Đăng ký tài khoản");
+            }
+        } else {
+            req.getSession().setAttribute("otpVerifiedForReset", Boolean.TRUE);
+            resp.sendRedirect(req.getContextPath() + "/auth/reset-password");
         }
     }
 
-    private String sha256(String value) throws Exception {
-        MessageDigest digest=MessageDigest.getInstance("SHA-256");
-        byte[] bytes=digest.digest(value.getBytes(StandardCharsets.UTF_8));
-        StringBuilder sb=new StringBuilder(bytes.length*2);
-        for(byte b:bytes) sb.append(String.format("%02X",b));
-        return sb.toString();
-    }
-
-    private Role parseRole(String roleCode) {
-        if (roleCode == null || roleCode.isBlank()) {
-            return Role.CUSTOMER;
+    private void handleResendOtp(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        String purpose = trim(req.getParameter("purpose")).toUpperCase();
+        if (!"REGISTER".equals(purpose) && !"FORGOT_PASSWORD".equals(purpose)) {
+            purpose = "REGISTER";
         }
 
-        try {
-            return Role.valueOf(
-                    roleCode.trim().toUpperCase()
-            );
-        } catch (IllegalArgumentException e) {
-            return Role.CUSTOMER;
+        String email = null;
+        if ("REGISTER".equals(purpose)) {
+            PendingRegistration reg = (PendingRegistration) req.getSession().getAttribute("pendingReg");
+            if (reg != null) email = reg.getEmail();
+        } else {
+            email = (String) req.getSession().getAttribute("forgotEmail");
         }
+
+        if (email == null || email.isBlank()) {
+            req.getSession().setAttribute("flash", "Phiên làm việc đã hết hạn. Vui lòng thao tác lại.");
+            resp.sendRedirect(req.getContextPath() + "/auth/" + ("REGISTER".equals(purpose) ? "register" : "forgot-password"));
+            return;
+        }
+
+        OtpService.OtpResult result = otpService.generateAndSendOtp(email, purpose);
+        req.getSession().setAttribute("flash", result.getMessage());
+        resp.sendRedirect(req.getContextPath() + "/auth/verify-otp?purpose=" + purpose);
     }
 
-    private void handleRegister(
-            HttpServletRequest req,
-            HttpServletResponse resp
-    ) throws IOException {
+    private void handleResetPassword(HttpServletRequest req, HttpServletResponse resp) throws IOException, IllegalArgumentException {
+        Boolean verified = (Boolean) req.getSession().getAttribute("otpVerifiedForReset");
+        String email = (String) req.getSession().getAttribute("forgotEmail");
+        if (verified == null || !verified || email == null || email.isBlank()) {
+            throw new IllegalArgumentException("Bạn chưa xác thực OTP hoặc phiên làm việc đã hết hạn.");
+        }
 
-        String name = value(
-                req.getParameter("fullName"),
-                "Khách hàng WatchStore"
-        );
+        String pass = req.getParameter("password");
+        String confirm = req.getParameter("confirmPassword");
 
-        String email = value(
-                req.getParameter("email"),
-                "customer@watchstore.vn"
-        ).toLowerCase();
+        if (pass == null || pass.length() < 6 || pass.length() > 100) {
+            throw new IllegalArgumentException("Mật khẩu mới phải từ 6 đến 100 ký tự.");
+        }
+        if (!pass.equals(confirm)) {
+            throw new IllegalArgumentException("Mật khẩu xác nhận không khớp.");
+        }
 
-        req.getSession().setAttribute(
-                "user",
-                new User(
-                        101,
-                        name,
-                        email,
-                        "",
-                        Role.CUSTOMER
-                )
-        );
+        User user = users.findByEmail(email);
+        if (user == null) {
+            throw new IllegalArgumentException("Tài khoản không tồn tại.");
+        }
 
-        req.getSession().setAttribute(
-                "flash",
-                "Đăng ký thành công. Chào mừng bạn đến WatchStore!"
-        );
+        boolean updated = users.updatePassword(user.getId(), "", pass);
+        if (!updated) {
+            throw new IllegalArgumentException("Không thể cập nhật mật khẩu. Vui lòng thử lại.");
+        }
 
-        resp.sendRedirect(
-                req.getContextPath() + "/page/home"
-        );
+        req.getSession().removeAttribute("forgotEmail");
+        req.getSession().removeAttribute("otpVerifiedForReset");
+        req.getSession().setAttribute("flash", "Đặt lại mật khẩu thành công! Vui lòng đăng nhập bằng mật khẩu mới.");
+        resp.sendRedirect(req.getContextPath() + "/auth/login");
     }
 
-    private String value(
-            String value,
-            String fallback
-    ) {
-        return value == null || value.isBlank()
-                ? fallback
-                : value.trim();
-    }
-
-    private String getErrorMessage(Exception e) {
-        return e.getMessage() == null ||
-                e.getMessage().isBlank()
-                ? "Lỗi không xác định."
-                : e.getMessage();
+    private String trim(String v) { return v == null ? "" : v.trim(); }
+    private String message(Exception e) {
+        Throwable t = e;
+        while (t.getCause() != null) t = t.getCause();
+        return t.getMessage() == null ? "Thao tác không thành công." : t.getMessage();
     }
 }

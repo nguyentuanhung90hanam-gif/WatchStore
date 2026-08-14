@@ -39,6 +39,12 @@ public class Product {
     private int stock;
 
     public Product() {
+        this.badge = "Hot";
+        this.brandName = "WatchStore";
+        this.ratingAverage = 5.0;
+        this.compareAtPrice = BigDecimal.ZERO;
+        this.price = BigDecimal.ZERO;
+        this.status = "ACTIVE";
     }
 
     public Product(int id, String brand, String name, String sku, BigDecimal price, BigDecimal oldPrice,
@@ -57,17 +63,46 @@ public class Product {
         this.status = "ACTIVE";
     }
 
-    // ─── Legacy Getters for Guest/Cart Compatibility ─────────────────────────
+    public Product(int id, String name, BigDecimal price, BigDecimal oldPrice, int quantity,
+                   String image, String description, String badge, String brand, double rating) {
+        this(id, brand, name, null, price, oldPrice, image, badge, quantity, rating);
+        this.description = description;
+    }
+
+    // ─── Legacy Getters/Setters for Guest/Cart/Customer Compatibility ────────
     public int getId() { return productId; }
+    public void setId(int id) { this.productId = id; }
+
     public String getBrand() { return brandName != null ? brandName : ""; }
+    public void setBrand(String brand) { this.brandName = brand; }
+
     public String getName() { return productName != null ? productName : ""; }
+    public void setName(String name) { this.productName = name; }
+
     public String getSku() { return sku != null ? sku : (productCode != null ? productCode : ""); }
+    public void setSku(String sku) { this.sku = sku; this.productCode = sku; }
+
     public BigDecimal getPrice() { return price != null ? price : BigDecimal.ZERO; }
+    public void setPrice(BigDecimal price) { this.price = price; }
+
     public BigDecimal getOldPrice() { return compareAtPrice; }
+    public void setOldPrice(BigDecimal oldPrice) { this.compareAtPrice = oldPrice; }
+
     public String getImage() { return imageUrl != null ? imageUrl : "watch-1.png"; }
+    public void setImage(String image) { this.imageUrl = image; }
+
     public String getBadge() { return badge != null ? badge : (isFeatured ? "NỔI BẬT" : ""); }
+    public void setBadge(String badge) { this.badge = badge; }
+
     public int getStock() { return stock; }
+    public void setStock(int stock) { this.stock = stock; }
+
+    public int getQuantity() { return stock; }
+    public void setQuantity(int quantity) { this.stock = quantity; }
+
     public double getRating() { return ratingAverage; }
+    public void setRating(double rating) { this.ratingAverage = rating; }
+
     public int getDiscountPercent() {
         if (compareAtPrice == null || compareAtPrice.signum() == 0 || price == null) return 0;
         return compareAtPrice.subtract(price).multiply(BigDecimal.valueOf(100)).divide(compareAtPrice, 0, java.math.RoundingMode.HALF_UP).intValue();
@@ -150,17 +185,9 @@ public class Product {
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 
-    public void setSku(String sku) { this.sku = sku; }
-
-    public void setPrice(BigDecimal price) { this.price = price; }
-
     public BigDecimal getCompareAtPrice() { return compareAtPrice; }
     public void setCompareAtPrice(BigDecimal compareAtPrice) { this.compareAtPrice = compareAtPrice; }
 
     public String getImageUrl() { return imageUrl; }
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
-
-    public void setBadge(String badge) { this.badge = badge; }
-
-    public void setStock(int stock) { this.stock = stock; }
 }

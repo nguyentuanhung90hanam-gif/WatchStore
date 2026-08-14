@@ -30,6 +30,7 @@ public class Order {
         this.status = OrderStatus.PENDING;
         this.paymentStatus = "UNPAID";
         this.discountAmount = BigDecimal.ZERO;
+        this.totalPrice = BigDecimal.ZERO;
     }
 
     public Order(
@@ -170,6 +171,10 @@ public class Order {
         return getTotalPrice();
     }
 
+    public void setTotal(BigDecimal total) {
+        this.totalPrice = total;
+    }
+
     public double getTotalAsDouble() {
         return getTotalPrice().doubleValue();
     }
@@ -196,6 +201,10 @@ public class Order {
 
     public String getStatusLabel() {
         return getStatus().getLabel();
+    }
+
+    public String getStatusCssClass() {
+        return getStatus().getCssClass();
     }
 
     public Date getCreatedAt() {

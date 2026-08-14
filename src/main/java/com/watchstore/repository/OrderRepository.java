@@ -2,8 +2,8 @@ package com.watchstore.repository;
 
 import com.watchstore.config.DBContext;
 import com.watchstore.model.Order;
-
 import java.math.BigDecimal;
+import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -1456,6 +1456,52 @@ public class OrderRepository {
             closeQuietly(psUpdateStock);
             closeQuietly(psInsertTx);
             closeQuietly(conn);
+        }
+    }
+
+    public Order findById(long id) {
+        return findById((int) id);
+    }
+
+    public List<Map<String, Object>> getOrderItems(long orderId) {
+        return getOrderItems((int) orderId);
+    }
+
+    public long createFromCart(int userId, int addressId, String voucher, String payment, String note) throws SQLException {
+        try (Connection c = DBContext.getConnection();
+             CallableStatement cs = c.prepareCall("{call dbo.sp_CreateOrderFromCart(?,?,?,?,?,?)}")) {
+            cs.setInt(1, userId);
+            cs.setInt(2, addressId);
+            if (voucher == null || voucher.isBlank()) cs.setNull(3, Types.VARCHAR);
+            else cs.setString(3, voucher.trim());
+            cs.setString(4, payment == null || payment.isBlank() ? "COD" : payment);
+            if (note == null) cs.setNull(5, Types.NVARCHAR);
+            else cs.setString(5, note);
+            cs.registerOutParameter(6, Types.BIGINT);
+            cs.execute();
+            return cs.getLong(6);
+        }
+    }
+
+    public void cancel(long orderId, int userId, String reason) throws SQLException {
+        try (Connection c = DBContext.getConnection();
+             CallableStatement cs = c.prepareCall("{call dbo.sp_CancelOrder(?,?,?)}")) {
+            cs.setLong(1, orderId);
+            cs.setInt(2, userId);
+            cs.setString(3, reason);
+            cs.execute();
+        }
+    }
+
+    public boolean updateStatus(long id, String status, int changedBy) throws SQLException {
+        try (Connection c = DBContext.getConnection();
+             CallableStatement cs = c.prepareCall("{call dbo.sp_UpdateOrderStatus(?,?,?,?)}")) {
+            cs.setLong(1, id);
+            cs.setString(2, status);
+            cs.setInt(3, changedBy);
+            cs.setNull(4, Types.NVARCHAR);
+            cs.execute();
+            return true;
         }
     }
 }

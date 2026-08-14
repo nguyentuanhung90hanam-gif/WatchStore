@@ -1,11 +1,15 @@
 package com.watchstore.listener;
 
+import com.watchstore.repository.AddressRepository;
 import com.watchstore.repository.BrandRepositoryImpl;
+import com.watchstore.repository.CartRepository;
 import com.watchstore.repository.CategoryRepositoryImpl;
 import com.watchstore.repository.ProductRepositoryImpl;
 import com.watchstore.repository.UserRepositoryImpl;
 import com.watchstore.repository.RoleRepositoryImpl;
 import com.watchstore.repository.VoucherRepositoryImpl;
+import com.watchstore.repository.OrderRepository;
+import com.watchstore.repository.WishlistRepository;
 import jakarta.servlet.ServletContextEvent;
 import jakarta.servlet.ServletContextListener;
 import jakarta.servlet.annotation.WebListener;
@@ -16,18 +20,15 @@ public class AppBootstrapListener implements ServletContextListener {
     @Override
     public void contextInitialized(ServletContextEvent sce) {
 
-
         sce.getServletContext().setAttribute(
                 "productRepository",
                 new ProductRepositoryImpl()
         );
 
-
         sce.getServletContext().setAttribute(
                 "brandRepository",
                 new BrandRepositoryImpl()
         );
-
 
         sce.getServletContext().setAttribute(
                 "userRepository",
@@ -38,6 +39,7 @@ public class AppBootstrapListener implements ServletContextListener {
                 "roleRepository",
                 new RoleRepositoryImpl()
         );
+
         sce.getServletContext().setAttribute(
                 "voucherRepository",
                 new VoucherRepositoryImpl()
@@ -75,15 +77,59 @@ public class AppBootstrapListener implements ServletContextListener {
 
         sce.getServletContext().setAttribute(
                 "orderRepository",
-                new com.watchstore.repository.OrderRepository()
+                new OrderRepository()
         );
+
         sce.getServletContext().setAttribute(
                 "customerRepository",
                 new com.watchstore.repository.CustomerRepository()
         );
+
         sce.getServletContext().setAttribute(
                 "warrantyRepository",
                 new com.watchstore.repository.WarrantyRepository()
+        );
+
+        sce.getServletContext().setAttribute(
+                "cartRepository",
+                new CartRepository()
+        );
+
+        sce.getServletContext().setAttribute(
+                "addressRepository",
+                new AddressRepository()
+        );
+
+        sce.getServletContext().setAttribute(
+                "wishlistRepository",
+                new WishlistRepository()
+        );
+
+        com.watchstore.repository.OtpRepository otpRepository =
+                new com.watchstore.repository.OtpRepository();
+
+        com.watchstore.service.EmailService emailService =
+                new com.watchstore.service.EmailService();
+
+        com.watchstore.service.OtpService otpService =
+                new com.watchstore.service.OtpService(
+                        otpRepository,
+                        emailService
+                );
+
+        sce.getServletContext().setAttribute(
+                "otpRepository",
+                otpRepository
+        );
+
+        sce.getServletContext().setAttribute(
+                "emailService",
+                emailService
+        );
+
+        sce.getServletContext().setAttribute(
+                "otpService",
+                otpService
         );
 
         sce.getServletContext().setAttribute(
