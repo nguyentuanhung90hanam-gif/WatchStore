@@ -279,12 +279,8 @@ public class User {
                     return Role.ADMIN;
                 }
 
-                if ("SALES".equals(code)) {
-                    return Role.SALES;
-                }
-
-                if ("WAREHOUSE".equals(code)) {
-                    return Role.WAREHOUSE;
+                if ("EMPLOYEE".equals(code) || "SALES".equals(code) || "WAREHOUSE".equals(code)) {
+                    return Role.EMPLOYEE;
                 }
 
                 if ("CUSTOMER".equals(code)) {
@@ -318,10 +314,8 @@ public class User {
         switch (currentRole) {
             case ADMIN:
                 return "Quản trị viên";
-            case SALES:
-                return "Nhân viên bán hàng";
-            case WAREHOUSE:
-                return "Nhân viên kho";
+            case EMPLOYEE:
+                return "Nhân viên";
             case CUSTOMER:
             default:
                 return "Khách hàng";

@@ -35,11 +35,25 @@
                 <label>Số điện thoại
                     <input name="phone" value="${sessionScope.user.phone}">
                 </label>
+                <label>Giới tính
+                    <select name="gender">
+                        <option value="">-- Chọn giới tính --</option>
+                        <option value="MALE" ${sessionScope.user.gender == 'MALE' ? 'selected' : ''}>Nam</option>
+                        <option value="FEMALE" ${sessionScope.user.gender == 'FEMALE' ? 'selected' : ''}>Nữ</option>
+                        <option value="OTHER" ${sessionScope.user.gender == 'OTHER' ? 'selected' : ''}>Khác</option>
+                    </select>
+                </label>
+                <label>Ngày sinh
+                    <input type="date" name="dateOfBirth" value="${sessionScope.user.dateOfBirth}">
+                </label>
                 <label>Địa chỉ
                     <input name="address" value="${sessionScope.user.address}" placeholder="Nhập địa chỉ của bạn">
                 </label>
-                <label>Vai trò
+                <label>Vai trò hệ thống
                     <input value="${sessionScope.user.roleLabel}" disabled>
+                </label>
+                <label>Trạng thái tài khoản
+                    <input value="${empty sessionScope.user.status ? 'ACTIVE' : sessionScope.user.status}" disabled>
                 </label>
             </div>
             <button type="submit" class="button button-dark" style="margin-top:20px;">Lưu thay đổi</button>

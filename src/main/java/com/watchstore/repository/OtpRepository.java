@@ -43,7 +43,7 @@ public class OtpRepository {
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """;
         try (Connection con = DBContext.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
+             PreparedStatement ps = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, record.getEmail());
             ps.setString(2, record.getOtpHash());
             ps.setString(3, record.getPurpose());
@@ -53,6 +53,11 @@ public class OtpRepository {
             ps.setTimestamp(7, Timestamp.valueOf(record.getLastSentAt()));
             ps.setInt(8, record.getResendCount());
             ps.executeUpdate();
+            try (ResultSet rs = ps.getGeneratedKeys()) {
+                if (rs.next()) {
+                    record.setId(rs.getLong(1));
+                }
+            }
             return true;
         } catch (Exception ex) {
             // DB table might not exist yet, memoryStore is active

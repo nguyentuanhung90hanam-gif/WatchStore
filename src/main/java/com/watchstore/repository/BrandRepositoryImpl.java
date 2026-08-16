@@ -20,8 +20,8 @@ public class BrandRepositoryImpl implements BrandRepository {
         b.setBrandID(rs.getInt("BrandID"));
         b.setBrandCode(rs.getString("BrandCode"));
         b.setBrandName(rs.getString("BrandName"));
-        b.setSlug(rs.getString("Slug"));
-        b.setOriginCountry(rs.getString("OriginCountry"));
+        b.setSlug(rs.getString("BrandSlug"));
+        b.setOriginCountry(rs.getString("Country"));
         b.setLogoUrl(rs.getString("LogoUrl"));
         b.setDescription(rs.getString("Description"));
         b.setStatus(rs.getString("Status"));
@@ -85,7 +85,7 @@ public class BrandRepositoryImpl implements BrandRepository {
                 SELECT * FROM Brands
                 WHERE BrandCode LIKE ?
                    OR BrandName LIKE ?
-                   OR Slug LIKE ?
+                   OR BrandSlug LIKE ?
                 ORDER BY BrandID DESC
                 """;
 
@@ -137,8 +137,8 @@ public class BrandRepositoryImpl implements BrandRepository {
     public boolean existsBySlug(String slug, Integer excludeId) {
         if (slug == null || slug.isBlank()) return false;
         String sql = (excludeId != null && excludeId > 0)
-                ? "SELECT COUNT(*) FROM Brands WHERE LOWER(Slug) = LOWER(?) AND BrandID <> ?"
-                : "SELECT COUNT(*) FROM Brands WHERE LOWER(Slug) = LOWER(?)";
+                ? "SELECT COUNT(*) FROM Brands WHERE LOWER(BrandSlug) = LOWER(?) AND BrandID <> ?"
+                : "SELECT COUNT(*) FROM Brands WHERE LOWER(BrandSlug) = LOWER(?)";
 
         try (Connection con = getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
@@ -160,7 +160,7 @@ public class BrandRepositoryImpl implements BrandRepository {
     @Override
     public boolean insert(Brand brand) {
         String sql = """
-                INSERT INTO Brands (BrandCode, BrandName, Slug, OriginCountry, LogoUrl, Description, Status)
+                INSERT INTO Brands (BrandCode, BrandName, BrandSlug, Country, LogoUrl, Description, Status)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
                 """;
 
@@ -188,7 +188,7 @@ public class BrandRepositoryImpl implements BrandRepository {
     public boolean update(Brand brand) {
         String sql = """
                 UPDATE Brands
-                SET BrandCode=?, BrandName=?, Slug=?, OriginCountry=?, LogoUrl=?, Description=?, Status=?
+                SET BrandCode=?, BrandName=?, BrandSlug=?, Country=?, LogoUrl=?, Description=?, Status=?
                 WHERE BrandID=?
                 """;
 

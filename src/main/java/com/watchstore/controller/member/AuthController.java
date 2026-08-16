@@ -161,13 +161,80 @@ public class AuthController extends HttpServlet {
 
         if (user.getRole() == Role.ADMIN) {
             resp.sendRedirect(req.getContextPath() + "/manage/admin/dashboard");
-        } else if (user.getRole() == Role.SALES) {
-            resp.sendRedirect(req.getContextPath() + "/manage/sales/dashboard");
-        } else if (user.getRole() == Role.WAREHOUSE) {
-            resp.sendRedirect(req.getContextPath() + "/manage/warehouse/dashboard");
+        } else if (user.getRole() == Role.EMPLOYEE) {
+            com.watchstore.repository.PermissionRepository permRepo = (com.watchstore.repository.PermissionRepository) getServletContext().getAttribute("permissionRepository");
+            if (permRepo == null) permRepo = new com.watchstore.repository.PermissionRepositoryImpl();
+            java.util.Set<String> perms = permRepo.getUserPermissionCodes(user.getUserId());
+            req.getSession().setAttribute("userPermissions", perms);
+
+            String landingUrl = resolveEmployeeLandingUrl(req, perms);
+            if (landingUrl != null) {
+                resp.sendRedirect(landingUrl);
+            } else {
+                req.getSession().setAttribute("flash", "Tài khoản nhân viên chưa được cấp quyền truy cập chức năng nào.");
+                resp.sendRedirect(req.getContextPath() + "/page/home");
+            }
         } else {
             resp.sendRedirect(req.getContextPath() + "/page/home");
         }
+    }
+
+    private String resolveEmployeeLandingUrl(HttpServletRequest req, java.util.Set<String> perms) {
+        if (perms == null || perms.isEmpty()) {
+            return null;
+        }
+        if (perms.contains("SALES_ORDER") || perms.contains("ORDER_VIEW")) {
+            return req.getContextPath() + "/manage/sales/orders";
+        }
+        if (perms.contains("WAREHOUSE_INVENTORY") || perms.contains("INVENTORY_VIEW")) {
+            return req.getContextPath() + "/manage/warehouse/inventory";
+        }
+        if (perms.contains("PRODUCT_VIEW")) {
+            return req.getContextPath() + "/manage/admin/products";
+        }
+        if (perms.contains("SALES_CUSTOMER") || perms.contains("CUSTOMER_VIEW")) {
+            return req.getContextPath() + "/manage/sales/customers";
+        }
+        if (perms.contains("WAREHOUSE_RECEIPT")) {
+            return req.getContextPath() + "/manage/warehouse/receipts";
+        }
+        if (perms.contains("WAREHOUSE_EXPORT")) {
+            return req.getContextPath() + "/manage/warehouse/exports";
+        }
+        if (perms.contains("WAREHOUSE_STOCKTAKE")) {
+            return req.getContextPath() + "/manage/warehouse/stocktake";
+        }
+        if (perms.contains("SALES_DELIVERY")) {
+            return req.getContextPath() + "/manage/sales/delivery";
+        }
+        if (perms.contains("SALES_RETURN")) {
+            return req.getContextPath() + "/manage/sales/returns";
+        }
+        if (perms.contains("SALES_WARRANTY")) {
+            return req.getContextPath() + "/manage/sales/warranty";
+        }
+        if (perms.contains("VOUCHER_VIEW")) {
+            return req.getContextPath() + "/manage/admin/vouchers";
+        }
+        if (perms.contains("SALES_REPORT") || perms.contains("REPORT_VIEW")) {
+            return req.getContextPath() + "/manage/sales/report";
+        }
+        if (perms.contains("WAREHOUSE_REPORT")) {
+            return req.getContextPath() + "/manage/warehouse/reports";
+        }
+        if (perms.contains("SALES_DASHBOARD")) {
+            return req.getContextPath() + "/manage/sales/dashboard";
+        }
+        if (perms.contains("WAREHOUSE_DASHBOARD")) {
+            return req.getContextPath() + "/manage/warehouse/dashboard";
+        }
+        if (perms.stream().anyMatch(p -> p.startsWith("SALES_"))) {
+            return req.getContextPath() + "/manage/sales/orders";
+        }
+        if (perms.stream().anyMatch(p -> p.startsWith("WAREHOUSE_"))) {
+            return req.getContextPath() + "/manage/warehouse/inventory";
+        }
+        return null;
     }
 
     private User findUserByEmail(String email) throws SQLException {
@@ -177,6 +244,10 @@ public class AuthController extends HttpServlet {
                         "u.FullName, " +
                         "u.Email, " +
                         "u.Phone, " +
+                        "u.Gender, " +
+                        "u.DateOfBirth, " +
+                        "u.AvatarUrl, " +
+                        "u.Status, " +
                         "r.RoleCode " +
                         "FROM dbo.Users u " +
                         "LEFT JOIN dbo.UserRoles ur " +
@@ -187,10 +258,9 @@ public class AuthController extends HttpServlet {
                         "AND u.Status = 'ACTIVE' " +
                         "ORDER BY CASE r.RoleCode " +
                         "WHEN 'ADMIN' THEN 1 " +
-                        "WHEN 'SALES' THEN 2 " +
-                        "WHEN 'WAREHOUSE' THEN 3 " +
-                        "WHEN 'CUSTOMER' THEN 4 " +
-                        "ELSE 5 END";
+                        "WHEN 'EMPLOYEE' THEN 2 " +
+                        "WHEN 'CUSTOMER' THEN 3 " +
+                        "ELSE 4 END";
 
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -206,6 +276,13 @@ public class AuthController extends HttpServlet {
                 user.setFullName(rs.getString("FullName"));
                 user.setEmail(rs.getString("Email"));
                 user.setPhone(rs.getString("Phone"));
+                user.setGender(rs.getString("Gender"));
+                Date dob = rs.getDate("DateOfBirth");
+                if (dob != null) {
+                    user.setDateOfBirth(dob.toLocalDate());
+                }
+                user.setAvatarUrl(rs.getString("AvatarUrl"));
+                user.setStatus(rs.getString("Status"));
                 user.setRole(parseRole(rs.getString("RoleCode")));
                 return user;
             }

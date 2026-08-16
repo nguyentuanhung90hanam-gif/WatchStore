@@ -29,7 +29,7 @@ public class CategoryRepositoryImpl implements CategoryRepository {
 
         c.setCategoryCode(rs.getString("CategoryCode"));
         c.setCategoryName(rs.getString("CategoryName"));
-        c.setSlug(rs.getString("Slug"));
+        c.setSlug(rs.getString("CategorySlug"));
         c.setDescription(rs.getString("Description"));
         c.setImageUrl(rs.getString("ImageUrl"));
         c.setDisplayOrder(rs.getInt("DisplayOrder"));
@@ -115,9 +115,9 @@ public class CategoryRepositoryImpl implements CategoryRepository {
         if (slug == null || slug.isBlank()) return false;
         String sql;
         if (excludeId != null && excludeId > 0) {
-            sql = "SELECT COUNT(*) FROM Categories WHERE LOWER(Slug) = LOWER(?) AND CategoryID <> ?";
+            sql = "SELECT COUNT(*) FROM Categories WHERE LOWER(CategorySlug) = LOWER(?) AND CategoryID <> ?";
         } else {
-            sql = "SELECT COUNT(*) FROM Categories WHERE LOWER(Slug) = LOWER(?)";
+            sql = "SELECT COUNT(*) FROM Categories WHERE LOWER(CategorySlug) = LOWER(?)";
         }
 
         try (Connection conn = getConnection();
@@ -160,7 +160,7 @@ public class CategoryRepositoryImpl implements CategoryRepository {
                     ParentCategoryID,
                     CategoryCode,
                     CategoryName,
-                    Slug,
+                    CategorySlug,
                     Description,
                     ImageUrl,
                     DisplayOrder,
@@ -205,7 +205,7 @@ public class CategoryRepositoryImpl implements CategoryRepository {
                     ParentCategoryID = ?,
                     CategoryCode = ?,
                     CategoryName = ?,
-                    Slug = ?,
+                    CategorySlug = ?,
                     Description = ?,
                     ImageUrl = ?,
                     DisplayOrder = ?,
@@ -264,7 +264,7 @@ public class CategoryRepositoryImpl implements CategoryRepository {
                 FROM Categories
                 WHERE CategoryCode LIKE ?
                    OR CategoryName LIKE ?
-                   OR Slug LIKE ?
+                   OR CategorySlug LIKE ?
                 ORDER BY DisplayOrder ASC, CategoryID ASC
                 """;
 

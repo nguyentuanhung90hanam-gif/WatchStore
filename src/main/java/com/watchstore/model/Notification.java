@@ -22,11 +22,17 @@ public class Notification {
     public String getNotificationType() { return notificationType; }
     public void setNotificationType(String notificationType) { this.notificationType = notificationType; }
 
+    public String getTargetType() { return notificationType; }
+    public void setTargetType(String targetType) { this.notificationType = targetType; }
+
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
 
     public String getMessage() { return message; }
     public void setMessage(String message) { this.message = message; }
+
+    public String getContent() { return message; }
+    public void setContent(String content) { this.message = content; }
 
     public String getTargetUrl() { return targetUrl; }
     public void setTargetUrl(String targetUrl) { this.targetUrl = targetUrl; }

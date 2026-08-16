@@ -11,12 +11,14 @@
         </p>
     </div>
 
-    <div>
-        <a href="${cp}/manage/warehouse/variant-form"
-           class="btn btn-primary">
-            + Thêm biến thể
-        </a>
-    </div>
+    <c:if test="${sessionScope.user.role == 'ADMIN' || (not empty sessionScope.userPermissions && (sessionScope.userPermissions.contains('PRODUCT_CREATE') || sessionScope.userPermissions.contains('INVENTORY_CREATE')))}">
+        <div>
+            <a href="${cp}/manage/warehouse/variant-form"
+               class="btn btn-primary">
+                + Thêm biến thể
+            </a>
+        </div>
+    </c:if>
 </div>
 
 <c:if test="${not empty sessionScope.successMsg}">
@@ -187,10 +189,12 @@
 
                             <div style="display:flex; gap:6px; flex-wrap:wrap;">
 
-                                <a href="${cp}/manage/warehouse/variant-form?id=${v.variantId}"
-                                   class="btn btn-sm">
-                                    Sửa
-                                </a>
+                                <c:if test="${sessionScope.user.role == 'ADMIN' || (not empty sessionScope.userPermissions && (sessionScope.userPermissions.contains('PRODUCT_EDIT') || sessionScope.userPermissions.contains('INVENTORY_EDIT')))}">
+                                    <a href="${cp}/manage/warehouse/variant-form?id=${v.variantId}"
+                                       class="btn btn-sm">
+                                        Sửa
+                                    </a>
+                                </c:if>
 
                                 <c:if test="${v.status == 'ACTIVE'}">
 

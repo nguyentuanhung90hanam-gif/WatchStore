@@ -24,60 +24,93 @@
     </div>
 
     <nav>
-
         <c:choose>
+            <%-- MODE 1: ADMIN (SUPER ADMIN - TOÀN BỘ MENU) --%>
+            <c:when test="${sessionScope.user.role == 'ADMIN'}">
+                <div class="sidebar-section-title" style="padding:8px 12px 2px; font-size:11px; font-weight:700; color:#9ca3af; text-transform:uppercase; letter-spacing:0.5px;">
+                    HỆ THỐNG
+                </div>
+                <a href="${cp}/manage/admin/dashboard">Tổng quan Admin</a>
+                <a href="${cp}/manage/admin/accounts">Quản lý tài khoản</a>
+                <a href="${cp}/manage/admin/roles">Quản lý vai trò</a>
+                <a href="${cp}/manage/admin/permissions">Phân quyền Nhân viên</a>
 
-            <c:when test="${adminArea == 'sales'}">
-                <a href="${cp}/manage/sales/dashboard">Tổng quan</a>
-                <a href="${cp}/manage/sales/pos">Bán hàng POS</a>
-                <a href="${cp}/manage/sales/orders">Đơn hàng</a>
-                <a href="${cp}/manage/sales/customers">Khách hàng</a>
-                <a href="${cp}/manage/sales/reviews">Đánh giá</a>
-                <a href="${cp}/manage/sales/delivery">Vận chuyển</a>
-                <a href="${cp}/manage/sales/returns">Đổi trả</a>
-                <a href="${cp}/manage/sales/warranty">Bảo hành</a>
-                <a href="${cp}/manage/sales/report">Báo cáo</a>
+                <div class="sidebar-section-title" style="padding:10px 12px 2px; font-size:11px; font-weight:700; color:#9ca3af; text-transform:uppercase; letter-spacing:0.5px;">
+                    SẢN PHẨM & NỘI DUNG
+                </div>
+                <a href="${cp}/manage/admin/products">Quản lý sản phẩm</a>
+                <a href="${cp}/manage/admin/categories">Danh mục sản phẩm</a>
+                <a href="${cp}/manage/admin/brands">Thương hiệu đồng hồ</a>
+                <a href="${cp}/manage/admin/vouchers">Mã giảm giá (Voucher)</a>
+                <a href="${cp}/manage/admin/banners">Banner khuyến mãi</a>
+                <a href="${cp}/manage/admin/posts">Bài viết tin tức</a>
+
+                <div class="sidebar-section-title" style="padding:10px 12px 2px; font-size:11px; font-weight:700; color:#9ca3af; text-transform:uppercase; letter-spacing:0.5px;">
+                    BÁN HÀNG & KHO
+                </div>
+                <a href="${cp}/manage/sales/orders">Quản lý đơn hàng</a>
+                <a href="${cp}/manage/sales/customers">Quản lý khách hàng</a>
+                <a href="${cp}/manage/warehouse/inventory">Quản lý tồn kho</a>
+                <a href="${cp}/manage/warehouse/receipts">Phiếu nhập kho</a>
+                <a href="${cp}/manage/warehouse/exports">Phiếu xuất kho</a>
+                <a href="${cp}/manage/warehouse/stocktake">Phiếu kiểm kê</a>
+                <a href="${cp}/manage/admin/statistics">Thống kê hệ thống</a>
+                <a href="${cp}/manage/admin/reports">Báo cáo doanh thu</a>
             </c:when>
 
-            <c:when test="${adminArea == 'warehouse'}">
-                <a href="${cp}/manage/warehouse/dashboard">Tổng quan</a>
-                <a href="${cp}/manage/warehouse/search">Tra cứu</a>
-                <a href="${cp}/manage/warehouse/receipts">Phiếu nhập</a>
-                <a href="${cp}/manage/warehouse/exports">Phiếu xuất</a>
-                <a href="${cp}/manage/warehouse/inventory">Tồn kho</a>
-                <a href="${cp}/manage/warehouse/transactions">Biến động</a>
-                <a href="${cp}/manage/warehouse/stocktake">Kiểm kê</a>
-                <a href="${cp}/manage/warehouse/variants">Biến thể</a>
-                <a href="${cp}/manage/warehouse/alerts">Cảnh báo</a>
-                <a href="${cp}/manage/warehouse/reports">Báo cáo</a>
-                <a href="${cp}/manage/warehouse/account">Tài khoản cá nhân</a>
+            <%-- MODE 2: EMPLOYEE (HIỂN THỊ CÁC MENU CÓ QUYỀN VIEW TƯƠNG ỨNG) --%>
+            <c:when test="${sessionScope.user.role == 'EMPLOYEE'}">
+                <%-- SẢN PHẨM --%>
+                <c:if test="${sessionScope.userPermissions.contains('PRODUCT_VIEW')}">
+                    <a href="${cp}/manage/admin/products">Sản phẩm</a>
+                </c:if>
+
+                <%-- ĐƠN HÀNG --%>
+                <c:if test="${sessionScope.userPermissions.contains('ORDER_VIEW') || sessionScope.userPermissions.contains('SALES_ORDER')}">
+                    <a href="${cp}/manage/sales/orders">Đơn hàng</a>
+                </c:if>
+
+                <%-- KHÁCH HÀNG --%>
+                <c:if test="${sessionScope.userPermissions.contains('CUSTOMER_VIEW') || sessionScope.userPermissions.contains('SALES_CUSTOMER')}">
+                    <a href="${cp}/manage/sales/customers">Khách hàng</a>
+                </c:if>
+
+                <%-- KHO HÀNG --%>
+                <c:if test="${sessionScope.userPermissions.contains('INVENTORY_VIEW') || sessionScope.userPermissions.contains('WAREHOUSE_INVENTORY')}">
+                    <a href="${cp}/manage/warehouse/inventory">Tồn kho</a>
+                    <a href="${cp}/manage/warehouse/variants">Biến thể sản phẩm</a>
+                </c:if>
+
+                <%-- NHẬP KHO --%>
+                <c:if test="${sessionScope.userPermissions.contains('INVENTORY_CREATE') || sessionScope.userPermissions.contains('WAREHOUSE_RECEIPT')}">
+                    <a href="${cp}/manage/warehouse/receipts">Nhập kho</a>
+                </c:if>
+
+                <%-- XUẤT KHO --%>
+                <c:if test="${sessionScope.userPermissions.contains('INVENTORY_APPROVE') || sessionScope.userPermissions.contains('WAREHOUSE_EXPORT')}">
+                    <a href="${cp}/manage/warehouse/exports">Xuất kho</a>
+                </c:if>
+
+                <%-- KIỂM KÊ --%>
+                <c:if test="${sessionScope.userPermissions.contains('INVENTORY_CREATE') || sessionScope.userPermissions.contains('WAREHOUSE_STOCKTAKE')}">
+                    <a href="${cp}/manage/warehouse/stocktake">Kiểm kê</a>
+                </c:if>
+
+                <%-- VOUCHER --%>
+                <c:if test="${sessionScope.userPermissions.contains('VOUCHER_VIEW')}">
+                    <a href="${cp}/manage/admin/vouchers">Mã giảm giá (Voucher)</a>
+                </c:if>
+
+                <%-- BÁO CÁO --%>
+                <c:if test="${sessionScope.userPermissions.contains('REPORT_VIEW') || sessionScope.userPermissions.contains('SALES_REPORT') || sessionScope.userPermissions.contains('WAREHOUSE_REPORT') || sessionScope.userPermissions.contains('REPORT_EXPORT')}">
+                    <a href="${cp}/manage/sales/report">Báo cáo & Thống kê</a>
+                </c:if>
             </c:when>
 
+            <%-- MODE 3: OTHER (CUSTOMER / GUEST) --%>
             <c:otherwise>
-                <a href="${cp}/manage/admin/dashboard">Tổng quan</a>
-                <a href="${cp}/manage/admin/accounts">Tài khoản</a>
-                <a href="${cp}/manage/admin/roles">Vai trò</a>
-                <a href="${cp}/manage/admin/permissions">Phân quyền</a>
-                <a href="${cp}/manage/admin/products">Sản phẩm</a>
-                <a href="${cp}/manage/admin/categories">Danh mục</a>
-                <a href="${cp}/manage/admin/brands">Thương hiệu</a>
-                <a href="${cp}/manage/admin/vouchers">Voucher</a>
-                <a href="${cp}/manage/admin/banners">Banner</a>
-                <a href="${cp}/manage/admin/posts">Bài viết</a>
-                <a href="${cp}/manage/admin/notifications">Thông báo</a>
-                <a href="${cp}/manage/admin/statistics">Thống kê</a>
-                <a href="${cp}/manage/admin/reports">Báo cáo</a>
             </c:otherwise>
-
         </c:choose>
-
-        <div style="margin-top: 15px; padding: 8px 12px 4px 12px; font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.5px;">
-            TÀI KHOẢN
-        </div>
-
-        <a href="${cp}/page/profile">Thông tin cá nhân</a>
-        <a href="${cp}/page/change-password">Đổi mật khẩu</a>
-
     </nav>
 
     <a class="logout-link" href="${cp}/auth/logout">

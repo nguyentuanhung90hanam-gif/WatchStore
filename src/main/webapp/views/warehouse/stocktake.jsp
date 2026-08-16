@@ -8,7 +8,9 @@
         <h2>Danh sách Phiếu Kiểm Kê</h2>
         <p class="module-desc">Lịch sử và chứng từ kiểm đếm hàng hóa kho.</p>
     </div>
-    <a class="button button-gold" href="${cp}/manage/warehouse/stocktake-create">+ Tạo phiếu kiểm kê</a>
+    <c:if test="${sessionScope.user.role == 'ADMIN' || (not empty sessionScope.userPermissions && (sessionScope.userPermissions.contains('INVENTORY_CREATE') || sessionScope.userPermissions.contains('WAREHOUSE_STOCKTAKE')))}">
+        <a class="button button-gold" href="${cp}/manage/warehouse/stocktake-create">+ Tạo phiếu kiểm kê</a>
+    </c:if>
 </div>
 
 <c:if test="${not empty sessionScope.successMsg}">

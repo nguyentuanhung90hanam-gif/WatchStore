@@ -256,12 +256,11 @@ public class OrderRepository {
                     SubtotalAmount,
                     DiscountAmount,
                     ShippingFee,
-                    TaxAmount,
                     TotalAmount,
                     OrderStatus,
                     PaymentStatus
                 )
-                VALUES (?, ?, ?, ?, ?, ?, 0, 0, 0, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?)
                 """;
 
         try (Connection conn = DBContext.getConnection();
@@ -341,6 +340,19 @@ public class OrderRepository {
 
             return ps.executeUpdate() > 0;
 
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public boolean updatePaymentStatus(int id, String paymentStatus) {
+        String sql = "UPDATE Orders SET PaymentStatus = ? WHERE OrderID = ?";
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, paymentStatus);
+            ps.setInt(2, id);
+            return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             e.printStackTrace();
             return false;
@@ -537,7 +549,6 @@ public class OrderRepository {
                 (
                     OrderCode,
                     CustomerID,
-                    SalesStaffID,
                     VoucherID,
                     RecipientName,
                     RecipientPhone,
@@ -545,7 +556,6 @@ public class OrderRepository {
                     SubtotalAmount,
                     DiscountAmount,
                     ShippingFee,
-                    TaxAmount,
                     TotalAmount,
                     OrderStatus,
                     PaymentStatus,
@@ -554,7 +564,7 @@ public class OrderRepository {
                 )
                 VALUES
                 (
-                    ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?,
+                    ?, ?, ?, ?, ?, ?, ?, ?, 0, ?,
                     'COMPLETED',
                     'PAID',
                     GETDATE(),
@@ -893,56 +903,51 @@ public class OrderRepository {
                             : 4
             );
 
-            psOrder.setInt(
-                    3,
-                    staffId
-            );
-
             if (voucherId > 0) {
                 psOrder.setInt(
-                        4,
+                        3,
                         voucherId
                 );
             } else {
                 psOrder.setNull(
-                        4,
+                        3,
                         Types.INTEGER
                 );
             }
 
             psOrder.setString(
-                    5,
+                    4,
                     order.getCustomerName() != null
                             ? order.getCustomerName()
                             : "Khách mua tại quầy"
             );
 
             psOrder.setString(
-                    6,
+                    5,
                     order.getPhone() != null
                             ? order.getPhone()
                             : ""
             );
 
             psOrder.setString(
-                    7,
+                    6,
                     order.getShippingAddress() != null
                             ? order.getShippingAddress()
                             : "Mua tại quầy"
             );
 
             psOrder.setBigDecimal(
-                    8,
+                    7,
                     subtotal
             );
 
             psOrder.setBigDecimal(
-                    9,
+                    8,
                     discountAmount
             );
 
             psOrder.setBigDecimal(
-                    10,
+                    9,
                     finalTotal
             );
 

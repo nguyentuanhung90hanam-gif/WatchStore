@@ -199,6 +199,19 @@
     clearTimeout(window.watchStoreToast);
     window.watchStoreToast = setTimeout(() => node.remove(), 2200);
   }
+
+  document.querySelectorAll("[data-toggle-password]").forEach((btn) => {
+    btn.addEventListener("click", (event) => {
+      event.preventDefault();
+      const targetId = btn.dataset.togglePassword;
+      const input = document.getElementById(targetId);
+      if (!input) return;
+      const isPassword = input.type === "password";
+      input.type = isPassword ? "text" : "password";
+      btn.textContent = isPassword ? "Ẩn" : "Hiện";
+    });
+  });
+
   document.querySelectorAll("[data-demo-toast]").forEach((btn) =>
     btn.addEventListener("click", (event) => {
       if (btn.type !== "submit") event.preventDefault();

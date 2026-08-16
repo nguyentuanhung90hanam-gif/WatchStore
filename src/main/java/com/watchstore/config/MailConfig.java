@@ -19,8 +19,9 @@ public final class MailConfig {
         props.put("mail.smtp.auth", "true");
         props.put("mail.smtp.starttls.enable", "true");
         props.put("mail.smtp.ssl.protocols", "TLSv1.2 TLSv1.3");
-        props.put("mail.smtp.connectiontimeout", "5000");
-        props.put("mail.smtp.timeout", "5000");
+        props.put("mail.smtp.ssl.trust", HOST);
+        props.put("mail.smtp.connectiontimeout", "10000");
+        props.put("mail.smtp.timeout", "10000");
 
         return jakarta.mail.Session.getInstance(props, new jakarta.mail.Authenticator() {
             @Override
@@ -33,6 +34,12 @@ public final class MailConfig {
     private static String env(String primary, String secondary, String fallback) {
         String value = System.getenv(primary);
         if (value != null && !value.isBlank()) return value;
-        return System.getenv().getOrDefault(secondary, fallback);
+        value = System.getenv(secondary);
+        if (value != null && !value.isBlank()) return value;
+        value = System.getProperty(primary);
+        if (value != null && !value.isBlank()) return value;
+        value = System.getProperty(secondary);
+        if (value != null && !value.isBlank()) return value;
+        return fallback;
     }
 }

@@ -23,17 +23,9 @@ public class BannerRepositoryImpl implements BannerRepository {
         b.setTargetUrl(rs.getString("TargetUrl"));
         b.setPositionCode(rs.getString("PositionCode"));
         b.setDisplayOrder(rs.getInt("DisplayOrder"));
-
-        Timestamp ts = rs.getTimestamp("StartAt");
-        if (ts != null) b.setStartAt(ts.toLocalDateTime());
-        ts = rs.getTimestamp("EndAt");
-        if (ts != null) b.setEndAt(ts.toLocalDateTime());
-
         b.setStatus(rs.getString("Status"));
-        if (rs.getObject("CreatedBy") != null) {
-            b.setCreatedBy(rs.getInt("CreatedBy"));
-        }
-        ts = rs.getTimestamp("CreatedAt");
+
+        Timestamp ts = rs.getTimestamp("CreatedAt");
         if (ts != null) b.setCreatedAt(ts.toLocalDateTime());
 
         return b;

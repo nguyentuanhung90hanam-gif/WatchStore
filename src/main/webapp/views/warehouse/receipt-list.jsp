@@ -8,7 +8,9 @@
         <h2>Phiếu nhập kho</h2>
         <p class="module-desc">Lịch sử và chứng từ nhập kho vào hệ thống.</p>
     </div>
-    <a class="button button-gold" href="${cp}/manage/warehouse/receipt-create">+ Tạo phiếu nhập</a>
+    <c:if test="${sessionScope.user.role == 'ADMIN' || (not empty sessionScope.userPermissions && (sessionScope.userPermissions.contains('INVENTORY_CREATE') || sessionScope.userPermissions.contains('WAREHOUSE_RECEIPT')))}">
+        <a class="button button-gold" href="${cp}/manage/warehouse/receipt-create">+ Tạo phiếu nhập</a>
+    </c:if>
 </div>
 
 <c:if test="${not empty sessionScope.successMsg}">

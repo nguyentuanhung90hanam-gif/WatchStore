@@ -8,7 +8,9 @@
         <h2>Phiếu xuất kho</h2>
         <p class="module-desc">Lịch sử xuất bán, chuyển kho và xuất hủy.</p>
     </div>
-    <a class="button button-gold" href="${cp}/manage/warehouse/export-create">+ Tạo phiếu xuất</a>
+    <c:if test="${sessionScope.user.role == 'ADMIN' || (not empty sessionScope.userPermissions && (sessionScope.userPermissions.contains('INVENTORY_CREATE') || sessionScope.userPermissions.contains('WAREHOUSE_EXPORT')))}">
+        <a class="button button-gold" href="${cp}/manage/warehouse/export-create">+ Tạo phiếu xuất</a>
+    </c:if>
 </div>
 
 <c:if test="${not empty sessionScope.successMsg}">

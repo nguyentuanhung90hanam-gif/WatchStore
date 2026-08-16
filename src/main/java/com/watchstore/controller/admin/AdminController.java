@@ -4,7 +4,6 @@ import com.watchstore.model.Order;
 import com.watchstore.model.User;
 import com.watchstore.repository.BrandRepository;
 import com.watchstore.repository.CategoryRepository;
-import com.watchstore.repository.MockDataStore;
 import com.watchstore.repository.OrderRepository;
 import com.watchstore.repository.ProductRepository;
 import com.watchstore.repository.StatisticRepository;
@@ -242,7 +241,7 @@ public class AdminController extends HttpServlet {
 
             req.setAttribute(
                     "products",
-                    MockDataStore.products()
+                    java.util.Collections.emptyList()
             );
         }
     }
@@ -287,7 +286,7 @@ public class AdminController extends HttpServlet {
 
             req.setAttribute(
                     "orders",
-                    MockDataStore.orders()
+                    java.util.Collections.emptyList()
             );
         }
     }
@@ -300,7 +299,7 @@ public class AdminController extends HttpServlet {
         if (userRepository == null) {
 
             List<User> users =
-                    MockDataStore.users();
+                    java.util.Collections.emptyList();
 
             req.setAttribute(
                     "users",
@@ -331,7 +330,7 @@ public class AdminController extends HttpServlet {
 
         if (users == null) {
             users =
-                    MockDataStore.users();
+                    java.util.Collections.emptyList();
         }
 
         req.setAttribute(

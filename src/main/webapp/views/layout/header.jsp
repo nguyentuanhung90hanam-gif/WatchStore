@@ -56,9 +56,22 @@
                         </a>
                     </c:when>
                     <c:otherwise>
-                        <a class="pro-action hide-mobile" href="${cp}/page/profile" aria-label="Tài khoản">
-                            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4.5 21a7.5 7.5 0 0 1 15 0"/></svg><span>Tài khoản</span>
-                        </a>
+                        <div class="user-avatar-dropdown" style="position:relative; display:inline-block;">
+                            <a class="pro-action hide-mobile" href="${cp}/page/profile" aria-label="Tài khoản">
+                                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4.5 21a7.5 7.5 0 0 1 15 0"/></svg><span>${sessionScope.user.fullName}</span>
+                            </a>
+                            <div class="dropdown-menu-box" style="display:none; position:absolute; right:0; top:100%; background:#fff; min-width:180px; box-shadow:0 4px 16px rgba(0,0,0,0.15); border-radius:8px; padding:8px 0; z-index:1000; border:1px solid #eee;">
+                                <a href="${cp}/page/profile" style="display:block; padding:8px 16px; color:#333; font-size:13px; text-decoration:none;">Thông tin tài khoản</a>
+                                <a href="${cp}/page/profile" style="display:block; padding:8px 16px; color:#333; font-size:13px; text-decoration:none;">Chỉnh sửa hồ sơ</a>
+                                <a href="${cp}/page/change-password" style="display:block; padding:8px 16px; color:#333; font-size:13px; text-decoration:none;">Đổi mật khẩu</a>
+                                <a href="${cp}/auth/logout" style="display:block; padding:8px 16px; color:#e53935; font-size:13px; text-decoration:none; border-top:1px solid #eee;">Đăng xuất</a>
+                            </div>
+                        </div>
+                        <style>
+                            .user-avatar-dropdown:hover .dropdown-menu-box,
+                            .user-avatar-dropdown:focus-within .dropdown-menu-box { display: block !important; }
+                            .user-avatar-dropdown .dropdown-menu-box a:hover { background: #f5f5f5; color: #d4af37 !important; }
+                        </style>
                     </c:otherwise>
                 </c:choose>
                 <a class="pro-action icon-only hide-mobile" href="${cp}/page/wishlist" aria-label="Yêu thích">

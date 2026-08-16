@@ -53,7 +53,7 @@ public class StocktakeRepository {
                 "WHERE st.StocktakeID = ?";
 
         String sqlItems = "SELECT sti.*, pv.SKU, p.ProductName, " +
-                "(SELECT STRING_AGG(pa.AttributeName + ': ' + pav.ValueName, ', ') " +
+                "(SELECT STRING_AGG(pa.AttributeName + ': ' + pav.ValueText, ', ') " +
                 " FROM dbo.VariantAttributeValues vav " +
                 " INNER JOIN dbo.ProductAttributeValues pav ON vav.AttributeValueID = pav.AttributeValueID " +
                 " INNER JOIN dbo.ProductAttributes pa ON pav.AttributeID = pa.AttributeID " +

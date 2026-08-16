@@ -394,14 +394,16 @@
     <div class="report-box">
         <div class="report-box-header">
             <h2>Chi tiết báo cáo</h2>
-            <div class="export-buttons" style="display:flex; gap:10px;">
-                <button type="button" onclick="exportToExcel()" class="btn" style="background:#16a34a; color:white; font-size:13px; height:34px; padding:0 14px;">
-                    📥 Xuất Excel
-                </button>
-                <button type="button" onclick="exportToPDF()" class="btn" style="background:#dc2626; color:white; font-size:13px; height:34px; padding:0 14px;">
-                    📄 Xuất PDF
-                </button>
-            </div>
+            <c:if test="${sessionScope.user.role == 'ADMIN' || (not empty sessionScope.userPermissions && (sessionScope.userPermissions.contains('REPORT_EXPORT') || sessionScope.userPermissions.contains('SALES_REPORT')))}">
+                <div class="export-buttons" style="display:flex; gap:10px;">
+                    <button type="button" onclick="exportToExcel()" class="btn" style="background:#16a34a; color:white; font-size:13px; height:34px; padding:0 14px;">
+                        📥 Xuất Excel
+                    </button>
+                    <button type="button" onclick="exportToPDF()" class="btn" style="background:#dc2626; color:white; font-size:13px; height:34px; padding:0 14px;">
+                        📄 Xuất PDF
+                    </button>
+                </div>
+            </c:if>
         </div>
 
         <table>

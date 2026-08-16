@@ -2,6 +2,7 @@ package com.watchstore.controller.admin;
 
 import com.watchstore.model.Role;
 import com.watchstore.model.User;
+import com.watchstore.repository.PermissionRepository;
 import com.watchstore.repository.RoleRepository;
 import com.watchstore.repository.UserRepository;
 
@@ -26,13 +27,16 @@ public class AccountController extends HttpServlet {
 
     private UserRepository userRepository;
     private RoleRepository roleRepository;
+    private PermissionRepository permissionRepository;
 
     @Override
     public void init() {
         userRepository = (UserRepository) getServletContext().getAttribute("userRepository");
         roleRepository = (RoleRepository) getServletContext().getAttribute("roleRepository");
+        permissionRepository = (PermissionRepository) getServletContext().getAttribute("permissionRepository");
         if (userRepository == null) userRepository = new com.watchstore.repository.UserRepositoryImpl();
         if (roleRepository == null) roleRepository = new com.watchstore.repository.RoleRepositoryImpl();
+        if (permissionRepository == null) permissionRepository = new com.watchstore.repository.PermissionRepositoryImpl();
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────────────
@@ -84,12 +88,8 @@ public class AccountController extends HttpServlet {
                 req.setAttribute("account", null);
                 req.setAttribute("user", null);
                 req.setAttribute("formMode", "add");
+                req.setAttribute("employeeType", "");
                 req.setAttribute("selectedRoleIds", new ArrayList<Integer>());
-
-                System.out.println("[DEBUG AccountController] ACCOUNT ADD MODE");
-                System.out.println("formMode = " + req.getAttribute("formMode"));
-                System.out.println("account = " + req.getAttribute("account"));
-                System.out.println("user = " + req.getAttribute("user"));
 
                 forwardToForm(req, resp, "Thêm tài khoản");
                 break;
@@ -99,6 +99,8 @@ public class AccountController extends HttpServlet {
                 String idStr = req.getParameter("id");
                 User account = null;
                 List<Integer> selectedRoleIds = new ArrayList<>();
+                String employeeType = "";
+
                 if (idStr != null && !idStr.isBlank()) {
                     try {
                         int id = Integer.parseInt(idStr);
@@ -108,16 +110,28 @@ public class AccountController extends HttpServlet {
                                 selectedRoleIds.add(r.getRoleId());
                             }
                         }
+
+                        if (account != null) {
+                            java.util.Set<String> perms = permissionRepository.getUserPermissionCodes(account.getUserId());
+                            boolean hasSales = perms != null && perms.stream().anyMatch(p -> p != null && p.startsWith("SALES_"));
+                            boolean hasWarehouse = perms != null && perms.stream().anyMatch(p -> p != null && p.startsWith("WAREHOUSE_"));
+
+                            if (hasSales && hasWarehouse) {
+                                req.setAttribute("errorMessage", "Dữ liệu RBAC không hợp lệ: Tài khoản đang có cả 2 nhóm quyền Bán hàng và Kho. Vui lòng chọn lại loại nhân viên.");
+                                employeeType = "";
+                            } else if (hasSales) {
+                                employeeType = "SALES";
+                            } else if (hasWarehouse) {
+                                employeeType = "WAREHOUSE";
+                            }
+                        }
                     } catch (NumberFormatException ignored) {}
                 }
                 req.setAttribute("account", account);
                 req.setAttribute("user", account);
                 req.setAttribute("formMode", "edit");
+                req.setAttribute("employeeType", employeeType);
                 req.setAttribute("selectedRoleIds", selectedRoleIds);
-
-                System.out.println("[DEBUG AccountController] ACCOUNT EDIT MODE");
-                System.out.println("formMode = " + req.getAttribute("formMode"));
-                System.out.println("account = " + req.getAttribute("account"));
 
                 forwardToForm(req, resp, "Sửa tài khoản");
                 break;
@@ -193,9 +207,11 @@ public class AccountController extends HttpServlet {
         String gender      = trim(req.getParameter("gender"));
         String dobStr      = trim(req.getParameter("dateOfBirth"));
         String status      = trim(req.getParameter("status"));
+        String employeeType = trim(req.getParameter("employeeType"));
         String[] roleIdStrs = req.getParameterValues("roleIds");
 
         List<Integer> roleIds = parseRoleIds(roleIdStrs);
+        boolean isEmployee = isEmployeeRoleSelected(roleIds);
 
         // Validation
         String error = validateUser(email, fullName, password, phone, dobStr, status, true);
@@ -205,10 +221,13 @@ public class AccountController extends HttpServlet {
         if (error == null && !phone.isEmpty() && userRepository.existsByPhone(phone, null)) {
             error = "Số điện thoại \"" + phone + "\" đã được sử dụng.";
         }
+        if (error == null && isEmployee && !"SALES".equalsIgnoreCase(employeeType) && !"WAREHOUSE".equalsIgnoreCase(employeeType)) {
+            error = "Vui lòng chọn loại nhân viên: ( ) Nhân viên bán hàng hoặc ( ) Nhân viên kho.";
+        }
 
         if (error != null) {
             User draft = buildUser(0, email, null, fullName, phone, gender, dobStr, status);
-            showFormWithError(req, resp, draft, roleIds, error, "Thêm tài khoản", "add");
+            showFormWithError(req, resp, draft, roleIds, employeeType, error, "Thêm tài khoản", "add");
             return;
         }
 
@@ -217,6 +236,13 @@ public class AccountController extends HttpServlet {
 
         User user = buildUser(0, email, passwordHash, fullName, phone, gender, dobStr, status);
         userRepository.insert(user, roleIds);
+
+        if (isEmployee) {
+            updateEmployeePermissions(user.getUserId(), employeeType);
+        } else {
+            permissionRepository.updateUserPermissions(user.getUserId(), java.util.Collections.emptyList());
+        }
+
         resp.sendRedirect(req.getContextPath() + "/manage/admin/accounts");
     }
 
@@ -233,12 +259,14 @@ public class AccountController extends HttpServlet {
         String gender      = trim(req.getParameter("gender"));
         String dobStr      = trim(req.getParameter("dateOfBirth"));
         String status      = trim(req.getParameter("status"));
+        String employeeType = trim(req.getParameter("employeeType"));
         String[] roleIdStrs = req.getParameterValues("roleIds");
 
         int id = 0;
         try { id = Integer.parseInt(idStr); } catch (NumberFormatException ignored) {}
 
         List<Integer> roleIds = parseRoleIds(roleIdStrs);
+        boolean isEmployee = isEmployeeRoleSelected(roleIds);
 
         // Validation — password không bắt buộc khi update
         String error = validateUser(email, fullName, password, phone, dobStr, status, false);
@@ -248,10 +276,13 @@ public class AccountController extends HttpServlet {
         if (error == null && !phone.isEmpty() && userRepository.existsByPhone(phone, id)) {
             error = "Số điện thoại \"" + phone + "\" đã được dùng bởi tài khoản khác.";
         }
+        if (error == null && isEmployee && !"SALES".equalsIgnoreCase(employeeType) && !"WAREHOUSE".equalsIgnoreCase(employeeType)) {
+            error = "Vui lòng chọn loại nhân viên: ( ) Nhân viên bán hàng hoặc ( ) Nhân viên kho.";
+        }
 
         if (error != null) {
             User draft = buildUser(id, email, null, fullName, phone, gender, dobStr, status);
-            showFormWithError(req, resp, draft, roleIds, error, "Sửa tài khoản", "edit");
+            showFormWithError(req, resp, draft, roleIds, employeeType, error, "Sửa tài khoản", "edit");
             return;
         }
 
@@ -266,21 +297,59 @@ public class AccountController extends HttpServlet {
 
         User user = buildUser(id, email, passwordHash, fullName, phone, gender, dobStr, status);
         userRepository.update(user, roleIds);
+
+        if (isEmployee) {
+            updateEmployeePermissions(user.getUserId(), employeeType);
+        } else {
+            permissionRepository.updateUserPermissions(user.getUserId(), java.util.Collections.emptyList());
+        }
+
         resp.sendRedirect(req.getContextPath() + "/manage/admin/accounts");
     }
 
     // ─── Utilities ───────────────────────────────────────────────────────────
 
     private void showFormWithError(HttpServletRequest req, HttpServletResponse resp,
-                                   User draft, List<Integer> roleIds, String error,
-                                   String pageTitle, String formMode)
+                                   User draft, List<Integer> roleIds, String employeeType,
+                                   String error, String pageTitle, String formMode)
             throws ServletException, IOException {
         req.setAttribute("errorMessage", error);
         req.setAttribute("account", draft);
         req.setAttribute("user", draft);
         req.setAttribute("formMode", formMode);
+        req.setAttribute("employeeType", employeeType);
         req.setAttribute("selectedRoleIds", roleIds);
         forwardToForm(req, resp, pageTitle);
+    }
+
+    private boolean isEmployeeRoleSelected(List<Integer> roleIds) {
+        if (roleIds == null || roleIds.isEmpty()) return false;
+        List<Role> allRoles = roleRepository.findAll();
+        for (Role r : allRoles) {
+            if ("EMPLOYEE".equalsIgnoreCase(r.getRoleCode()) && roleIds.contains(r.getRoleId())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void updateEmployeePermissions(int userId, String employeeType) {
+        List<com.watchstore.model.Permission> allPerms = permissionRepository.findAll();
+        List<Integer> targetPermIds = new ArrayList<>();
+        if ("SALES".equalsIgnoreCase(employeeType)) {
+            for (com.watchstore.model.Permission p : allPerms) {
+                if ("SALES".equalsIgnoreCase(p.getModuleCode()) || (p.getPermissionCode() != null && p.getPermissionCode().startsWith("SALES_"))) {
+                    targetPermIds.add(p.getPermissionId());
+                }
+            }
+        } else if ("WAREHOUSE".equalsIgnoreCase(employeeType)) {
+            for (com.watchstore.model.Permission p : allPerms) {
+                if ("WAREHOUSE".equalsIgnoreCase(p.getModuleCode()) || (p.getPermissionCode() != null && p.getPermissionCode().startsWith("WAREHOUSE_"))) {
+                    targetPermIds.add(p.getPermissionId());
+                }
+            }
+        }
+        permissionRepository.updateUserPermissions(userId, targetPermIds);
     }
 
     private String trim(String s) {

@@ -260,6 +260,6 @@ public class RoleController extends HttpServlet {
     private boolean isSystemRoleCode(String roleCode) {
         if (roleCode == null) return false;
         String code = roleCode.trim().toUpperCase();
-        return "ADMIN".equals(code) || "SALES".equals(code) || "WAREHOUSE".equals(code) || "CUSTOMER".equals(code);
+        return "ADMIN".equals(code) || "EMPLOYEE".equals(code) || "CUSTOMER".equals(code);
     }
 }

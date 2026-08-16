@@ -16,9 +16,9 @@ public class NotificationRepositoryImpl implements NotificationRepository {
     private Notification mapRow(ResultSet rs) throws SQLException {
         Notification n = new Notification();
         n.setNotificationId(rs.getLong("NotificationID"));
-        n.setNotificationType(rs.getString("NotificationType"));
+        n.setNotificationType(rs.getString("TargetType"));
         n.setTitle(rs.getString("Title"));
-        n.setMessage(rs.getString("Message"));
+        n.setMessage(rs.getString("Content"));
         n.setTargetUrl(rs.getString("TargetUrl"));
 
         if (rs.getObject("CreatedBy") != null) {
@@ -30,8 +30,6 @@ public class NotificationRepositoryImpl implements NotificationRepository {
 
         Timestamp ts = rs.getTimestamp("CreatedAt");
         if (ts != null) n.setCreatedAt(ts.toLocalDateTime());
-        ts = rs.getTimestamp("ExpiresAt");
-        if (ts != null) n.setExpiresAt(ts.toLocalDateTime());
 
         return n;
     }
@@ -85,7 +83,7 @@ public class NotificationRepositoryImpl implements NotificationRepository {
         if (keyword == null || keyword.isBlank()) return findAll();
         List<Notification> list = new ArrayList<>();
         String sql = getSelectSql() + """
-            WHERE n.Title LIKE ? OR n.Message LIKE ? OR n.NotificationType LIKE ?
+            WHERE n.Title LIKE ? OR n.Content LIKE ? OR n.TargetType LIKE ?
             ORDER BY n.NotificationID DESC
             """;
 
@@ -110,14 +108,14 @@ public class NotificationRepositoryImpl implements NotificationRepository {
     @Override
     public boolean insert(Notification notification) {
         String sql = """
-            INSERT INTO Notifications (NotificationType, Title, Message, TargetUrl, CreatedBy)
+            INSERT INTO Notifications (TargetType, Title, Content, TargetUrl, CreatedBy)
             VALUES (?, ?, ?, ?, ?)
             """;
 
         try (Connection con = getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
 
-            ps.setString(1, notification.getNotificationType() != null ? notification.getNotificationType() : "SYSTEM");
+            ps.setString(1, notification.getNotificationType() != null ? notification.getNotificationType() : "ALL");
             ps.setString(2, notification.getTitle());
             ps.setString(3, notification.getMessage());
             ps.setString(4, notification.getTargetUrl());
@@ -139,14 +137,14 @@ public class NotificationRepositoryImpl implements NotificationRepository {
     public boolean update(Notification notification) {
         String sql = """
             UPDATE Notifications
-            SET NotificationType = ?, Title = ?, Message = ?, TargetUrl = ?
+            SET TargetType = ?, Title = ?, Content = ?, TargetUrl = ?
             WHERE NotificationID = ?
             """;
 
         try (Connection con = getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
 
-            ps.setString(1, notification.getNotificationType() != null ? notification.getNotificationType() : "SYSTEM");
+            ps.setString(1, notification.getNotificationType() != null ? notification.getNotificationType() : "ALL");
             ps.setString(2, notification.getTitle());
             ps.setString(3, notification.getMessage());
             ps.setString(4, notification.getTargetUrl());

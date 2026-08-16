@@ -527,68 +527,195 @@
                     <c:otherwise>
 
                         <div class="permission-matrix">
+                            <form action="${pageContext.request.contextPath}/manage/admin/permissions" method="post">
+                                <input type="hidden" name="userId" value="${selectedUserId}" />
 
-                            <table>
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Module</th>
+                                            <th>Xem</th>
+                                            <th>Thêm</th>
+                                            <th>Sửa</th>
+                                            <th>Duyệt</th>
+                                            <th>Xuất báo cáo</th>
+                                        </tr>
+                                    </thead>
 
-                                <thead>
+                                    <tbody>
+                                        <%-- SẢN PHẨM --%>
+                                        <tr>
+                                            <td><b>Sản phẩm</b></td>
+                                            <td>
+                                                <c:if test="${not empty permByCode['PRODUCT_VIEW']}">
+                                                    <input type="checkbox" name="permissionIds" value="${permByCode['PRODUCT_VIEW'].permissionId}"
+                                                           ${activePermissionIds.contains(permByCode['PRODUCT_VIEW'].permissionId) ? 'checked' : ''}>
+                                                </c:if>
+                                            </td>
+                                            <td>
+                                                <c:if test="${not empty permByCode['PRODUCT_CREATE']}">
+                                                    <input type="checkbox" name="permissionIds" value="${permByCode['PRODUCT_CREATE'].permissionId}"
+                                                           ${activePermissionIds.contains(permByCode['PRODUCT_CREATE'].permissionId) ? 'checked' : ''}>
+                                                </c:if>
+                                            </td>
+                                            <td>
+                                                <c:if test="${not empty permByCode['PRODUCT_EDIT']}">
+                                                    <input type="checkbox" name="permissionIds" value="${permByCode['PRODUCT_EDIT'].permissionId}"
+                                                           ${activePermissionIds.contains(permByCode['PRODUCT_EDIT'].permissionId) ? 'checked' : ''}>
+                                                </c:if>
+                                            </td>
+                                            <td>—</td>
+                                            <td>—</td>
+                                        </tr>
 
-                                <tr>
-                                    <th>Module</th>
-                                    <th>Xem</th>
-                                    <th>Thêm</th>
-                                    <th>Sửa</th>
-                                    <th>Duyệt</th>
-                                    <th>Xuất báo cáo</th>
-                                </tr>
+                                        <%-- ĐƠN HÀNG --%>
+                                        <tr>
+                                            <td><b>Đơn hàng</b></td>
+                                            <td>
+                                                <c:if test="${not empty permByCode['ORDER_VIEW']}">
+                                                    <input type="checkbox" name="permissionIds" value="${permByCode['ORDER_VIEW'].permissionId}"
+                                                           ${activePermissionIds.contains(permByCode['ORDER_VIEW'].permissionId) || activePermissionIds.contains(permByCode['SALES_ORDER'].permissionId) ? 'checked' : ''}>
+                                                </c:if>
+                                            </td>
+                                            <td>
+                                                <c:if test="${not empty permByCode['ORDER_CREATE']}">
+                                                    <input type="checkbox" name="permissionIds" value="${permByCode['ORDER_CREATE'].permissionId}"
+                                                           ${activePermissionIds.contains(permByCode['ORDER_CREATE'].permissionId) ? 'checked' : ''}>
+                                                </c:if>
+                                            </td>
+                                            <td>
+                                                <c:if test="${not empty permByCode['ORDER_EDIT']}">
+                                                    <input type="checkbox" name="permissionIds" value="${permByCode['ORDER_EDIT'].permissionId}"
+                                                           ${activePermissionIds.contains(permByCode['ORDER_EDIT'].permissionId) ? 'checked' : ''}>
+                                                </c:if>
+                                            </td>
+                                            <td>
+                                                <c:if test="${not empty permByCode['ORDER_APPROVE']}">
+                                                    <input type="checkbox" name="permissionIds" value="${permByCode['ORDER_APPROVE'].permissionId}"
+                                                           ${activePermissionIds.contains(permByCode['ORDER_APPROVE'].permissionId) ? 'checked' : ''}>
+                                                </c:if>
+                                            </td>
+                                            <td>
+                                                <c:if test="${not empty permByCode['ORDER_EXPORT']}">
+                                                    <input type="checkbox" name="permissionIds" value="${permByCode['ORDER_EXPORT'].permissionId}"
+                                                           ${activePermissionIds.contains(permByCode['ORDER_EXPORT'].permissionId) ? 'checked' : ''}>
+                                                </c:if>
+                                            </td>
+                                        </tr>
 
-                                </thead>
+                                        <%-- KHÁCH HÀNG --%>
+                                        <tr>
+                                            <td><b>Khách hàng</b></td>
+                                            <td>
+                                                <c:if test="${not empty permByCode['CUSTOMER_VIEW']}">
+                                                    <input type="checkbox" name="permissionIds" value="${permByCode['CUSTOMER_VIEW'].permissionId}"
+                                                           ${activePermissionIds.contains(permByCode['CUSTOMER_VIEW'].permissionId) || activePermissionIds.contains(permByCode['SALES_CUSTOMER'].permissionId) ? 'checked' : ''}>
+                                                </c:if>
+                                            </td>
+                                            <td>
+                                                <c:if test="${not empty permByCode['CUSTOMER_CREATE']}">
+                                                    <input type="checkbox" name="permissionIds" value="${permByCode['CUSTOMER_CREATE'].permissionId}"
+                                                           ${activePermissionIds.contains(permByCode['CUSTOMER_CREATE'].permissionId) ? 'checked' : ''}>
+                                                </c:if>
+                                            </td>
+                                            <td>
+                                                <c:if test="${not empty permByCode['CUSTOMER_EDIT']}">
+                                                    <input type="checkbox" name="permissionIds" value="${permByCode['CUSTOMER_EDIT'].permissionId}"
+                                                           ${activePermissionIds.contains(permByCode['CUSTOMER_EDIT'].permissionId) ? 'checked' : ''}>
+                                                </c:if>
+                                            </td>
+                                            <td>—</td>
+                                            <td>—</td>
+                                        </tr>
 
-                                <tbody>
+                                        <%-- KHO HÀNG --%>
+                                        <tr>
+                                            <td><b>Kho hàng</b></td>
+                                            <td>
+                                                <c:if test="${not empty permByCode['INVENTORY_VIEW']}">
+                                                    <input type="checkbox" name="permissionIds" value="${permByCode['INVENTORY_VIEW'].permissionId}"
+                                                           ${activePermissionIds.contains(permByCode['INVENTORY_VIEW'].permissionId) || activePermissionIds.contains(permByCode['WAREHOUSE_INVENTORY'].permissionId) ? 'checked' : ''}>
+                                                </c:if>
+                                            </td>
+                                            <td>
+                                                <c:if test="${not empty permByCode['INVENTORY_CREATE']}">
+                                                    <input type="checkbox" name="permissionIds" value="${permByCode['INVENTORY_CREATE'].permissionId}"
+                                                           ${activePermissionIds.contains(permByCode['INVENTORY_CREATE'].permissionId) || activePermissionIds.contains(permByCode['WAREHOUSE_RECEIPT'].permissionId) ? 'checked' : ''}>
+                                                </c:if>
+                                            </td>
+                                            <td>
+                                                <c:if test="${not empty permByCode['INVENTORY_EDIT']}">
+                                                    <input type="checkbox" name="permissionIds" value="${permByCode['INVENTORY_EDIT'].permissionId}"
+                                                           ${activePermissionIds.contains(permByCode['INVENTORY_EDIT'].permissionId) ? 'checked' : ''}>
+                                                </c:if>
+                                            </td>
+                                            <td>
+                                                <c:if test="${not empty permByCode['INVENTORY_APPROVE']}">
+                                                    <input type="checkbox" name="permissionIds" value="${permByCode['INVENTORY_APPROVE'].permissionId}"
+                                                           ${activePermissionIds.contains(permByCode['INVENTORY_APPROVE'].permissionId) || activePermissionIds.contains(permByCode['WAREHOUSE_EXPORT'].permissionId) ? 'checked' : ''}>
+                                                </c:if>
+                                            </td>
+                                            <td>
+                                                <c:if test="${not empty permByCode['INVENTORY_EXPORT']}">
+                                                    <input type="checkbox" name="permissionIds" value="${permByCode['INVENTORY_EXPORT'].permissionId}"
+                                                           ${activePermissionIds.contains(permByCode['INVENTORY_EXPORT'].permissionId) || activePermissionIds.contains(permByCode['WAREHOUSE_REPORT'].permissionId) ? 'checked' : ''}>
+                                                </c:if>
+                                            </td>
+                                        </tr>
 
-                                <c:forTokens
-                                        items="Sản phẩm,Đơn hàng,Khách hàng,Kho hàng,Voucher,Báo cáo"
-                                        delims=","
-                                        var="item">
+                                        <%-- VOUCHER --%>
+                                        <tr>
+                                            <td><b>Voucher</b></td>
+                                            <td>
+                                                <c:if test="${not empty permByCode['VOUCHER_VIEW']}">
+                                                    <input type="checkbox" name="permissionIds" value="${permByCode['VOUCHER_VIEW'].permissionId}"
+                                                           ${activePermissionIds.contains(permByCode['VOUCHER_VIEW'].permissionId) ? 'checked' : ''}>
+                                                </c:if>
+                                            </td>
+                                            <td>
+                                                <c:if test="${not empty permByCode['VOUCHER_CREATE']}">
+                                                    <input type="checkbox" name="permissionIds" value="${permByCode['VOUCHER_CREATE'].permissionId}"
+                                                           ${activePermissionIds.contains(permByCode['VOUCHER_CREATE'].permissionId) ? 'checked' : ''}>
+                                                </c:if>
+                                            </td>
+                                            <td>
+                                                <c:if test="${not empty permByCode['VOUCHER_EDIT']}">
+                                                    <input type="checkbox" name="permissionIds" value="${permByCode['VOUCHER_EDIT'].permissionId}"
+                                                           ${activePermissionIds.contains(permByCode['VOUCHER_EDIT'].permissionId) ? 'checked' : ''}>
+                                                </c:if>
+                                            </td>
+                                            <td>—</td>
+                                            <td>—</td>
+                                        </tr>
 
-                                    <tr>
+                                        <%-- BÁO CÁO --%>
+                                        <tr>
+                                            <td><b>Báo cáo</b></td>
+                                            <td>
+                                                <c:if test="${not empty permByCode['REPORT_VIEW']}">
+                                                    <input type="checkbox" name="permissionIds" value="${permByCode['REPORT_VIEW'].permissionId}"
+                                                           ${activePermissionIds.contains(permByCode['REPORT_VIEW'].permissionId) || activePermissionIds.contains(permByCode['SALES_REPORT'].permissionId) ? 'checked' : ''}>
+                                                </c:if>
+                                            </td>
+                                            <td>—</td>
+                                            <td>—</td>
+                                            <td>—</td>
+                                            <td>
+                                                <c:if test="${not empty permByCode['REPORT_EXPORT']}">
+                                                    <input type="checkbox" name="permissionIds" value="${permByCode['REPORT_EXPORT'].permissionId}"
+                                                           ${activePermissionIds.contains(permByCode['REPORT_EXPORT'].permissionId) ? 'checked' : ''}>
+                                                </c:if>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
 
-                                        <td>
-                                            <b>${item}</b>
-                                        </td>
-
-                                        <td>
-                                            <input type="checkbox" checked>
-                                        </td>
-
-                                        <td>
-                                            <input type="checkbox" checked>
-                                        </td>
-
-                                        <td>
-                                            <input type="checkbox" checked>
-                                        </td>
-
-                                        <td>
-                                            <input type="checkbox">
-                                        </td>
-
-                                        <td>
-                                            <input type="checkbox">
-                                        </td>
-
-                                    </tr>
-
-                                </c:forTokens>
-
-                                </tbody>
-
-                            </table>
-
-                            <button class="button button-dark"
-                                    data-demo-toast="Đã lưu ma trận phân quyền">
-                                Lưu phân quyền
-                            </button>
-
+                                <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
+                                    <button type="submit" class="button button-gold">
+                                        Lưu phân quyền
+                                    </button>
+                                </div>
+                            </form>
                         </div>
 
                     </c:otherwise>

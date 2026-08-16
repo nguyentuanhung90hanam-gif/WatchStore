@@ -307,6 +307,9 @@ public class PageController extends HttpServlet {
         String dateOfBirth =
                 req.getParameter("dateOfBirth");
 
+        String address =
+                req.getParameter("address");
+
         LocalDate dob =
                 parseDate(dateOfBirth);
 
@@ -324,10 +327,9 @@ public class PageController extends HttpServlet {
                 );
 
         if (updatedUser != null) {
-            updatedUser.setAddress(
-                    user.getAddress()
-            );
-
+            if (address != null && !address.isBlank()) {
+                updatedUser.setAddress(address.trim());
+            }
             req.getSession().setAttribute(
                     "user",
                     updatedUser

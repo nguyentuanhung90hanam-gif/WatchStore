@@ -57,6 +57,14 @@ public class Brand {
         this.originCountry = originCountry;
     }
 
+    public String getCountry() {
+        return originCountry;
+    }
+
+    public void setCountry(String country) {
+        this.originCountry = country;
+    }
+
     public String getLogoUrl() {
         return logoUrl;
     }

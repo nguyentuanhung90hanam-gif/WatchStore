@@ -112,7 +112,7 @@ public class StockExportRepository {
                 "SELECT sei.*, " +
                         "p.ProductName, " +
                         "pv.SKU, " +
-                        "ISNULL((SELECT STRING_AGG(pa.AttributeName + ': ' + pav.ValueName, ', ') " +
+                        "ISNULL((SELECT STRING_AGG(pa.AttributeName + ': ' + pav.ValueText, ', ') " +
                         " FROM dbo.VariantAttributeValues vav " +
                         " INNER JOIN dbo.ProductAttributeValues pav ON vav.AttributeValueID = pav.AttributeValueID " +
                         " INNER JOIN dbo.ProductAttributes pa ON pav.AttributeID = pa.AttributeID " +

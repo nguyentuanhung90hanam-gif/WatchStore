@@ -31,7 +31,7 @@ public class UserAccountRepository {
             try (ResultSet rs = ps.executeQuery()) {
                 if (!rs.next()) throw new Exception("Tài khoản không tồn tại.");
                 Date dob = rs.getDate("DateOfBirth");
-                return new User(
+                User user = new User(
                         rs.getInt("UserID"),
                         rs.getString("FullName"),
                         rs.getString("Email"),
@@ -42,6 +42,7 @@ public class UserAccountRepository {
                         rs.getString("AvatarUrl"),
                         rs.getString("Status")
                 );
+                return user;
             }
         } catch (SQLException e) {
             throw new Exception("Không thể tải thông tin tài khoản.", e);
@@ -49,33 +50,16 @@ public class UserAccountRepository {
     }
 
     public void updateProfile(int userId, String fullName, String phone) throws Exception {
-        if (userId <= 0) throw new Exception("Tài khoản không hợp lệ.");
-        if (fullName == null || fullName.isBlank()) throw new Exception("Họ và tên không được để trống.");
-        String normalizedName = fullName.trim();
-        if (normalizedName.length() > 150) throw new Exception("Họ và tên không được vượt quá 150 ký tự.");
-
-        String normalizedPhone = phone == null ? "" : phone.trim();
-        if (!normalizedPhone.isEmpty() && !normalizedPhone.matches("0\\d{9,10}")) {
-            throw new Exception("Số điện thoại phải gồm 10 hoặc 11 chữ số và bắt đầu bằng 0.");
-        }
-
-        String sql = "UPDATE dbo.Users SET FullName=?, Phone=?, UpdatedAt=SYSDATETIME() WHERE UserID=? AND Status='ACTIVE'";
-        try (Connection conn = DBContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, normalizedName);
-            if (normalizedPhone.isEmpty()) ps.setNull(2, java.sql.Types.VARCHAR);
-            else ps.setString(2, normalizedPhone);
-            ps.setInt(3, userId);
-            if (ps.executeUpdate() != 1) throw new Exception("Không thể cập nhật thông tin tài khoản.");
-        } catch (SQLException e) {
-            if (e.getMessage() != null && e.getMessage().toLowerCase().contains("ux_users_phone")) {
-                throw new Exception("Số điện thoại đã được sử dụng bởi tài khoản khác.");
-            }
-            throw new Exception("Không thể cập nhật thông tin tài khoản.", e);
-        }
+        updateProfile(userId, fullName, phone, null, null, null);
     }
 
     public void updateProfile(int userId, String fullName, String phone,
                               String gender, LocalDate dateOfBirth) throws Exception {
+        updateProfile(userId, fullName, phone, gender, dateOfBirth, null);
+    }
+
+    public void updateProfile(int userId, String fullName, String phone,
+                              String gender, LocalDate dateOfBirth, String address) throws Exception {
         if (userId <= 0) throw new Exception("Tài khoản không hợp lệ.");
         if (fullName == null || fullName.isBlank()) throw new Exception("Họ và tên không được để trống.");
         String normalizedName = fullName.trim();
@@ -123,9 +107,6 @@ public class UserAccountRepository {
     public void changePassword(int userId, String currentPassword, String newPassword, String confirmPassword) throws Exception {
         if (currentPassword == null || currentPassword.isBlank()) throw new Exception("Vui lòng nhập mật khẩu hiện tại.");
         if (newPassword == null || newPassword.length() < 6) throw new Exception("Mật khẩu mới phải có ít nhất 6 ký tự.");
-        if (!newPassword.matches(".*[A-Z].*") || !newPassword.matches(".*[a-z].*") || !newPassword.matches(".*\\d.*")) {
-            throw new Exception("Mật khẩu mới phải có chữ hoa, chữ thường và chữ số.");
-        }
         if (confirmPassword == null || !newPassword.equals(confirmPassword)) throw new Exception("Xác nhận mật khẩu mới không khớp.");
         if (currentPassword.equals(newPassword)) throw new Exception("Mật khẩu mới phải khác mật khẩu hiện tại.");
 

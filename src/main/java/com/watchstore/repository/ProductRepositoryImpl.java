@@ -20,7 +20,7 @@ public class ProductRepositoryImpl implements ProductRepository {
         p.setProductId(rs.getInt("ProductID"));
         p.setProductCode(rs.getString("ProductCode"));
         p.setProductName(rs.getString("ProductName"));
-        p.setSlug(rs.getString("Slug"));
+        p.setSlug(rs.getString("ProductSlug"));
         p.setBrandId(rs.getInt("BrandID"));
         p.setCategoryId(rs.getInt("CategoryID"));
 
@@ -189,7 +189,7 @@ public class ProductRepositoryImpl implements ProductRepository {
     public boolean insert(Product product) {
         String sqlProduct = """
             INSERT INTO Products
-            (ProductCode, ProductName, Slug, BrandID, CategoryID, MovementType, Gender,
+            (ProductCode, ProductName, ProductSlug, BrandID, CategoryID, MovementType, Gender,
              ShortDescription, Description, CaseMaterial, GlassMaterial, StrapMaterial,
              WaterResistance, OriginCountry, WarrantyMonths, Status, IsFeatured, CreatedBy)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -266,7 +266,7 @@ public class ProductRepositoryImpl implements ProductRepository {
     public boolean update(Product product) {
         String sqlProduct = """
             UPDATE Products
-            SET ProductCode = ?, ProductName = ?, Slug = ?, BrandID = ?, CategoryID = ?,
+            SET ProductCode = ?, ProductName = ?, ProductSlug = ?, BrandID = ?, CategoryID = ?,
                 MovementType = ?, Gender = ?, ShortDescription = ?, Description = ?,
                 CaseMaterial = ?, GlassMaterial = ?, StrapMaterial = ?, WaterResistance = ?,
                 OriginCountry = ?, WarrantyMonths = ?, Status = ?, IsFeatured = ?, UpdatedAt = SYSDATETIME()
@@ -300,7 +300,7 @@ public class ProductRepositoryImpl implements ProductRepository {
                     String sku = product.getSku() != null && !product.getSku().isBlank() ? product.getSku() : product.getProductCode() + "-STD";
                     String sqlVariant = """
                         UPDATE ProductVariants
-                        SET SKU = ?, SalePrice = ?, CompareAtPrice = ?, UpdatedAt = SYSDATETIME()
+                        SET SKU = ?, SalePrice = ?, CompareAtPrice = ?
                         WHERE ProductID = ?
                         """;
                     try (PreparedStatement psVar = con.prepareStatement(sqlVariant)) {
@@ -368,8 +368,8 @@ public class ProductRepositoryImpl implements ProductRepository {
     public boolean existsBySlug(String slug, Integer excludeId) {
         if (slug == null || slug.isBlank()) return false;
         String sql = (excludeId != null && excludeId > 0)
-                ? "SELECT COUNT(*) FROM Products WHERE LOWER(Slug) = LOWER(?) AND ProductID <> ?"
-                : "SELECT COUNT(*) FROM Products WHERE LOWER(Slug) = LOWER(?)";
+                ? "SELECT COUNT(*) FROM Products WHERE LOWER(ProductSlug) = LOWER(?) AND ProductID <> ?"
+                : "SELECT COUNT(*) FROM Products WHERE LOWER(ProductSlug) = LOWER(?)";
 
         try (Connection con = getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {

@@ -180,7 +180,7 @@ public class InventoryRepository {
                         "p.ProductName, " +
 
                         "(SELECT STRING_AGG(" +
-                        "pa.AttributeName + ': ' + pav.ValueName, ', ') " +
+                        "pa.AttributeName + ': ' + pav.ValueText, ', ') " +
                         "FROM dbo.VariantAttributeValues vav " +
                         "INNER JOIN dbo.ProductAttributeValues pav " +
                         "ON vav.AttributeValueID = pav.AttributeValueID " +
@@ -353,7 +353,7 @@ public class InventoryRepository {
         List<InventoryTransaction> list=new ArrayList<>();
         StringBuilder sql=new StringBuilder(
                 "SELECT it.InventoryTransactionID,it.WarehouseID,w.WarehouseName,it.VariantID,pv.SKU,p.ProductName, " +
-                        "(SELECT STRING_AGG(pa.AttributeName + ': ' + pav.ValueName, ', ') FROM dbo.VariantAttributeValues vav " +
+                        "(SELECT STRING_AGG(pa.AttributeName + ': ' + pav.ValueText, ', ') FROM dbo.VariantAttributeValues vav " +
                         "INNER JOIN dbo.ProductAttributeValues pav ON vav.AttributeValueID=pav.AttributeValueID " +
                         "INNER JOIN dbo.ProductAttributes pa ON pav.AttributeID=pa.AttributeID WHERE vav.VariantID=pv.VariantID) AS VariantName, " +
                         "it.TransactionType,it.QuantityChange,it.QuantityBefore,it.QuantityAfter,it.ReferenceType,it.ReferenceID,it.Note,it.CreatedBy,u.FullName AS CreatedByName,it.CreatedAt " +

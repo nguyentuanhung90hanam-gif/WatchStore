@@ -210,6 +210,7 @@ public class UserRepositoryImpl implements UserRepository {
                     ResultSet keys = ps.getGeneratedKeys();
                     if (keys.next()) {
                         userId = keys.getInt(1);
+                        user.setUserId(userId);
                     } else {
                         throw new SQLException("Không lấy được UserID sau INSERT.");
                     }
@@ -361,7 +362,7 @@ public class UserRepositoryImpl implements UserRepository {
     public boolean isUserInUse(int userId) {
         String sql = """
                 SELECT (
-                    (SELECT COUNT(*) FROM Orders WHERE CustomerID = ? OR SalesStaffID = ?) +
+                    (SELECT COUNT(*) FROM Orders WHERE CustomerID = ?) +
                     (SELECT COUNT(*) FROM Reviews WHERE UserID = ?) +
                     (SELECT COUNT(*) FROM Posts WHERE AuthorID = ?) +
                     (SELECT COUNT(*) FROM CustomerNotes WHERE CustomerID = ? OR StaffID = ?) +
@@ -382,7 +383,6 @@ public class UserRepositoryImpl implements UserRepository {
             ps.setInt(8, userId);
             ps.setInt(9, userId);
             ps.setInt(10, userId);
-            ps.setInt(11, userId);
             ResultSet rs = ps.executeQuery();
             if (rs.next()) {
                 return rs.getInt(1) > 0;

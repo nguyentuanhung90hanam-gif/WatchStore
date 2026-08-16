@@ -25,12 +25,9 @@ public class RoleRepositoryImpl implements RoleRepository {
         r.setRoleCode(rs.getString("RoleCode"));
         r.setRoleName(rs.getString("RoleName"));
         r.setDescription(rs.getString("Description"));
-        r.setIsSystem(rs.getBoolean("IsSystem"));
 
-        Timestamp ts = rs.getTimestamp("CreatedAt");
-        if (ts != null) {
-            r.setCreatedAt(ts.toLocalDateTime());
-        }
+        String code = r.getRoleCode();
+        r.setIsSystem("ADMIN".equalsIgnoreCase(code) || "EMPLOYEE".equalsIgnoreCase(code) || "CUSTOMER".equalsIgnoreCase(code));
 
         // UserCount nếu có trong ResultSet
         try {
@@ -134,8 +131,8 @@ public class RoleRepositoryImpl implements RoleRepository {
     @Override
     public boolean insert(Role role) {
         String sql = """
-                INSERT INTO Roles (RoleCode, RoleName, Description, IsSystem)
-                VALUES (?, ?, ?, ?)
+                INSERT INTO Roles (RoleCode, RoleName, Description)
+                VALUES (?, ?, ?)
                 """;
 
         try (Connection con = getConnection();
@@ -148,7 +145,6 @@ public class RoleRepositoryImpl implements RoleRepository {
             } else {
                 ps.setNull(3, Types.NVARCHAR);
             }
-            ps.setBoolean(4, role.getIsSystem());
 
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
@@ -163,7 +159,7 @@ public class RoleRepositoryImpl implements RoleRepository {
     public boolean update(Role role) {
         String sql = """
                 UPDATE Roles
-                SET RoleCode = ?, RoleName = ?, Description = ?, IsSystem = ?
+                SET RoleCode = ?, RoleName = ?, Description = ?
                 WHERE RoleID = ?
                 """;
 
@@ -177,8 +173,7 @@ public class RoleRepositoryImpl implements RoleRepository {
             } else {
                 ps.setNull(3, Types.NVARCHAR);
             }
-            ps.setBoolean(4, role.getIsSystem());
-            ps.setInt(5, role.getRoleId());
+            ps.setInt(4, role.getRoleId());
 
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
@@ -201,7 +196,7 @@ public class RoleRepositoryImpl implements RoleRepository {
         if (role.getIsSystem()) return false; // Không cho xóa System Role
         if (isRoleInUse(roleId)) return false; // Không cho xóa nếu đang được sử dụng bởi User
 
-        String sql = "DELETE FROM Roles WHERE RoleID = ? AND IsSystem = 0";
+        String sql = "DELETE FROM Roles WHERE RoleID = ?";
 
         try (Connection con = getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {

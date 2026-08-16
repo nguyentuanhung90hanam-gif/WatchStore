@@ -88,7 +88,7 @@
                     onclick="return confirm('Gửi phiếu để chờ duyệt?')">Gửi duyệt (DRAFT → PENDING)</button>
             </form>
         </c:if>
-        <c:if test="${receipt.status == 'PENDING'}">
+        <c:if test="${receipt.status == 'PENDING' && (sessionScope.user.role == 'ADMIN' || (not empty sessionScope.userPermissions && (sessionScope.userPermissions.contains('INVENTORY_APPROVE') || sessionScope.userPermissions.contains('WAREHOUSE_RECEIPT'))))}">
             <form method="post" action="${cp}/manage/warehouse/receipt-approve" style="display:inline;">
                 <input type="hidden" name="receiptId" value="${receipt.stockReceiptId}">
                 <button type="submit" class="button button-gold"

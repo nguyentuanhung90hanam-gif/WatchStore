@@ -125,13 +125,33 @@
                         </c:forEach>
                     </c:if>
                     <label style="display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border:1px solid #ddd;border-radius:6px;cursor:pointer;background:${isChecked ? '#e8f5e9' : '#fff'};">
-                        <input type="checkbox" name="roleIds" value="${r.roleId}"
+                        <input type="checkbox" name="roleIds" value="${r.roleId}" data-role-code="${r.roleCode}" onchange="toggleEmployeeTypeSection()"
                                ${isChecked ? 'checked' : ''}>
                         ${r.roleName}
                         <small style="color:#888;">(${r.roleCode})</small>
                     </label>
                 </c:forEach>
             </div>
+        </div>
+
+        <%-- Chọn loại nhân viên khi chọn vai trò EMPLOYEE --%>
+        <div id="employeeTypeSection" style="margin-bottom:16px; padding:12px 16px; background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; display:none;">
+            <label style="display:block;margin-bottom:8px;font-weight:600;color:#1e293b;">
+                Loại nhân viên <span style="color:red;">*</span>
+            </label>
+            <div style="display:flex;gap:24px;">
+                <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-weight:500;">
+                    <input type="radio" name="employeeType" value="SALES" ${employeeType == 'SALES' ? 'checked' : ''}>
+                    Nhân viên bán hàng
+                </label>
+                <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-weight:500;">
+                    <input type="radio" name="employeeType" value="WAREHOUSE" ${employeeType == 'WAREHOUSE' ? 'checked' : ''}>
+                    Nhân viên kho
+                </label>
+            </div>
+            <small style="color:#64748b;display:block;margin-top:6px;">
+                Mỗi tài khoản nhân viên chỉ được chọn 1 loại nhiệm vụ (Bán hàng hoặc Kho).
+            </small>
         </div>
 
         <div style="display:flex;gap:12px;">
@@ -143,3 +163,38 @@
     </form>
 
 </div>
+
+<script>
+    function toggleEmployeeTypeSection() {
+        const empCheckboxes = document.querySelectorAll('input[data-role-code="EMPLOYEE"]');
+        let isEmpChecked = false;
+        empCheckboxes.forEach(cb => {
+            if (cb.checked) isEmpChecked = true;
+        });
+        const section = document.getElementById('employeeTypeSection');
+        if (section) {
+            section.style.display = isEmpChecked ? 'block' : 'none';
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        toggleEmployeeTypeSection();
+
+        const form = document.querySelector('form');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                const empCheckboxes = document.querySelectorAll('input[data-role-code="EMPLOYEE"]');
+                let isEmpChecked = false;
+                empCheckboxes.forEach(cb => { if (cb.checked) isEmpChecked = true; });
+
+                if (isEmpChecked) {
+                    const selectedType = document.querySelector('input[name="employeeType"]:checked');
+                    if (!selectedType) {
+                        alert("Vui lòng chọn loại nhân viên (Nhân viên bán hàng hoặc Nhân viên kho).");
+                        e.preventDefault();
+                    }
+                }
+            });
+        }
+    });
+</script>

@@ -6,7 +6,6 @@ import com.watchstore.model.Order;
 import com.watchstore.enums.OrderStatus;
 import com.watchstore.model.User; // Đã bổ sung import User
 import com.watchstore.repository.CustomerRepository;
-import com.watchstore.repository.MockDataStore;
 import com.watchstore.repository.OrderRepository;
 import com.watchstore.repository.WarrantyRepository;
 import com.watchstore.util.ViewRouter;
@@ -50,8 +49,7 @@ public class SalesController extends HttpServlet {
             Map.entry("/delivery", new String[]{"delivery", "Vận chuyển"}),
             Map.entry("/returns", new String[]{"return", "Yêu cầu đổi trả"}),
             Map.entry("/warranty", new String[]{"warranty", "Quản lý bảo hành"}),
-            Map.entry("/report", new String[]{"report", "Báo cáo bán hàng"}),
-            Map.entry("/pos", new String[]{"pos", "Bán hàng tại quầy (POS)"})
+            Map.entry("/report", new String[]{"report", "Báo cáo bán hàng"})
     );
 
     @Override
@@ -59,9 +57,6 @@ public class SalesController extends HttpServlet {
         customerRepository = (CustomerRepository) getServletContext().getAttribute("customerRepository");
         orderRepository = (OrderRepository) getServletContext().getAttribute("orderRepository");
         warrantyRepository = (WarrantyRepository) getServletContext().getAttribute("warrantyRepository");
-        if (warrantyRepository != null) {
-            warrantyRepository.ensureTable();
-        }
     }
 
     @Override
@@ -69,11 +64,6 @@ public class SalesController extends HttpServlet {
             throws ServletException, IOException {
 
         String path = req.getPathInfo();
-
-        if (path != null && path.startsWith("/pos")) {
-            handlePOSGet(path, req, resp);
-            return;
-        }
 
         if (path == null || path.isBlank() || "/dashboard".equals(path)) {
             showDashboard(req, resp);
@@ -124,7 +114,7 @@ public class SalesController extends HttpServlet {
 
         if ("/warranty-add".equals(path) && "GET".equals(req.getMethod())) {
             req.setAttribute("moduleTitle", "Thêm phiếu bảo hành");
-            req.setAttribute("orders", orderRepository != null ? orderRepository.findAll() : MockDataStore.orders());
+            req.setAttribute("orders", orderRepository != null ? orderRepository.findAll() : java.util.Collections.emptyList());
             ViewRouter.admin(req, resp, "sales/warranty-add", "Thêm phiếu bảo hành", "sales");
             return;
         }
@@ -155,14 +145,14 @@ public class SalesController extends HttpServlet {
         }
 
         String[] page = PAGES.getOrDefault(path, PAGES.get("/dashboard"));
-        req.setAttribute("orders", orderRepository != null ? orderRepository.findAll() : MockDataStore.orders());
+        req.setAttribute("orders", orderRepository != null ? orderRepository.findAll() : java.util.Collections.emptyList());
         req.setAttribute("moduleTitle", page[1]);
         ViewRouter.admin(req, resp, "sales/" + page[0], page[1], "sales");
     }
 
     private void showDashboard(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        List<Order> orders = orderRepository != null ? orderRepository.findAll() : MockDataStore.orders();
+        List<Order> orders = orderRepository != null ? orderRepository.findAll() : java.util.Collections.emptyList();
 
         double totalRevenue = orders.stream()
                 .filter(o -> o.getStatus() == OrderStatus.COMPLETED)
@@ -213,11 +203,6 @@ public class SalesController extends HttpServlet {
 
         req.setCharacterEncoding("UTF-8");
         String path = req.getPathInfo();
-
-        if (path != null && path.startsWith("/pos")) {
-            handlePOSPost(path, req, resp);
-            return;
-        }
 
         if ("/customer-add".equals(path)) {
             createCustomer(req, resp);
@@ -566,8 +551,8 @@ public class SalesController extends HttpServlet {
         String fromDate = req.getParameter("fromDate");
         String toDate   = req.getParameter("toDate");
 
-        List<Order> orders = orderRepository != null ? orderRepository.search(keyword, status, fromDate, toDate) : MockDataStore.orders();
-        List<Order> allOrders = orderRepository != null ? orderRepository.findAll() : MockDataStore.orders();
+        List<Order> orders = orderRepository != null ? orderRepository.search(keyword, status, fromDate, toDate) : java.util.Collections.emptyList();
+        List<Order> allOrders = orderRepository != null ? orderRepository.findAll() : java.util.Collections.emptyList();
 
         long totalCount = allOrders.size();
         long pendingCount = allOrders.stream().filter(o -> o.getStatus() == OrderStatus.PENDING).count();
@@ -596,7 +581,7 @@ public class SalesController extends HttpServlet {
         String fromDate = req.getParameter("fromDate");
         String toDate   = req.getParameter("toDate");
 
-        List<Order> allOrders = orderRepository != null ? orderRepository.findAll() : MockDataStore.orders();
+        List<Order> allOrders = orderRepository != null ? orderRepository.findAll() : java.util.Collections.emptyList();
         List<Order> filtered  = new ArrayList<>(allOrders);
 
         if (status != null && !status.isBlank()) {
@@ -819,121 +804,6 @@ public class SalesController extends HttpServlet {
         req.setAttribute("status", status);
         req.setAttribute("moduleTitle", "Bình luận");
         ViewRouter.admin(req, resp, "sales/comment", "Bình luận", "sales");
-    }
-
-    private List<Map<String, Object>> getSampleReturns() {
-        List<Map<String, Object>> list = new ArrayList<>();
-        list.add(new HashMap<>(Map.ofEntries(
-                Map.entry("id", 1),
-                Map.entry("orderId", 4),
-                Map.entry("orderCode", "WS8504"),
-                Map.entry("customerName", "Lê Thành Công"),
-                Map.entry("customerPhone", "0988000007"),
-                Map.entry("customerEmail", "cong.le@example.com"),
-                Map.entry("reason", "Kích thước dây đeo không vừa"),
-                Map.entry("requestDate", "2026-08-05"),
-                Map.entry("status", "Chờ xử lý"),
-                Map.entry("productName", "Rolex Datejust 41"),
-                Map.entry("quantity", 1),
-                Map.entry("evidenceImg", "Ảnh chụp dây đeo bị rộng"),
-                Map.entry("orderDate", "2026-08-03"),
-                Map.entry("totalPrice", "9,940,000"),
-                Map.entry("isWithinPeriod", "Còn trong thời hạn (2 ngày từ khi mua, tối đa 7 ngày)"),
-                Map.entry("isCorrectCondition", "Đúng điều kiện (Hàng còn nguyên tem mác, hộp đựng)"),
-                Map.entry("isStoreError", "Không (Lỗi chọn nhầm size của khách)")
-        )));
-        list.add(new HashMap<>(Map.ofEntries(
-                Map.entry("id", 2),
-                Map.entry("orderId", 2),
-                Map.entry("orderCode", "WS8502"),
-                Map.entry("customerName", "Nguyễn Văn An"),
-                Map.entry("customerPhone", "0988000005"),
-                Map.entry("customerEmail", "an.nguyen@example.com"),
-                Map.entry("reason", "Đổi sang màu mặt số xanh navy"),
-                Map.entry("requestDate", "2026-08-03"),
-                Map.entry("status", "Đã duyệt"),
-                Map.entry("productName", "Seiko 5 Sports Automatic"),
-                Map.entry("quantity", 1),
-                Map.entry("evidenceImg", "Ảnh chụp mặt số nguyên bản"),
-                Map.entry("orderDate", "2026-07-28"),
-                Map.entry("totalPrice", "4,250,000"),
-                Map.entry("isWithinPeriod", "Còn trong thời hạn (6 ngày từ khi mua, tối đa 7 ngày)"),
-                Map.entry("isCorrectCondition", "Đúng điều kiện (Chưa qua sử dụng, còn seal)"),
-                Map.entry("isStoreError", "Không (Khách thay đổi ý định)")
-        )));
-        return list;
-    }
-
-    private void showReturns(HttpServletRequest req, HttpServletResponse resp)
-            throws ServletException, IOException {
-        String keyword = req.getParameter("keyword");
-        String status  = req.getParameter("status");
-
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> returns = (List<Map<String, Object>>) req.getSession().getAttribute("sampleReturns");
-        if (returns == null) {
-            returns = getSampleReturns();
-            req.getSession().setAttribute("sampleReturns", returns);
-        }
-
-        List<Map<String, Object>> filtered = new ArrayList<>(returns);
-
-        if (keyword != null && !keyword.trim().isEmpty()) {
-            String k = keyword.trim().toLowerCase();
-            filtered = filtered.stream().filter(r ->
-                    (r.get("customerName") != null && r.get("customerName").toString().toLowerCase().contains(k)) ||
-                            (r.get("reason")       != null && r.get("reason").toString().toLowerCase().contains(k))       ||
-                            (r.get("orderId")      != null && ("#" + r.get("orderId")).toLowerCase().contains(k))
-            ).toList();
-        }
-
-        if (status != null && !status.trim().isEmpty()) {
-            String st = status.trim();
-            filtered = filtered.stream().filter(r ->
-                    st.equalsIgnoreCase(r.get("status").toString()) ||
-                            (st.equals("PENDING") && "Chờ xử lý".equalsIgnoreCase(r.get("status").toString())) ||
-                            (st.equals("APPROVED") && "Đã duyệt".equalsIgnoreCase(r.get("status").toString())) ||
-                            (st.equals("RECEIVED") && "Đã nhận hàng".equalsIgnoreCase(r.get("status").toString())) ||
-                            (st.equals("REPLACED") && "Đã đổi hàng".equalsIgnoreCase(r.get("status").toString())) ||
-                            (st.equals("REFUNDED") && "Đã hoàn tiền".equalsIgnoreCase(r.get("status").toString())) ||
-                            (st.equals("REJECTED") && "Từ chối".equalsIgnoreCase(r.get("status").toString()))
-            ).toList();
-        }
-
-        req.setAttribute("returns", filtered);
-        req.setAttribute("keyword", keyword);
-        req.setAttribute("status", status);
-        req.setAttribute("moduleTitle", "Yêu cầu đổi trả");
-
-        ViewRouter.admin(req, resp, "sales/return", "Yêu cầu đổi trả", "sales");
-    }
-
-    private void updateReturnStatus(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        String idParam = req.getParameter("id");
-        String status  = req.getParameter("status");
-
-        if (idParam != null && status != null) {
-            try {
-                int id = Integer.parseInt(idParam);
-                @SuppressWarnings("unchecked")
-                List<Map<String, Object>> returns = (List<Map<String, Object>>) req.getSession().getAttribute("sampleReturns");
-                if (returns == null) {
-                    returns = getSampleReturns();
-                }
-                for (int i = 0; i < returns.size(); i++) {
-                    Map<String, Object> r = returns.get(i);
-                    if (Integer.valueOf(id).equals(r.get("id"))) {
-                        Map<String, Object> updated = new HashMap<>(r);
-                        updated.put("status", status);
-                        returns.set(i, updated);
-                        break;
-                    }
-                }
-                req.getSession().setAttribute("sampleReturns", returns);
-                req.getSession().setAttribute("flash", "Đã cập nhật trạng thái yêu cầu đổi trả thành công!");
-            } catch (Exception ignored) {}
-        }
-        resp.sendRedirect(req.getContextPath() + "/manage/sales/returns");
     }
 
     private void updateReviewStatus(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -1232,7 +1102,7 @@ public class SalesController extends HttpServlet {
         String keyword = req.getParameter("keyword");
         String status = req.getParameter("status");
 
-        List<Order> orders = orderRepository != null ? orderRepository.findAll() : MockDataStore.orders();
+        List<Order> orders = orderRepository != null ? orderRepository.findAll() : java.util.Collections.emptyList();
 
         if (keyword != null && !keyword.trim().isEmpty()) {
             String k = keyword.trim().toLowerCase();
@@ -1263,439 +1133,48 @@ public class SalesController extends HttpServlet {
         ViewRouter.admin(req, resp, "sales/delivery", "Vận chuyển", "sales");
     }
 
-    private void handlePOSGet(String path, HttpServletRequest req, HttpServletResponse resp)
+    private void showReturns(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        if ("/pos".equals(path)) {
-            showPOS(req, resp);
-        } else if ("/pos/search-products".equals(path)) {
-            searchPOSProducts(req, resp);
-        } else if ("/pos/search-customers".equals(path)) {
-            searchPOSCustomers(req, resp);
-        } else if ("/pos/print".equals(path)) {
-            printPOSInvoice(req, resp);
-        } else {
-            resp.sendError(HttpServletResponse.SC_NOT_FOUND);
-        }
-    }
-
-    private void handlePOSPost(String path, HttpServletRequest req, HttpServletResponse resp)
-            throws ServletException, IOException {
-        if ("/pos/add-customer".equals(path)) {
-            addPOSCustomer(req, resp);
-        } else if ("/pos/check-voucher".equals(path)) {
-            checkPOSVoucher(req, resp);
-        } else if ("/pos/checkout".equals(path)) {
-            checkoutPOS(req, resp);
-        } else {
-            resp.sendError(HttpServletResponse.SC_NOT_FOUND);
-        }
-    }
-
-    private void showPOS(HttpServletRequest req, HttpServletResponse resp)
-            throws ServletException, IOException {
-        List<Map<String, Object>> categories = new ArrayList<>();
-        List<Map<String, Object>> brands = new ArrayList<>();
-        List<Map<String, Object>> vouchers = new ArrayList<>();
-
-        String queryCategories = "SELECT CategoryID, CategoryName FROM Categories ORDER BY CategoryName ASC";
-        String queryBrands = "SELECT BrandID, BrandName FROM Brands ORDER BY BrandName ASC";
-        String queryVouchers = """
-            SELECT VoucherID, VoucherCode, VoucherName, DiscountType, DiscountValue, MinimumOrderValue 
-            FROM Vouchers 
-            WHERE Status = 'ACTIVE' AND GETDATE() BETWEEN StartAt AND EndAt
-            """;
-
-        try (Connection conn = DBContext.getConnection();
-             PreparedStatement psCat = conn.prepareStatement(queryCategories);
-             ResultSet rsCat = psCat.executeQuery();
-             PreparedStatement psBrand = conn.prepareStatement(queryBrands);
-             ResultSet rsBrand = psBrand.executeQuery();
-             PreparedStatement psVoucher = conn.prepareStatement(queryVouchers);
-             ResultSet rsVoucher = psVoucher.executeQuery()) {
-
-            while (rsCat.next()) {
-                Map<String, Object> cat = new HashMap<>();
-                cat.put("id", rsCat.getInt("CategoryID"));
-                cat.put("name", rsCat.getString("CategoryName"));
-                categories.add(cat);
-            }
-
-            while (rsBrand.next()) {
-                Map<String, Object> br = new HashMap<>();
-                br.put("id", rsBrand.getInt("BrandID"));
-                br.put("name", rsBrand.getString("BrandName"));
-                brands.add(br);
-            }
-
-            while (rsVoucher.next()) {
-                Map<String, Object> vc = new HashMap<>();
-                vc.put("id", rsVoucher.getInt("VoucherID"));
-                vc.put("code", rsVoucher.getString("VoucherCode"));
-                vc.put("name", rsVoucher.getString("VoucherName"));
-                vc.put("discountType", rsVoucher.getString("DiscountType"));
-                vc.put("discountValue", rsVoucher.getBigDecimal("DiscountValue"));
-                vc.put("minOrder", rsVoucher.getBigDecimal("MinimumOrderValue"));
-                vouchers.add(vc);
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
-        List<Order> orders = orderRepository != null ? orderRepository.findAll() : new ArrayList<>();
-        req.setAttribute("ordersSize", orders.size());
-
-        req.setAttribute("categories", categories);
-        req.setAttribute("brands", brands);
-        req.setAttribute("vouchersList", vouchers);
-        req.setAttribute("moduleTitle", "Bán hàng tại quầy (POS)");
-
-        ViewRouter.admin(req, resp, "sales/pos", "Bán hàng tại quầy (POS)", "sales");
-    }
-
-    private void searchPOSProducts(HttpServletRequest req, HttpServletResponse resp)
-            throws IOException {
         String keyword = req.getParameter("keyword");
-        String catIdParam = req.getParameter("categoryId");
-        String brandIdParam = req.getParameter("brandId");
-
-        StringBuilder query = new StringBuilder("""
-            SELECT pv.VariantID, p.ProductName, pv.VariantName, pv.SKU, pv.Barcode, pv.SalePrice, pv.CompareAtPrice, ib.QuantityOnHand, b.BrandName, c.CategoryName
-            FROM ProductVariants pv
-            JOIN Products p ON pv.ProductID = p.ProductID
-            LEFT JOIN Brands b ON p.BrandID = b.BrandID
-            LEFT JOIN Categories c ON p.CategoryID = c.CategoryID
-            LEFT JOIN InventoryBalances ib ON pv.VariantID = ib.VariantID
-            WHERE p.Status = 'ACTIVE' AND pv.Status = 'ACTIVE'
-            """);
-
-        List<Object> params = new ArrayList<>();
-        if (keyword != null && !keyword.trim().isEmpty()) {
-            query.append(" AND (LOWER(p.ProductName) LIKE ? OR LOWER(pv.VariantName) LIKE ? OR LOWER(pv.SKU) LIKE ? OR pv.Barcode = ?)");
-            String pattern = "%" + keyword.trim().toLowerCase() + "%";
-            params.add(pattern);
-            params.add(pattern);
-            params.add(pattern);
-            params.add(keyword.trim());
-        }
-        if (catIdParam != null && !catIdParam.trim().isEmpty()) {
-            try {
-                int catId = Integer.parseInt(catIdParam.trim());
-                query.append(" AND p.CategoryID = ?");
-                params.add(catId);
-            } catch (NumberFormatException ignored) {}
-        }
-        if (brandIdParam != null && !brandIdParam.trim().isEmpty()) {
-            try {
-                int brandId = Integer.parseInt(brandIdParam.trim());
-                query.append(" AND p.BrandID = ?");
-                params.add(brandId);
-            } catch (NumberFormatException ignored) {}
-        }
-
-        query.append(" ORDER BY p.ProductName ASC, pv.VariantName ASC");
-
-        StringBuilder sb = new StringBuilder("[");
-        try (Connection conn = DBContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(query.toString())) {
-
-            for (int i = 0; i < params.size(); i++) {
-                ps.setObject(i + 1, params.get(i));
-            }
-
-            try (ResultSet rs = ps.executeQuery()) {
-                boolean first = true;
-                while (rs.next()) {
-                    if (!first) sb.append(",");
-                    first = false;
-                    sb.append("{");
-                    sb.append("\"variantId\":").append(rs.getInt("VariantID")).append(",");
-                    sb.append("\"productName\":\"").append(escapeJson(rs.getString("ProductName"))).append("\",");
-                    sb.append("\"variantName\":\"").append(escapeJson(rs.getString("VariantName"))).append("\",");
-                    sb.append("\"sku\":\"").append(escapeJson(rs.getString("SKU"))).append("\",");
-                    sb.append("\"barcode\":\"").append(escapeJson(rs.getString("Barcode") != null ? rs.getString("Barcode") : "")).append("\",");
-                    sb.append("\"price\":").append(rs.getBigDecimal("SalePrice")).append(",");
-                    sb.append("\"oldPrice\":").append(rs.getBigDecimal("CompareAtPrice") != null ? rs.getBigDecimal("CompareAtPrice") : rs.getBigDecimal("SalePrice")).append(",");
-                    sb.append("\"stock\":").append(rs.getInt("QuantityOnHand")).append(",");
-                    sb.append("\"brand\":\"").append(escapeJson(rs.getString("BrandName") != null ? rs.getString("BrandName") : "")).append("\",");
-                    sb.append("\"category\":\"").append(escapeJson(rs.getString("CategoryName") != null ? rs.getString("CategoryName") : "")).append("\"");
-                    sb.append("}");
-                }
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        sb.append("]");
-        writeJson(resp, sb.toString());
+        String status  = req.getParameter("status");
+        com.watchstore.repository.ReturnRepository returnRepo = (com.watchstore.repository.ReturnRepository) getServletContext().getAttribute("returnRepository");
+        if (returnRepo == null) returnRepo = new com.watchstore.repository.ReturnRepository();
+        req.setAttribute("returns", returnRepo.search(keyword, status));
+        req.setAttribute("moduleTitle", "Yêu cầu đổi trả");
+        ViewRouter.admin(req, resp, "sales/return", "Yêu cầu đổi trả", "sales");
     }
 
-    private void searchPOSCustomers(HttpServletRequest req, HttpServletResponse resp)
+    private void updateReturnStatus(HttpServletRequest req, HttpServletResponse resp)
             throws IOException {
-        String keyword = req.getParameter("keyword");
-
-        StringBuilder query = new StringBuilder("""
-            SELECT u.UserID, u.FullName, u.Phone, u.Email,
-                   (SELECT TOP 1 AddressLine + ', ' + Ward + ', ' + District + ', ' + Province FROM UserAddresses WHERE UserID = u.UserID ORDER BY IsDefault DESC) AS Address
-            FROM Users u
-            JOIN UserRoles ur ON u.UserID = ur.UserID
-            JOIN Roles r ON ur.RoleID = r.RoleID
-            WHERE r.RoleCode = 'CUSTOMER' AND u.Status = 'ACTIVE'
-            """);
-
-        List<Object> params = new ArrayList<>();
-        if (keyword != null && !keyword.trim().isEmpty()) {
-            query.append(" AND (LOWER(u.FullName) LIKE ? OR u.Phone LIKE ? OR LOWER(u.Email) LIKE ?)");
-            String pattern = "%" + keyword.trim().toLowerCase() + "%";
-            params.add(pattern);
-            params.add("%" + keyword.trim() + "%");
-            params.add(pattern);
-        }
-
-        query.append(" ORDER BY u.FullName ASC");
-
-        StringBuilder sb = new StringBuilder("[");
-        try (Connection conn = DBContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(query.toString())) {
-
-            for (int i = 0; i < params.size(); i++) {
-                ps.setObject(i + 1, params.get(i));
-            }
-
-            try (ResultSet rs = ps.executeQuery()) {
-                boolean first = true;
-                while (rs.next()) {
-                    if (!first) sb.append(",");
-                    first = false;
-                    sb.append("{");
-                    sb.append("\"id\":").append(rs.getInt("UserID")).append(",");
-                    sb.append("\"fullName\":\"").append(escapeJson(rs.getString("FullName"))).append("\",");
-                    sb.append("\"phone\":\"").append(escapeJson(rs.getString("Phone"))).append("\",");
-                    sb.append("\"email\":\"").append(escapeJson(rs.getString("Email"))).append("\",");
-                    sb.append("\"address\":\"").append(escapeJson(rs.getString("Address") != null ? rs.getString("Address") : "Chưa cập nhật địa chỉ")).append("\"");
-                    sb.append("}");
-                }
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        sb.append("]");
-        writeJson(resp, sb.toString());
-    }
-
-    private void addPOSCustomer(HttpServletRequest req, HttpServletResponse resp)
-            throws IOException {
-        String fullName = req.getParameter("fullName");
-        String phone = req.getParameter("phone");
-        String email = req.getParameter("email");
-        String address = req.getParameter("address");
-
-        if (fullName == null || fullName.trim().isEmpty() || phone == null || phone.trim().isEmpty() || email == null || email.trim().isEmpty()) {
-            writeJson(resp, "{\"status\":\"error\",\"message\":\"Vui lòng điền đầy đủ Họ tên, Số điện thoại và Email.\"}");
-            return;
-        }
-
-        Customer customer = new Customer();
-        customer.setFullName(fullName.trim());
-        customer.setPhone(phone.trim());
-        customer.setEmail(email.trim());
-        customer.setAddress(address != null ? address.trim() : "");
-
-        boolean success = customerRepository != null && customerRepository.insert(customer);
-        if (success) {
-            Customer created = null;
-            List<Customer> list = customerRepository.search(phone.trim());
-            if (!list.isEmpty()) {
-                created = list.get(0);
-            }
-            if (created != null) {
-                writeJson(resp, String.format("{\"status\":\"success\",\"id\":%d,\"fullName\":\"%s\",\"phone\":\"%s\",\"address\":\"%s\"}",
-                        created.getId(), escapeJson(created.getFullName()), escapeJson(created.getPhone()), escapeJson(created.getAddress())));
-            } else {
-                writeJson(resp, "{\"status\":\"error\",\"message\":\"Không tìm thấy khách hàng sau khi tạo\"}");
-            }
-        } else {
-            writeJson(resp, "{\"status\":\"error\",\"message\":\"Email hoặc Số điện thoại đã tồn tại trong hệ thống.\"}");
-        }
-    }
-
-    private void checkPOSVoucher(HttpServletRequest req, HttpServletResponse resp)
-            throws IOException {
-        String code = req.getParameter("code");
-        String subtotalParam = req.getParameter("subtotal");
-
-        if (code == null || code.trim().isEmpty() || subtotalParam == null || subtotalParam.trim().isEmpty()) {
-            writeJson(resp, "{\"status\":\"invalid\",\"message\":\"Dữ liệu kiểm tra voucher không hợp lệ\"}");
-            return;
-        }
-
-        double subtotal = Double.parseDouble(subtotalParam.trim());
-        String sql = """
-            SELECT VoucherID, VoucherCode, VoucherName, DiscountType, DiscountValue, MaximumDiscount, MinimumOrderValue, UsageLimit, UsedCount 
-            FROM Vouchers 
-            WHERE VoucherCode = ? AND Status = 'ACTIVE' AND GETDATE() BETWEEN StartAt AND EndAt
-            """;
-
-        try (Connection conn = DBContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setString(1, code.trim());
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    int usageLimit = rs.getInt("UsageLimit");
-                    int usedCount = rs.getInt("UsedCount");
-                    if (usageLimit > 0 && usedCount >= usageLimit) {
-                        writeJson(resp, "{\"status\":\"invalid\",\"message\":\"Voucher này đã hết lượt sử dụng\"}");
-                        return;
-                    }
-
-                    double minOrder = rs.getBigDecimal("MinimumOrderValue").doubleValue();
-                    if (subtotal < minOrder) {
-                        writeJson(resp, String.format("{\"status\":\"invalid\",\"message\":\"Chưa đạt giá trị đơn hàng tối thiểu để áp dụng (Yêu cầu ít nhất %,.0f ₫)\"}", minOrder));
-                        return;
-                    }
-
-                    String discountType = rs.getString("DiscountType");
-                    double discountValue = rs.getBigDecimal("DiscountValue").doubleValue();
-                    double maxDiscount = rs.getBigDecimal("MaximumDiscount").doubleValue();
-
-                    double discountAmount = 0.0;
-                    if ("PERCENT".equalsIgnoreCase(discountType)) {
-                        discountAmount = subtotal * (discountValue / 100.0);
-                        if (maxDiscount > 0 && discountAmount > maxDiscount) {
-                            discountAmount = maxDiscount;
-                        }
-                    } else if ("AMOUNT".equalsIgnoreCase(discountType)) {
-                        discountAmount = discountValue;
-                    }
-
-                    writeJson(resp, String.format("{\"status\":\"valid\",\"voucherId\":%d,\"code\":\"%s\",\"discountAmount\":%.2f,\"message\":\"Áp dụng voucher thành công!\"}",
-                            rs.getInt("VoucherID"), rs.getString("VoucherCode"), discountAmount));
-                } else {
-                    writeJson(resp, "{\"status\":\"invalid\",\"message\":\"Voucher không tồn tại hoặc đã hết hạn sử dụng\"}");
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            writeJson(resp, "{\"status\":\"invalid\",\"message\":\"Lỗi hệ thống khi kiểm tra voucher: " + e.getMessage() + "\"}");
-        }
-    }
-
-    private void checkoutPOS(HttpServletRequest req, HttpServletResponse resp)
-            throws IOException {
-        String customerIdParam = req.getParameter("customerId");
-        String voucherIdParam = req.getParameter("voucherId");
-        String discountAmountParam = req.getParameter("discountAmount");
-        String customerName = req.getParameter("customerName");
-        String phone = req.getParameter("phone");
-        String address = req.getParameter("address");
-        String itemsJson = req.getParameter("items");
-
-        if (itemsJson == null || itemsJson.trim().isEmpty()) {
-            writeJson(resp, "{\"status\":\"error\",\"message\":\"Không có sản phẩm nào trong hóa đơn\"}");
-            return;
-        }
-
-        try {
-            int customerId = Integer.parseInt(customerIdParam.trim());
-            int voucherId = Integer.parseInt(voucherIdParam.trim());
-            BigDecimal discountAmount = new BigDecimal(discountAmountParam.trim());
-
-            List<Map<String, Object>> items = parseItemsJson(itemsJson);
-            if (items.isEmpty()) {
-                writeJson(resp, "{\"status\":\"error\",\"message\":\"Giỏ hàng rỗng hoặc định dạng không hợp lệ\"}");
-                return;
-            }
-
-            User staff = (User) req.getSession().getAttribute("user");
-            int staffId = staff != null ? staff.getId() : 2;
-
-            String code = "WS" + (8500 + (orderRepository != null ? orderRepository.findAll().size() : 0) + 1);
-
-            Order order = new Order();
-            order.setCode(code);
-            order.setUserId(customerId);
-            order.setCustomerName(customerName != null && !customerName.trim().isEmpty() ? customerName.trim() : "Khách mua tại quầy");
-            order.setPhone(phone != null ? phone.trim() : "");
-            order.setShippingAddress(address != null && !address.trim().isEmpty() ? address.trim() : "Mua tại quầy");
-
-            long orderId = orderRepository.createPOSOrder(order, items, voucherId, discountAmount, staffId);
-            writeJson(resp, String.format("{\"status\":\"success\",\"orderId\":%d,\"orderCode\":\"%s\"}", orderId, code));
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            writeJson(resp, "{\"status\":\"error\",\"message\":\"Lỗi thanh toán: " + escapeJson(e.getMessage()) + "\"}");
-        }
-    }
-
-    private void printPOSInvoice(HttpServletRequest req, HttpServletResponse resp)
-            throws ServletException, IOException {
         String idParam = req.getParameter("id");
+        String action  = req.getParameter("action");
+        String status  = req.getParameter("status");
+        String note    = req.getParameter("employeeNote");
+        com.watchstore.repository.ReturnRepository returnRepo = (com.watchstore.repository.ReturnRepository) getServletContext().getAttribute("returnRepository");
+        if (returnRepo == null) returnRepo = new com.watchstore.repository.ReturnRepository();
+
         if (idParam != null) {
             try {
                 int id = Integer.parseInt(idParam);
-                Order order = orderRepository != null ? orderRepository.findById(id) : null;
-                if (order != null) {
-                    req.setAttribute("order", order);
-                    req.setAttribute("orderItems", orderRepository != null ? orderRepository.getOrderItems(id) : new ArrayList<>());
-                    req.getRequestDispatcher("/views/sales/pos-print.jsp").forward(req, resp);
-                    return;
+                if ("approve".equalsIgnoreCase(action)) {
+                    returnRepo.updateStatus(id, "APPROVED", note != null ? note : "Đã duyệt yêu cầu đổi trả");
+                    req.getSession().setAttribute("flash", "Đã phê duyệt yêu cầu đổi trả!");
+                } else if ("reject".equalsIgnoreCase(action)) {
+                    returnRepo.updateStatus(id, "REJECTED", note != null ? note : "Từ chối yêu cầu đổi trả");
+                    req.getSession().setAttribute("flash", "Đã từ chối yêu cầu đổi trả!");
+                } else if ("receive".equalsIgnoreCase(action)) {
+                    returnRepo.updateStatus(id, "ITEM_RECEIVED", note != null ? note : "Kho đã nhận hàng hoàn");
+                    req.getSession().setAttribute("flash", "Đã xác nhận kho nhận hàng hoàn!");
+                } else if ("refund".equalsIgnoreCase(action)) {
+                    returnRepo.updateRefundStatus(id, "REFUNDED");
+                    returnRepo.updateStatus(id, "COMPLETED", "Đã hoàn tiền và kết thúc quy trình đổi trả");
+                    req.getSession().setAttribute("flash", "Đã ghi nhận hoàn tiền thành công!");
+                } else if (status != null && !status.isBlank()) {
+                    returnRepo.updateStatus(id, status, note);
+                    req.getSession().setAttribute("flash", "Đã cập nhật trạng thái yêu cầu đổi trả!");
                 }
             } catch (NumberFormatException ignored) {}
         }
-        resp.sendError(HttpServletResponse.SC_NOT_FOUND, "Không tìm thấy hóa đơn");
-    }
-
-    private void writeJson(HttpServletResponse resp, String json) throws IOException {
-        resp.setContentType("application/json");
-        resp.setCharacterEncoding("UTF-8");
-        resp.getWriter().write(json);
-    }
-
-    private String escapeJson(String s) {
-        if (s == null) return "";
-        return s.replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\b", "\\b")
-                .replace("\f", "\\f")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r")
-                .replace("\t", "\\t");
-    }
-
-    private List<Map<String, Object>> parseItemsJson(String json) {
-        List<Map<String, Object>> list = new ArrayList<>();
-        if (json == null || json.trim().isEmpty() || "[]".equals(json.trim())) {
-            return list;
-        }
-        String cleaned = json.trim().replace("[", "").replace("]", "").replace(" ", "");
-        if (cleaned.isEmpty()) return list;
-
-        String[] parts = cleaned.split("\\},\\{");
-        for (String part : parts) {
-            String cleanPart = part.replace("{", "").replace("}", "").replace("\"", "");
-            String[] pairs = cleanPart.split(",");
-            int variantId = 0;
-            int quantity = 0;
-            for (String pair : pairs) {
-                String[] kv = pair.split(":");
-                if (kv.length == 2) {
-                    if ("variantId".equalsIgnoreCase(kv[0])) {
-                        try {
-                            variantId = Integer.parseInt(kv[1]);
-                        } catch (NumberFormatException ignored) {}
-                    } else if ("quantity".equalsIgnoreCase(kv[0])) {
-                        try {
-                            quantity = Integer.parseInt(kv[1]);
-                        } catch (NumberFormatException ignored) {}
-                    }
-                }
-            }
-            if (variantId > 0 && quantity > 0) {
-                Map<String, Object> item = new HashMap<>();
-                item.put("variantId", variantId);
-                item.put("quantity", quantity);
-                list.add(item);
-            }
-        }
-        return list;
+        resp.sendRedirect(req.getContextPath() + "/manage/sales/returns");
     }
 }

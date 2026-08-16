@@ -21,9 +21,9 @@ public class VariantRepository {
     private static final String BASE_SELECT =
             "SELECT pv.VariantID, pv.ProductID, pv.SKU, pv.Barcode, pv.VariantName, " +
                     "pv.CostPrice, pv.SalePrice, pv.CompareAtPrice, pv.WeightGram, pv.Status, " +
-                    "pv.CreatedAt, pv.UpdatedAt, " +
+                    "pv.CreatedAt, " +
                     "p.ProductName, b.BrandName, " +
-                    "(SELECT STRING_AGG(pa.AttributeName + ': ' + pav.ValueName, ' | ') " +
+                    "(SELECT STRING_AGG(pa.AttributeName + ': ' + pav.ValueText, ' | ') " +
                     " FROM dbo.VariantAttributeValues vav " +
                     " INNER JOIN dbo.ProductAttributeValues pav " +
                     "     ON vav.AttributeValueID = pav.AttributeValueID " +
@@ -208,8 +208,7 @@ public class VariantRepository {
                         "SalePrice = ?, " +
                         "CompareAtPrice = ?, " +
                         "WeightGram = ?, " +
-                        "Status = ?, " +
-                        "UpdatedAt = SYSDATETIME() " +
+                        "Status = ? " +
                         "WHERE VariantID = ?";
 
         try (
@@ -275,9 +274,7 @@ public class VariantRepository {
                         "pa.AttributeCode, " +
                         "pa.AttributeName, " +
                         "pav.AttributeValueID, " +
-                        "pav.ValueCode, " +
-                        "pav.ValueName, " +
-                        "pav.ColorHex, " +
+                        "pav.ValueText, " +
                         "CASE WHEN vav.VariantID IS NULL " +
                         "THEN 0 ELSE 1 END AS IsSelected " +
                         "FROM dbo.ProductAttributes pa " +
@@ -286,10 +283,9 @@ public class VariantRepository {
                         "LEFT JOIN dbo.VariantAttributeValues vav " +
                         "ON vav.AttributeValueID = pav.AttributeValueID " +
                         "AND vav.VariantID = ? " +
-                        "ORDER BY pa.DisplayOrder, " +
-                        "pa.AttributeName, " +
+                        "ORDER BY pa.AttributeName, " +
                         "pav.DisplayOrder, " +
-                        "pav.ValueName";
+                        "pav.ValueText";
 
         List<VariantAttributeOption> list =
                 new ArrayList<>();
@@ -322,16 +318,8 @@ public class VariantRepository {
                             rs.getInt("AttributeValueID")
                     );
 
-                    option.setValueCode(
-                            rs.getString("ValueCode")
-                    );
-
                     option.setValueName(
-                            rs.getString("ValueName")
-                    );
-
-                    option.setColorHex(
-                            rs.getString("ColorHex")
+                            rs.getString("ValueText")
                     );
 
                     option.setSelected(
@@ -520,8 +508,7 @@ public class VariantRepository {
 
         String sql =
                 "UPDATE dbo.ProductVariants " +
-                        "SET Status = ?, " +
-                        "UpdatedAt = SYSDATETIME() " +
+                        "SET Status = ? " +
                         "WHERE VariantID = ?";
 
         try (

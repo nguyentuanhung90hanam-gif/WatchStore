@@ -93,7 +93,7 @@
                     onclick="return confirm('Gửi phiếu để chờ duyệt?')">Gửi duyệt (DRAFT → PENDING)</button>
             </form>
         </c:if>
-        <c:if test="${export.status == 'PENDING'}">
+        <c:if test="${export.status == 'PENDING' && (sessionScope.user.role == 'ADMIN' || (not empty sessionScope.userPermissions && (sessionScope.userPermissions.contains('INVENTORY_APPROVE') || sessionScope.userPermissions.contains('WAREHOUSE_EXPORT'))))}">
             <form method="post" action="${cp}/manage/warehouse/export-approve" style="display:inline;">
                 <input type="hidden" name="exportId" value="${export.stockExportId}">
                 <button type="submit" class="button button-gold"

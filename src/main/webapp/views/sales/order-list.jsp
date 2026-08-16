@@ -221,9 +221,11 @@
             <h1 style="margin: 0;">Quản lý đơn hàng</h1>
             <p style="margin: 8px 0 0 0; color: #777;">Xem, tìm kiếm và theo dõi các đơn hàng của khách hàng.</p>
         </div>
-        <a href="${pageContext.request.contextPath}/manage/sales/order-add" class="btn btn-search" style="text-decoration: none; font-weight: bold; background: #2563eb; color: white;">
-            ➕ Thêm đơn hàng
-        </a>
+        <c:if test="${sessionScope.user.role == 'ADMIN' || (not empty sessionScope.userPermissions && (sessionScope.userPermissions.contains('ORDER_CREATE') || sessionScope.userPermissions.contains('SALES_ORDER')))}">
+            <a href="${pageContext.request.contextPath}/manage/sales/order-add" class="btn btn-search" style="text-decoration: none; font-weight: bold; background: #2563eb; color: white;">
+                ➕ Thêm đơn hàng
+            </a>
+        </c:if>
     </div>
 
     <!-- STATS -->
@@ -384,17 +386,17 @@
                                     <a class="action" href="${pageContext.request.contextPath}/manage/sales/order-detail?id=${order.id}" style="color: #2563eb;">
                                         Chi tiết
                                     </a>
-                                    <c:if test="${order.statusCode == 'PENDING'}">
+                                    <c:if test="${order.statusCode == 'PENDING' && (sessionScope.user.role == 'ADMIN' || (not empty sessionScope.userPermissions && (sessionScope.userPermissions.contains('ORDER_APPROVE') || sessionScope.userPermissions.contains('SALES_ORDER'))))}">
                                         <a class="action" href="javascript:void(0);" onclick="confirmAction(${order.id}, 'confirm')" style="color: #059669; font-weight: bold;">
                                             | Xác nhận
                                         </a>
                                     </c:if>
-                                    <c:if test="${order.statusCode != 'COMPLETED'}">
+                                    <c:if test="${order.statusCode != 'COMPLETED' && (sessionScope.user.role == 'ADMIN' || (not empty sessionScope.userPermissions && (sessionScope.userPermissions.contains('ORDER_EDIT') || sessionScope.userPermissions.contains('SALES_ORDER'))))}">
                                         <a class="action" href="${pageContext.request.contextPath}/manage/sales/order-edit?id=${order.id}" style="color: #d97706;">
                                             | Sửa
                                         </a>
                                     </c:if>
-                                    <c:if test="${order.statusCode != 'COMPLETED' && order.statusCode != 'CANCELLED'}">
+                                    <c:if test="${order.statusCode != 'COMPLETED' && order.statusCode != 'CANCELLED' && (sessionScope.user.role == 'ADMIN' || (not empty sessionScope.userPermissions && (sessionScope.userPermissions.contains('ORDER_APPROVE') || sessionScope.userPermissions.contains('SALES_ORDER'))))}">
                                         <a class="action" href="javascript:void(0);" onclick="confirmAction(${order.id}, 'cancel')" style="color: #dc2626;">
                                             | Hủy
                                         </a>
