@@ -3,33 +3,40 @@ package com.watchstore.controller.admin;
 import com.watchstore.model.Permission;
 import com.watchstore.model.User;
 import com.watchstore.repository.PermissionRepository;
+import com.watchstore.repository.UserRepository;
+import com.watchstore.repository.UserRepositoryImpl;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 @WebServlet(urlPatterns = {"/manage/admin/permissions", "/manage/admin/permissions/*"})
 public class PermissionController extends HttpServlet {
 
     private PermissionRepository permissionRepository;
+    private UserRepository userRepository;
 
     @Override
     public void init() {
         permissionRepository = (PermissionRepository) getServletContext().getAttribute("permissionRepository");
-        if (permissionRepository == null) permissionRepository = new com.watchstore.repository.PermissionRepositoryImpl();
+        if (permissionRepository == null) {
+            permissionRepository = new com.watchstore.repository.PermissionRepositoryImpl();
+        }
+        userRepository = (UserRepository) getServletContext().getAttribute("userRepository");
+        if (userRepository == null) {
+            userRepository = new UserRepositoryImpl();
+        }
     }
 
     private void setCommonAttributes(HttpServletRequest req) {
         req.setAttribute("adminArea", "admin");
         req.setAttribute("pageTitle", "Phân quyền Nhân viên bán hàng");
-        req.setAttribute("moduleTitle", "Phân quyền Nhân viên bán hàng");
-        req.setAttribute("moduleKicker", "EMPLOYEE PERMISSION MATRIX");
-        req.setAttribute("moduleDescription", "Cấu hình quyền cho tài khoản Nhân viên bán hàng. Chỉ các tài khoản EMPLOYEE được hiển thị.");
+        req.setAttribute("moduleTitle", "Phân quyền Nhân viên");
+        req.setAttribute("moduleKicker", "EMPLOYEE PERMISSIONS");
+        req.setAttribute("moduleDescription", "Cấu hình phân công nhóm chức năng cho tài khoản Nhân viên (EMPLOYEE).");
     }
 
     @Override
@@ -58,9 +65,7 @@ public class PermissionController extends HttpServlet {
                 }
             }
             if (selectedEmployee == null) {
-                com.watchstore.repository.UserRepository userRepo = (com.watchstore.repository.UserRepository) getServletContext().getAttribute("userRepository");
-                if (userRepo == null) userRepo = new com.watchstore.repository.UserRepositoryImpl();
-                User found = userRepo.findById(selectedUserId);
+                User found = userRepository.findById(selectedUserId);
                 if (found != null && found.getRole() == com.watchstore.enums.Role.EMPLOYEE) {
                     selectedEmployee = found;
                 }
@@ -82,24 +87,52 @@ public class PermissionController extends HttpServlet {
             }
         }
 
-        List<Permission> permissions = permissionRepository.findAll();
-        Set<Integer> activePermissionIds = (selectedEmployee != null)
-                ? permissionRepository.getUserPermissionIds(selectedUserId)
-                : java.util.Collections.emptySet();
         Set<String> activePermissionCodes = (selectedEmployee != null)
                 ? permissionRepository.getUserPermissionCodes(selectedUserId)
-                : java.util.Collections.emptySet();
+                : Collections.emptySet();
 
-        java.util.Map<String, Permission> permByCode = new java.util.HashMap<>();
-        for (Permission p : permissions) {
-            permByCode.put(p.getPermissionCode(), p);
+        // Xác định các nhóm chức năng đang kích hoạt
+        Set<String> activeGroups = new HashSet<>();
+        if (activePermissionCodes.contains("PRODUCT_VIEW")
+                || activePermissionCodes.contains("PRODUCT_CREATE")
+                || activePermissionCodes.contains("PRODUCT_EDIT")) {
+            activeGroups.add("PRODUCT");
+        }
+        if (activePermissionCodes.contains("ORDER_VIEW")
+                || activePermissionCodes.contains("SALES_ORDER")
+                || activePermissionCodes.contains("CUSTOMER_VIEW")
+                || activePermissionCodes.contains("SALES_CUSTOMER")) {
+            activeGroups.add("SALES");
+        }
+        if (activePermissionCodes.contains("SALES_RETURN")
+                || activePermissionCodes.contains("SALES_DELIVERY")
+                || activePermissionCodes.contains("REVIEW_VIEW")
+                || activePermissionCodes.contains("COMMENT_VIEW")) {
+            activeGroups.add("REVIEW_COMMENT");
+        }
+        if (activePermissionCodes.contains("SALES_WARRANTY")
+                || activePermissionCodes.contains("WARRANTY_VIEW")) {
+            activeGroups.add("WARRANTY");
+        }
+        if (activePermissionCodes.contains("VOUCHER_VIEW")
+                || activePermissionCodes.contains("VOUCHER_CREATE")
+                || activePermissionCodes.contains("VOUCHER_EDIT")) {
+            activeGroups.add("VOUCHER");
+        }
+        if (activePermissionCodes.contains("INVENTORY_VIEW")
+                || activePermissionCodes.contains("BANNER_VIEW")
+                || activePermissionCodes.contains("POST_VIEW")) {
+            activeGroups.add("BANNER_POST");
+        }
+        if (activePermissionCodes.contains("REPORT_VIEW")
+                || activePermissionCodes.contains("SALES_REPORT")
+                || activePermissionCodes.contains("REPORT_EXPORT")) {
+            activeGroups.add("REPORT");
         }
 
         req.setAttribute("selectedUserId", selectedUserId);
         req.setAttribute("selectedEmployee", selectedEmployee);
-        req.setAttribute("permissions", permissions);
-        req.setAttribute("permByCode", permByCode);
-        req.setAttribute("activePermissionIds", activePermissionIds);
+        req.setAttribute("activeGroups", activeGroups);
         req.setAttribute("activePermissionCodes", activePermissionCodes);
 
         req.setAttribute("contentPage", "/views/admin/permission-matrix.jsp");
@@ -125,45 +158,109 @@ public class PermissionController extends HttpServlet {
         }
 
         // Xác thực người dùng mục tiêu phải có Role EMPLOYEE
-        com.watchstore.repository.UserRepository userRepo = (com.watchstore.repository.UserRepository) getServletContext().getAttribute("userRepository");
-        if (userRepo == null) userRepo = new com.watchstore.repository.UserRepositoryImpl();
-        User targetUser = userRepo.findById(userId);
+        User targetUser = userRepository.findById(userId);
         if (targetUser == null || targetUser.getRole() != com.watchstore.enums.Role.EMPLOYEE) {
             req.getSession().setAttribute("flash", "Chỉ được phân quyền cho tài khoản Nhân viên (EMPLOYEE).");
             resp.sendRedirect(req.getContextPath() + "/manage/admin/permissions");
             return;
         }
 
-        // Đọc toàn bộ permissions để kiểm tra và loại bỏ quyền Hệ Thống (ADMIN ONLY)
         List<Permission> allPerms = permissionRepository.findAll();
-        java.util.Map<Integer, Permission> permMap = new java.util.HashMap<>();
+        Map<String, Integer> codeToIdMap = new HashMap<>();
         for (Permission p : allPerms) {
-            permMap.put(p.getPermissionId(), p);
+            if (p.getPermissionCode() != null) {
+                codeToIdMap.put(p.getPermissionCode().toUpperCase(), p.getPermissionId());
+            }
         }
 
-        String[] permParamArr = req.getParameterValues("permissionIds");
+        String[] groupParamArr = req.getParameterValues("functionalGroups");
+        Set<String> selectedGroups = new HashSet<>();
+        if (groupParamArr != null) {
+            selectedGroups.addAll(Arrays.asList(groupParamArr));
+        }
+
+        Set<Integer> targetPermissionIds = new HashSet<>();
+
+        // 1. SẢN PHẨM: Quản lý sản phẩm, danh mục và thương hiệu
+        if (selectedGroups.contains("PRODUCT")) {
+            addPermId(targetPermissionIds, codeToIdMap, "PRODUCT_VIEW");
+            addPermId(targetPermissionIds, codeToIdMap, "PRODUCT_CREATE");
+            addPermId(targetPermissionIds, codeToIdMap, "PRODUCT_EDIT");
+        }
+
+        // 2. BÁN HÀNG: Đơn hàng và khách hàng
+        if (selectedGroups.contains("SALES")) {
+            addPermId(targetPermissionIds, codeToIdMap, "ORDER_VIEW");
+            addPermId(targetPermissionIds, codeToIdMap, "ORDER_CREATE");
+            addPermId(targetPermissionIds, codeToIdMap, "ORDER_EDIT");
+            addPermId(targetPermissionIds, codeToIdMap, "ORDER_APPROVE");
+            addPermId(targetPermissionIds, codeToIdMap, "ORDER_EXPORT");
+            addPermId(targetPermissionIds, codeToIdMap, "CUSTOMER_VIEW");
+            addPermId(targetPermissionIds, codeToIdMap, "CUSTOMER_CREATE");
+            addPermId(targetPermissionIds, codeToIdMap, "CUSTOMER_EDIT");
+            addPermId(targetPermissionIds, codeToIdMap, "SALES_DASHBOARD");
+            addPermId(targetPermissionIds, codeToIdMap, "SALES_ORDER");
+            addPermId(targetPermissionIds, codeToIdMap, "SALES_CUSTOMER");
+        }
+
+        // 3. REVIEW & COMMENT: Quản lý đánh giá và bình luận
+        if (selectedGroups.contains("REVIEW_COMMENT")) {
+            addPermId(targetPermissionIds, codeToIdMap, "SALES_RETURN");
+            addPermId(targetPermissionIds, codeToIdMap, "SALES_DELIVERY");
+        }
+
+        // 4. BẢO HÀNH: Tiếp nhận và xử lý bảo hành
+        if (selectedGroups.contains("WARRANTY")) {
+            addPermId(targetPermissionIds, codeToIdMap, "SALES_WARRANTY");
+        }
+
+        // 5. VOUCHER: Quản lý mã giảm giá
+        if (selectedGroups.contains("VOUCHER")) {
+            addPermId(targetPermissionIds, codeToIdMap, "VOUCHER_VIEW");
+            addPermId(targetPermissionIds, codeToIdMap, "VOUCHER_CREATE");
+            addPermId(targetPermissionIds, codeToIdMap, "VOUCHER_EDIT");
+        }
+
+        // 6. BANNER & BÀI VIẾT: Quản lý nội dung website
+        if (selectedGroups.contains("BANNER_POST")) {
+            addPermId(targetPermissionIds, codeToIdMap, "INVENTORY_VIEW");
+            addPermId(targetPermissionIds, codeToIdMap, "INVENTORY_CREATE");
+            addPermId(targetPermissionIds, codeToIdMap, "INVENTORY_EDIT");
+        }
+
+        // 7. BÁO CÁO: Thống kê và báo cáo bán hàng
+        if (selectedGroups.contains("REPORT")) {
+            addPermId(targetPermissionIds, codeToIdMap, "REPORT_VIEW");
+            addPermId(targetPermissionIds, codeToIdMap, "REPORT_EXPORT");
+            addPermId(targetPermissionIds, codeToIdMap, "SALES_REPORT");
+        }
+
+        // KHÓA CỨNG: Tuyệt đối không lưu quyền Hệ thống (Account, Role, Permission) cho Employee
         List<Integer> sanitizedPermissionIds = new ArrayList<>();
-        if (permParamArr != null) {
-            for (String pidStr : permParamArr) {
-                try {
-                    int pid = Integer.parseInt(pidStr);
-                    Permission p = permMap.get(pid);
-                    if (p != null) {
-                        String code = p.getPermissionCode().toUpperCase();
-                        String module = p.getModuleCode() != null ? p.getModuleCode().toUpperCase() : "";
-                        // KHÓA CỨNG: Tuyệt đối không lưu quyền Hệ thống (Account, Role, Permission) cho Employee
-                        if (!code.startsWith("ACCOUNT") && !code.startsWith("ROLE")
-                                && !code.startsWith("PERMISSION") && !code.startsWith("SYSTEM")
-                                && !module.equals("SYSTEM") && !module.equals("ROLE") && !module.equals("ACCOUNT")) {
-                            sanitizedPermissionIds.add(pid);
-                        }
+        for (Integer pid : targetPermissionIds) {
+            for (Permission p : allPerms) {
+                if (p.getPermissionId() == pid) {
+                    String code = p.getPermissionCode().toUpperCase();
+                    String module = p.getModuleCode() != null ? p.getModuleCode().toUpperCase() : "";
+                    if (!code.startsWith("ACCOUNT") && !code.startsWith("ROLE")
+                            && !code.startsWith("PERMISSION") && !code.startsWith("SYSTEM")
+                            && !module.equals("SYSTEM") && !module.equals("ROLE") && !module.equals("ACCOUNT")) {
+                        sanitizedPermissionIds.add(pid);
                     }
-                } catch (NumberFormatException ignored) {}
+                    break;
+                }
             }
         }
 
         permissionRepository.updateUserPermissions(userId, sanitizedPermissionIds);
         req.getSession().setAttribute("flash", "Đã lưu phân quyền cho nhân viên " + targetUser.getFullName() + " (" + targetUser.getEmail() + ") thành công!");
         resp.sendRedirect(req.getContextPath() + "/manage/admin/permissions?userId=" + userId);
+    }
+
+    private void addPermId(Set<Integer> targetSet, Map<String, Integer> map, String code) {
+        Integer id = map.get(code.toUpperCase());
+        if (id != null) {
+            targetSet.add(id);
+        }
     }
 }

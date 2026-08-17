@@ -41,21 +41,20 @@ public class RoleFilter implements Filter {
         Role userRole = user.getRole();
         String uri = req.getRequestURI();
 
-        // 1. ADMIN = SUPER ADMIN -> FULL BYPASS (Bỏ qua toàn bộ kiểm tra permission)
+        // 1. ADMIN = SUPER ADMIN -> FULL ACCESS (Toàn quyền truy cập mọi route)
         if (userRole == Role.ADMIN) {
             chain.doFilter(request, response);
             return;
         }
 
-        // 2. CUSTOMER -> CẤM TRUY CẬP VÀO /manage/*
+        // 2. CUSTOMER / KHÁC -> CẤM TUYỆT ĐỐI VÀO /manage/*
         if (userRole != Role.EMPLOYEE) {
             req.getSession().setAttribute("flash", "Bạn không có quyền truy cập khu vực quản lý.");
             resp.sendRedirect(req.getContextPath() + "/page/home");
             return;
         }
 
-        // 3. EMPLOYEE -> KIỂM TRA PERMISSION GRANULAR THEO URL
-        // Cấm tuyệt đối truy cập các cấu hình hệ thống dành riêng cho ADMIN
+        // 3. EMPLOYEE -> CẤM VĨNH VIỄN CÁC ROUTE HỆ THỐNG DÀNH RIÊNG CHO ADMIN
         if (uri.contains("/manage/admin/accounts")
                 || uri.contains("/manage/admin/roles")
                 || uri.contains("/manage/admin/permissions")) {
@@ -83,7 +82,7 @@ public class RoleFilter implements Filter {
             if (fallbackUrl != null && !fallbackUrl.equals(uri) && !uri.startsWith(fallbackUrl)) {
                 resp.sendRedirect(fallbackUrl);
             } else {
-                resp.sendRedirect(req.getContextPath() + "/page/home");
+                resp.sendRedirect(req.getContextPath() + "/manage/sales/dashboard");
             }
             return;
         }
@@ -92,82 +91,56 @@ public class RoleFilter implements Filter {
     }
 
     private boolean checkEmployeePermissionForUri(HttpServletRequest req, String uri, Set<String> perms) {
-        String method = req.getMethod();
-
-        // SẢN PHẨM, DANH MỤC, THƯƠNG HIỆU
+        // 1. NHÓM SẢN PHẨM (Sản phẩm, Danh mục, Thương hiệu)
         if (uri.contains("/manage/admin/products") || uri.contains("/manage/admin/categories") || uri.contains("/manage/admin/brands")) {
-            if (uri.contains("/add") || uri.contains("/create")) {
-                return perms.contains("PRODUCT_CREATE");
-            }
-            if (uri.contains("/edit") || uri.contains("/update") || uri.contains("/status") || uri.contains("/toggle") || uri.contains("/delete")) {
-                return perms.contains("PRODUCT_EDIT");
-            }
-            return perms.contains("PRODUCT_VIEW");
+            return perms.contains("PRODUCT_VIEW") || perms.contains("PRODUCT_CREATE") || perms.contains("PRODUCT_EDIT");
         }
 
-        // ĐƠN HÀNG (SALES / ORDERS)
+        // 2. NHÓM BÁN HÀNG - ĐƠN HÀNG
         if (uri.contains("/manage/sales/orders") || uri.contains("/manage/sales/order-")) {
-            if (uri.contains("/order-add") || uri.contains("/create")) {
-                return perms.contains("ORDER_CREATE") || perms.contains("SALES_ORDER");
-            }
-            if (uri.contains("/order-edit") || uri.contains("/edit")) {
-                return perms.contains("ORDER_EDIT") || perms.contains("SALES_ORDER");
-            }
-            if (uri.contains("/confirm") || uri.contains("/approve") || uri.contains("/cancel") || uri.contains("/status")) {
-                return perms.contains("ORDER_APPROVE") || perms.contains("SALES_ORDER");
-            }
-            if (uri.contains("/export") || uri.contains("/invoice") || uri.contains("/print")) {
-                return perms.contains("ORDER_EXPORT") || perms.contains("SALES_ORDER");
-            }
-            return perms.contains("ORDER_VIEW") || perms.contains("SALES_ORDER") || perms.contains("SALES_DASHBOARD");
+            return perms.contains("ORDER_VIEW") || perms.contains("SALES_ORDER")
+                    || perms.contains("ORDER_CREATE") || perms.contains("ORDER_EDIT")
+                    || perms.contains("ORDER_APPROVE") || perms.contains("ORDER_EXPORT");
         }
 
-        // KHÁCH HÀNG
+        // 2. NHÓM BÁN HÀNG - KHÁCH HÀNG
         if (uri.contains("/manage/sales/customers") || uri.contains("/manage/sales/customer-")) {
-            if (uri.contains("/add") || uri.contains("/create")) {
-                return perms.contains("CUSTOMER_CREATE") || perms.contains("SALES_CUSTOMER");
-            }
-            if (uri.contains("/edit") || uri.contains("/update") || uri.contains("/status")) {
-                return perms.contains("CUSTOMER_EDIT") || perms.contains("SALES_CUSTOMER");
-            }
-            return perms.contains("CUSTOMER_VIEW") || perms.contains("SALES_CUSTOMER");
+            return perms.contains("CUSTOMER_VIEW") || perms.contains("SALES_CUSTOMER")
+                    || perms.contains("CUSTOMER_CREATE") || perms.contains("CUSTOMER_EDIT");
         }
 
-        // BẢO HÀNH (WARRANTY)
-        if (uri.contains("/manage/sales/warranty") || uri.contains("/manage/sales/warranty-add")) {
-            return perms.contains("SALES_WARRANTY") || perms.contains("WARRANTY_VIEW") || perms.contains("WARRANTY_CREATE") || perms.contains("ORDER_VIEW") || perms.contains("SALES_ORDER");
-        }
-
-        // ĐÁNH GIÁ & BÌNH LUẬN
+        // 3. NHÓM REVIEW & COMMENT
         if (uri.contains("/manage/sales/reviews") || uri.contains("/manage/sales/comments")) {
-            return perms.contains("PRODUCT_VIEW") || perms.contains("SALES_DASHBOARD") || perms.contains("ORDER_VIEW") || perms.contains("SALES_ORDER");
+            return perms.contains("SALES_RETURN") || perms.contains("SALES_DELIVERY")
+                    || perms.contains("REVIEW_VIEW") || perms.contains("COMMENT_VIEW");
         }
 
-        // MARKETING & NỘI DUNG (VOUCHER, BANNER, BÀI VIẾT)
-        if (uri.contains("/manage/admin/vouchers") || uri.contains("/manage/admin/banners") || uri.contains("/manage/admin/posts")) {
-            if (uri.contains("/add") || uri.contains("/create")) {
-                return perms.contains("VOUCHER_CREATE");
-            }
-            if (uri.contains("/edit") || uri.contains("/update") || uri.contains("/status") || uri.contains("/delete")) {
-                return perms.contains("VOUCHER_EDIT");
-            }
-            return perms.contains("VOUCHER_VIEW");
+        // 4. NHÓM BẢO HÀNH
+        if (uri.contains("/manage/sales/warranty") || uri.contains("/manage/sales/warranty-add")) {
+            return perms.contains("SALES_WARRANTY") || perms.contains("WARRANTY_VIEW");
         }
 
-        // BÁO CÁO (REPORTS & STATISTICS)
+        // 5. NHÓM VOUCHER
+        if (uri.contains("/manage/admin/vouchers")) {
+            return perms.contains("VOUCHER_VIEW") || perms.contains("VOUCHER_CREATE") || perms.contains("VOUCHER_EDIT");
+        }
+
+        // 6. NHÓM BANNER & BÀI VIẾT
+        if (uri.contains("/manage/admin/banners") || uri.contains("/manage/admin/posts")) {
+            return perms.contains("INVENTORY_VIEW") || perms.contains("BANNER_VIEW") || perms.contains("POST_VIEW");
+        }
+
+        // 7. NHÓM BÁO CÁO (Báo cáo & Thống kê)
         if (uri.contains("/manage/sales/report") || uri.contains("/manage/admin/reports") || uri.contains("/manage/admin/statistics")) {
-            if (uri.contains("/export") || uri.contains("/download")) {
-                return perms.contains("REPORT_EXPORT") || perms.contains("ORDER_EXPORT");
-            }
             return perms.contains("REPORT_VIEW") || perms.contains("SALES_REPORT") || perms.contains("REPORT_EXPORT");
         }
 
-        // DASHBOARD CHUNG
+        // DASHBOARD TỔNG QUAN EMPLOYEE
         if (uri.contains("/manage/sales/dashboard")) {
-            return perms.contains("SALES_DASHBOARD") || perms.contains("ORDER_VIEW") || perms.contains("SALES_ORDER");
+            return true;
         }
 
-        // Bất kỳ route nào khác trong sales:
+        // Bất kỳ route nào khác trong /manage/sales/
         if (uri.contains("/manage/sales/")) {
             return perms.stream().anyMatch(p -> p.startsWith("SALES_") || p.startsWith("ORDER_") || p.startsWith("CUSTOMER_") || p.startsWith("WARRANTY_"));
         }
@@ -188,18 +161,21 @@ public class RoleFilter implements Filter {
         if (perms.contains("CUSTOMER_VIEW") || perms.contains("SALES_CUSTOMER")) {
             return req.getContextPath() + "/manage/sales/customers";
         }
+        if (perms.contains("SALES_RETURN") || perms.contains("SALES_DELIVERY")) {
+            return req.getContextPath() + "/manage/sales/reviews";
+        }
         if (perms.contains("SALES_WARRANTY")) {
             return req.getContextPath() + "/manage/sales/warranty";
         }
         if (perms.contains("VOUCHER_VIEW")) {
             return req.getContextPath() + "/manage/admin/vouchers";
         }
+        if (perms.contains("INVENTORY_VIEW")) {
+            return req.getContextPath() + "/manage/admin/banners";
+        }
         if (perms.contains("REPORT_VIEW") || perms.contains("SALES_REPORT") || perms.contains("REPORT_EXPORT")) {
             return req.getContextPath() + "/manage/sales/report";
         }
-        if (perms.stream().anyMatch(p -> p.startsWith("SALES_") || p.startsWith("ORDER_") || p.startsWith("CUSTOMER_") || p.startsWith("WARRANTY_"))) {
-            return req.getContextPath() + "/manage/sales/orders";
-        }
-        return null;
+        return req.getContextPath() + "/manage/sales/dashboard";
     }
 }
