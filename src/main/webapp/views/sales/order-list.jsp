@@ -222,7 +222,7 @@
             <p style="margin: 8px 0 0 0; color: #777;">Xem, tìm kiếm và theo dõi các đơn hàng của khách hàng.</p>
         </div>
         <a href="${pageContext.request.contextPath}/manage/sales/order-add" class="btn btn-search" style="text-decoration: none; font-weight: bold; background: #2563eb; color: white;">
-            ➕ Thêm đơn hàng
+            ➕ Tạo đơn hàng
         </a>
     </div>
 
@@ -282,6 +282,14 @@
                 <input type="date" name="toDate" value="${toDate}" style="border: none; padding: 0; height: auto; width: 125px; font-size: 13px;">
             </div>
 
+            <!-- Lọc theo giá tiền -->
+            <div style="display: flex; gap: 8px; align-items: center; background: white; border: 1px solid #ddd; border-radius: 6px; padding: 0 10px; height: 42px;">
+                <span style="font-size: 13px; color: #666;">Giá từ:</span>
+                <input type="number" name="minPrice" value="${minPrice}" placeholder="đ" style="border: none; padding: 0; height: auto; width: 100px; font-size: 13px; outline: none;">
+                <span style="font-size: 13px; color: #666;">Đến:</span>
+                <input type="number" name="maxPrice" value="${maxPrice}" placeholder="đ" style="border: none; padding: 0; height: auto; width: 100px; font-size: 13px; outline: none;">
+            </div>
+
             <!-- Nút tìm kiếm & Đặt lại -->
             <button type="submit" class="btn btn-search">Tìm kiếm</button>
             <a href="${pageContext.request.contextPath}/manage/sales/orders" class="btn btn-reset">Đặt lại</a>
@@ -301,6 +309,7 @@
                 <th>Mã đơn</th>
                 <th>Khách hàng</th>
                 <th>Số điện thoại</th>
+                <th>Sản phẩm</th>
                 <th>Tổng tiền</th>
                 <th>Trạng thái</th>
                 <th>Ngày đặt</th>
@@ -326,88 +335,75 @@
                             <!-- SỐ ĐIỆN THOẠI -->
                             <td>${order.customerPhone}</td>
 
-                            <!-- TỔNG TIỀN -->
-                            <td>
-                                <strong>
-                                    <fmt:formatNumber value="${order.total}" pattern="#,##0" /> ₫
-                                </strong>
-                            </td>
+                            <!-- SẢN PHẨM -->
+                             <td>
+                                 <c:forEach var="item" items="${order.orderDetails}">
+                                     <div style="margin-bottom: 5px; font-size: 13px;">
+                                         ${item.productName} (${item.variantName}) x <b>${item.quantity}</b>
+                                     </div>
+                                 </c:forEach>
+                             </td>
 
-                            <!-- TRẠNG THÁI -->
-                            <td>
-                                <div>
-                                    <c:choose>
-                                        <c:when test="${order.statusCode == 'PENDING'}">
-                                            <span class="status processing">Chờ xử lý</span>
-                                        </c:when>
-                                        <c:when test="${order.statusCode == 'CONFIRMED'}">
-                                            <span class="status processing">Đã xác nhận</span>
-                                        </c:when>
-                                        <c:when test="${order.statusCode == 'PACKING'}">
-                                            <span class="status processing">Đang đóng gói</span>
-                                        </c:when>
-                                        <c:when test="${order.statusCode == 'SHIPPING'}">
-                                            <span class="status shipping">Đang giao</span>
-                                        </c:when>
-                                        <c:when test="${order.statusCode == 'DELIVERED'}">
-                                            <span class="status shipping">Đã giao</span>
-                                        </c:when>
-                                        <c:when test="${order.statusCode == 'COMPLETED'}">
-                                            <span class="status completed">Hoàn thành</span>
-                                        </c:when>
-                                        <c:when test="${order.statusCode == 'CANCELLED'}">
-                                            <span class="status cancelled">Đã hủy</span>
-                                        </c:when>
-                                        <c:otherwise>
-                                            <span class="status">${order.statusCode}</span>
-                                        </c:otherwise>
-                                    </c:choose>
-                                </div>
-                                <div style="margin-top: 5px;">
-                                    <c:choose>
-                                        <c:when test="${order.paymentStatus == 'PAID'}">
-                                            <span style="background: #d1fae5; color: #065f46; padding: 3px 8px; border-radius: 10px; font-size: 11px; font-weight: 500; display: inline-block;">Đã thanh toán</span>
-                                        </c:when>
-                                        <c:otherwise>
-                                            <span style="background: #fee2e2; color: #991b1b; padding: 3px 8px; border-radius: 10px; font-size: 11px; font-weight: 500; display: inline-block;">Chưa thanh toán</span>
-                                        </c:otherwise>
-                                    </c:choose>
-                                </div>
-                            </td>
+                             <!-- TỔNG TIỀN -->
+                             <td>
+                                 <strong>
+                                     <fmt:formatNumber value="${order.totalAmount}" pattern="#,##0" /> ₫
+                                 </strong>
+                             </td>
 
-                            <!-- NGÀY -->
-                            <td>${order.orderDate}</td>
+                             <!-- TRẠNG THÁI -->
+                             <td>
+                                 <div>
+                                     <c:choose>
+                                         <c:when test="${order.orderStatus == 'PENDING'}">
+                                             <span class="status processing">Chờ xử lý</span>
+                                         </c:when>
+                                         <c:when test="${order.orderStatus == 'CONFIRMED'}">
+                                             <span class="status processing">Đã xác nhận</span>
+                                         </c:when>
+                                         <c:when test="${order.orderStatus == 'PACKING'}">
+                                             <span class="status processing">Đang đóng gói</span>
+                                         </c:when>
+                                         <c:when test="${order.orderStatus == 'SHIPPING'}">
+                                             <span class="status shipping">Đang giao</span>
+                                         </c:when>
+                                         <c:when test="${order.orderStatus == 'DELIVERED'}">
+                                             <span class="status shipping">Đã giao</span>
+                                         </c:when>
+                                         <c:when test="${order.orderStatus == 'COMPLETED'}">
+                                             <span class="status completed">Hoàn thành</span>
+                                         </c:when>
+                                         <c:when test="${order.orderStatus == 'CANCELLED'}">
+                                             <span class="status cancelled">Đã hủy</span>
+                                         </c:when>
+                                         <c:otherwise>
+                                             <span class="status">${order.orderStatus}</span>
+                                         </c:otherwise>
+                                     </c:choose>
+                                 </div>
+                             </td>
 
-                            <!-- THAO TÁC -->
-                            <td>
-                                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: nowrap;">
-                                    <a class="action" href="${pageContext.request.contextPath}/manage/sales/order-detail?id=${order.id}" style="color: #2563eb;">
-                                        Chi tiết
-                                    </a>
-                                    <c:if test="${order.statusCode == 'PENDING'}">
-                                        <a class="action" href="javascript:void(0);" onclick="confirmAction(${order.id}, 'confirm')" style="color: #059669; font-weight: bold;">
-                                            | Xác nhận
-                                        </a>
-                                    </c:if>
-                                    <c:if test="${order.statusCode != 'COMPLETED'}">
-                                        <a class="action" href="${pageContext.request.contextPath}/manage/sales/order-edit?id=${order.id}" style="color: #d97706;">
-                                            | Sửa
-                                        </a>
-                                    </c:if>
-                                    <c:if test="${order.statusCode != 'COMPLETED' && order.statusCode != 'CANCELLED'}">
-                                        <a class="action" href="javascript:void(0);" onclick="confirmAction(${order.id}, 'cancel')" style="color: #dc2626;">
-                                            | Hủy
-                                        </a>
-                                    </c:if>
-                                </div>
-                            </td>
+                             <!-- NGÀY -->
+                             <td>${order.createdDate}</td>
+
+                             <!-- THAO TÁC -->
+                             <td>
+                                 <div style="display: flex; gap: 8px; align-items: center; flex-wrap: nowrap;">
+                                     <a class="action" href="${pageContext.request.contextPath}/manage/sales/order-detail?id=${order.id}" style="color: #2563eb; font-weight: 600;">
+                                         Xem chi tiết
+                                     </a>
+                                     <a class="action" href="${pageContext.request.contextPath}/manage/sales/warranty?orderId=${order.id}" style="color: #059669; font-weight: 600;">
+                                         | Tạo bảo hành
+                                     </a>
+                                 </div>
+                             </td>
                         </tr>
                     </c:forEach>
                 </c:when>
 
                 <c:otherwise>
                     <tr>
-                        <td colspan="7" class="empty">Không tìm thấy đơn hàng.</td>
+                        <td colspan="8" class="empty">Không tìm thấy đơn hàng.</td>
                     </tr>
                 </c:otherwise>
             </c:choose>

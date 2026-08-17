@@ -65,6 +65,16 @@ public class ProductController extends HttpServlet {
             throws ServletException, IOException {
 
         String action = req.getPathInfo();
+        
+        com.watchstore.model.User currentUser = (com.watchstore.model.User) req.getSession().getAttribute("user");
+        if (currentUser != null && currentUser.getRole() == com.watchstore.enums.Role.SALES) {
+            if ("/add".equals(action) || "/edit".equals(action) || "/delete".equals(action)) {
+                req.getSession().setAttribute("errorMessage", "Bạn không có quyền thực hiện hành động này.");
+                resp.sendRedirect(req.getContextPath() + "/manage/admin/products");
+                return;
+            }
+        }
+
         if (action == null || action.equals("/")) {
             String keyword = req.getParameter("keyword");
             if (keyword != null && !keyword.isBlank()) {
@@ -89,6 +99,20 @@ public class ProductController extends HttpServlet {
                     } catch (NumberFormatException ignored) {}
                 }
                 forwardToForm(req, resp, "Sửa sản phẩm");
+                break;
+            }
+            case "/detail": {
+                String idStr = req.getParameter("id");
+                if (idStr != null && !idStr.isBlank()) {
+                    try {
+                        int id = Integer.parseInt(idStr);
+                        productRepository.findById(id).ifPresent(p -> req.setAttribute("product", p));
+                    } catch (NumberFormatException ignored) {}
+                }
+                setCommonAttributes(req);
+                req.setAttribute("pageTitle", "Chi tiết sản phẩm");
+                req.setAttribute("contentPage", "/views/admin/product-detail.jsp");
+                req.getRequestDispatcher("/views/layout/admin-layout.jsp").forward(req, resp);
                 break;
             }
             case "/delete": {
@@ -132,6 +156,13 @@ public class ProductController extends HttpServlet {
             throws ServletException, IOException {
 
         req.setCharacterEncoding("UTF-8");
+
+        com.watchstore.model.User currentUser = (com.watchstore.model.User) req.getSession().getAttribute("user");
+        if (currentUser != null && currentUser.getRole() == com.watchstore.enums.Role.SALES) {
+            req.getSession().setAttribute("errorMessage", "Bạn không có quyền thực hiện hành động này.");
+            resp.sendRedirect(req.getContextPath() + "/manage/admin/products");
+            return;
+        }
 
         String action = req.getPathInfo();
         if (action == null) action = "/";

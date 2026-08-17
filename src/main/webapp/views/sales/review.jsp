@@ -496,28 +496,50 @@
                                 <div style="display:flex; gap:8px;">
                                     <c:choose>
                                         <c:when test="${review.status == 'PENDING' or review.status == 'Chờ duyệt'}">
-                                            <button type="button" class="btn" style="background:#059669; color:white; padding:6px 12px; font-size:13px; font-weight:600; cursor:pointer;" onclick="submitReviewAction(${review.id}, 'APPROVED')">
-                                                Duyệt
-                                            </button>
-                                            <button type="button" class="btn" style="background:#dc2626; color:white; padding:6px 12px; font-size:13px; font-weight:600; cursor:pointer;" onclick="submitReviewAction(${review.id}, 'REJECTED')">
-                                                Từ chối
-                                            </button>
+                                            <c:choose>
+                                                <c:when test="${sessionScope.user.role == 'ADMIN'}">
+                                                    <button type="button" class="btn" style="background:#059669; color:white; padding:6px 12px; font-size:13px; font-weight:600; cursor:pointer;" onclick="submitReviewAction(${review.id}, 'APPROVED')">
+                                                        Duyệt
+                                                    </button>
+                                                    <button type="button" class="btn" style="background:#dc2626; color:white; padding:6px 12px; font-size:13px; font-weight:600; cursor:pointer;" onclick="submitReviewAction(${review.id}, 'REJECTED')">
+                                                        Từ chối
+                                                    </button>
+                                                </c:when>
+                                                <c:otherwise>
+                                                    <button type="button" class="btn" style="background:#2563eb; color:white; padding:6px 12px; font-size:13px; font-weight:600; cursor:pointer;" 
+                                                            data-id="${review.id}"
+                                                            data-customer="${review.customerName}"
+                                                            data-email="${review.email}"
+                                                            data-phone="${review.phone}"
+                                                            data-product="${review.productName}"
+                                                            data-rating="${review.rating}"
+                                                            data-content="${review.content}"
+                                                            data-date="${not empty review.createdAt ? review.createdAt : review.reviewDate}"
+                                                            data-order="${review.orderCode}"
+                                                            data-reply="${review.reply}"
+                                                            onclick="openDetailModal(event)">
+                                                        Xem chi tiết
+                                                    </button>
+                                                </c:otherwise>
+                                            </c:choose>
                                         </c:when>
                                         <c:when test="${review.status == 'APPROVED' or review.status == 'Đã duyệt'}">
-                                            <button type="button" class="btn" style="background:#d97706; color:white; padding:6px 12px; font-size:13px; font-weight:600; cursor:pointer;" 
-                                                    data-id="${review.id}"
-                                                    data-customer="${review.customerName}"
-                                                    data-email="${review.email}"
-                                                    data-phone="${review.phone}"
-                                                    data-product="${review.productName}"
-                                                    data-rating="${review.rating}"
-                                                    data-content="${review.content}"
-                                                    data-date="${not empty review.createdAt ? review.createdAt : review.reviewDate}"
-                                                    data-order="${review.orderCode}"
-                                                    data-reply="${review.reply}"
-                                                    onclick="openReplyModal(event)">
-                                                Phản hồi
-                                            </button>
+                                            <c:if test="${sessionScope.user.role == 'SALES'}">
+                                                <button type="button" class="btn" style="background:#d97706; color:white; padding:6px 12px; font-size:13px; font-weight:600; cursor:pointer;" 
+                                                        data-id="${review.id}"
+                                                        data-customer="${review.customerName}"
+                                                        data-email="${review.email}"
+                                                        data-phone="${review.phone}"
+                                                        data-product="${review.productName}"
+                                                        data-rating="${review.rating}"
+                                                        data-content="${review.content}"
+                                                        data-date="${not empty review.createdAt ? review.createdAt : review.reviewDate}"
+                                                        data-order="${review.orderCode}"
+                                                        data-reply="${review.reply}"
+                                                        onclick="openReplyModal(event)">
+                                                    Phản hồi
+                                                </button>
+                                            </c:if>
                                             <button type="button" class="btn" style="background:#2563eb; color:white; padding:6px 12px; font-size:13px; font-weight:600; cursor:pointer;" 
                                                     data-id="${review.id}"
                                                     data-customer="${review.customerName}"

@@ -460,6 +460,7 @@
                     </a>
                 </li>
 
+                <c:if test="${sessionScope.user.role.name() != 'SALES'}">
                 <li>
                     <a href="${pageContext.request.contextPath}/manage/sales/delivery">
                         Vận chuyển
@@ -471,6 +472,7 @@
                         Đổi trả
                     </a>
                 </li>
+                </c:if>
 
                 <li>
                     <a href="${pageContext.request.contextPath}/manage/sales/reviews">

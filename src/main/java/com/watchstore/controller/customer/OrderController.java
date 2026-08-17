@@ -12,6 +12,7 @@ import jakarta.servlet.http.*;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @WebServlet("/orders/*")
 public class OrderController extends HttpServlet {
@@ -23,9 +24,18 @@ public class OrderController extends HttpServlet {
 
     @Override protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         String path = req.getPathInfo() == null ? "/list" : req.getPathInfo();
-        req.setAttribute("orders", orderRepository.findAll());
-        if ("/detail".equals(path)) {
-            req.setAttribute("order", orderRepository.findByCode(req.getParameter("code")));
+        List<Order> list = orderRepository.findAll();
+        if (list != null) {
+            for (Order o : list) {
+                o.setOrderDetails(orderRepository.getOrderItems((int) o.getId()));
+            }
+        }
+        req.setAttribute("orders", list);if ("/detail".equals(path)) {
+            Order order = orderRepository.findByCode(req.getParameter("code"));
+            if (order != null) {
+                req.setAttribute("order", order);
+                req.setAttribute("orderItems", orderRepository.getOrderItems((int) order.getId()));
+            }
             ViewRouter.customer(req, resp, "customer/order-detail", "Chi tiết đơn hàng");
         } else ViewRouter.customer(req, resp, "customer/order-list", "Đơn hàng của tôi");
     }

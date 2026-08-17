@@ -71,6 +71,36 @@ public class CustomerRepository {
     }
 
     /**
+     * Tìm khách hàng theo số điện thoại
+     */
+    public Customer findByPhone(String phone) {
+        if (phone == null || phone.trim().isEmpty()) {
+            return null;
+        }
+        String sql = """
+            SELECT u.UserID, u.Email, u.PasswordHash, u.FullName, u.Phone, 
+                   (SELECT TOP 1 AddressLine + ', ' + Ward + ', ' + District + ', ' + Province FROM UserAddresses WHERE UserID = u.UserID ORDER BY IsDefault DESC) AS Address,
+                   r.RoleCode
+            FROM Users u
+            JOIN UserRoles ur ON u.UserID = ur.UserID
+            JOIN Roles r ON ur.RoleID = r.RoleID
+            WHERE r.RoleCode = 'CUSTOMER' AND u.Phone = ?
+            """;
+        try (Connection con = DBContext.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, phone.trim());
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return mapResultSetToCustomer(rs);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    /**
      * Tìm kiếm khách hàng theo tên hoặc số điện thoại
      */
     public List<Customer> search(String keyword) {

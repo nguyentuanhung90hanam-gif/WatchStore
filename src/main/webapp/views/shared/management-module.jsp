@@ -20,21 +20,23 @@
 
             <c:when test="${tableKind == 'products'}">
 
-                <c:choose>
-                    <c:when test="${adminArea == 'warehouse'}">
-                        <a class="button button-gold"
-                           href="${pageContext.request.contextPath}/manage/warehouse/product-add">
-                            Thêm sản phẩm
-                        </a>
-                    </c:when>
+                <c:if test="${sessionScope.user.role.name() != 'SALES'}">
+                    <c:choose>
+                        <c:when test="${adminArea == 'warehouse'}">
+                            <a class="button button-gold"
+                               href="${pageContext.request.contextPath}/manage/warehouse/product-add">
+                                Thêm sản phẩm
+                            </a>
+                        </c:when>
 
-                    <c:otherwise>
-                        <a class="button button-gold"
-                           href="${pageContext.request.contextPath}/manage/admin/products/add">
-                            Thêm sản phẩm
-                        </a>
-                    </c:otherwise>
-                </c:choose>
+                        <c:otherwise>
+                            <a class="button button-gold"
+                               href="${pageContext.request.contextPath}/manage/admin/products/add">
+                                Thêm sản phẩm
+                            </a>
+                        </c:otherwise>
+                    </c:choose>
+                </c:if>
 
             </c:when>
 
@@ -402,6 +404,15 @@
                             <td>
 
                                 <c:choose>
+
+                                    <c:when test="${sessionScope.user.role.name() == 'SALES'}">
+
+                                        <a class="table-action"
+                                           href="${pageContext.request.contextPath}/manage/admin/products/detail?id=${p.id}">
+                                            Xem chi tiết
+                                        </a>
+
+                                    </c:when>
 
                                     <c:when test="${adminArea == 'warehouse'}">
 

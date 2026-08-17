@@ -681,6 +681,7 @@
 
                 <hr style="border:none; border-top:1px solid #eee; margin:15px 0;"/>
 
+                <c:if test="${sessionScope.user.role.name() != 'SALES'}">
                 <p>
 
                     <a href="${pageContext.request.contextPath}/manage/sales/delivery" style="text-decoration:none; color:#2563eb;">
@@ -700,6 +701,7 @@
                     </a>
 
                 </p>
+                </c:if>
 
             </div>
 

@@ -282,13 +282,18 @@ public class WarrantyRepository {
 
     public List<Map<String, Object>> getWarrantiesFromReturnRequests() {
         List<Map<String, Object>> list = new ArrayList<>();
-        String sql = "SELECT r.ReturnRequestID, r.ReturnCode, r.OrderID, o.OrderCode, " +
-                     "u.FullName as CustomerName, r.Status, r.Reason, r.CreatedAt " +
-                     "FROM dbo.ReturnRequests r " +
-                     "JOIN dbo.Orders o ON r.OrderID = o.OrderID " +
-                     "JOIN dbo.Users u ON r.CustomerID = u.UserID " +
-                     "WHERE r.RequestType = 'WARRANTY' " +
-                     "ORDER BY r.CreatedAt DESC";
+        String sql = """
+            SELECT r.ReturnRequestID, r.ReturnCode, r.OrderID, o.OrderCode, 
+                   u.FullName as CustomerName, r.Status, r.Reason, r.EvidenceNote, r.CreatedAt,
+                   oi.ProductName + ' (' + oi.VariantName + ')' AS WarrantyProductName
+            FROM dbo.ReturnRequests r
+            JOIN dbo.Orders o ON r.OrderID = o.OrderID
+            JOIN dbo.Users u ON r.CustomerID = u.UserID
+            LEFT JOIN dbo.ReturnItems ri ON r.ReturnRequestID = ri.ReturnRequestID
+            LEFT JOIN dbo.OrderItems oi ON ri.OrderItemID = oi.OrderItemID
+            WHERE r.RequestType = 'WARRANTY'
+            ORDER BY r.CreatedAt DESC
+            """;
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
@@ -301,12 +306,38 @@ public class WarrantyRepository {
                 map.put("customerName", rs.getString("CustomerName"));
                 map.put("status", rs.getString("Status"));
                 map.put("reason", rs.getString("Reason"));
+                map.put("evidenceNote", rs.getString("EvidenceNote"));
                 map.put("createdAt", rs.getTimestamp("CreatedAt"));
+                map.put("productName", rs.getString("WarrantyProductName") != null ? rs.getString("WarrantyProductName") : "N/A");
                 list.add(map);
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
         return list;
+    }
+
+    public boolean hasActiveWarranty(long orderId, int variantId) {
+        String sql = """
+            SELECT COUNT(*) 
+            FROM dbo.ReturnRequests r
+            JOIN dbo.ReturnItems ri ON r.ReturnRequestID = ri.ReturnRequestID
+            JOIN dbo.OrderItems oi ON ri.OrderItemID = oi.OrderItemID
+            WHERE r.OrderID = ? AND oi.VariantID = ? AND r.RequestType = 'WARRANTY'
+              AND r.Status IN ('PENDING', 'APPROVED', 'RECEIVED')
+            """;
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setLong(1, orderId);
+            ps.setInt(2, variantId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 }

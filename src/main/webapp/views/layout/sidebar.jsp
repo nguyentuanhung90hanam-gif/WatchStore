@@ -42,10 +42,10 @@
             <c:if test="${sessionScope.user.hasAnyPermission('CUSTOMERS_VIEW', 'CUSTOMERS_MANAGE')}">
                 <a href="${cp}/manage/sales/customers">Khách hàng</a>
             </c:if>
-            <c:if test="${sessionScope.user.hasPermission('DELIVERY_VIEW')}">
+            <c:if test="${sessionScope.user.hasPermission('DELIVERY_VIEW') && sessionScope.user.role.name() != 'SALES'}">
                 <a href="${cp}/manage/sales/delivery">Giao hàng</a>
             </c:if>
-            <c:if test="${sessionScope.user.hasAnyPermission('RETURNS_VIEW', 'RETURNS_MANAGE')}">
+            <c:if test="${sessionScope.user.hasAnyPermission('RETURNS_VIEW', 'RETURNS_MANAGE') && sessionScope.user.role.name() != 'SALES'}">
                 <a href="${cp}/manage/sales/returns">Đổi trả</a>
             </c:if>
             <c:if test="${sessionScope.user.hasPermission('WARRANTY_VIEW')}">
@@ -110,7 +110,7 @@
             </c:if>
         </c:if>
 
-        <c:if test="${sessionScope.user.hasAnyPermission('STATISTICS_VIEW', 'REPORTS_VIEW')}">
+        <c:if test="${sessionScope.user.hasAnyPermission('STATISTICS_VIEW', 'REPORTS_VIEW') && sessionScope.user.role.name() != 'SALES'}">
             <div style="margin-top: 15px; padding: 8px 12px 4px 12px; font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.5px;">
                 BÁO CÁO
             </div>

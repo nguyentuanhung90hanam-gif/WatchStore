@@ -22,8 +22,42 @@ public class Order {
 
     private OrderStatus status;
     private String paymentStatus;
+    private String customerNote;
 
     private Date createdAt;
+
+    private java.util.List<java.util.Map<String, Object>> items;
+    private java.util.List<java.util.Map<String, Object>> orderDetails;
+
+    public java.util.List<java.util.Map<String, Object>> getItems() {
+        return items != null ? items : orderDetails;
+    }
+
+    public void setItems(java.util.List<java.util.Map<String, Object>> items) {
+        this.items = items;
+        this.orderDetails = items;
+    }
+
+    public java.util.List<java.util.Map<String, Object>> getOrderDetails() {
+        return orderDetails != null ? orderDetails : items;
+    }
+
+    public void setOrderDetails(java.util.List<java.util.Map<String, Object>> orderDetails) {
+        this.orderDetails = orderDetails;
+        this.items = orderDetails;
+    }
+
+    public String getCreatedDate() {
+        return getFormattedCreatedAt();
+    }
+
+    public BigDecimal getTotalAmount() {
+        return getTotalPrice();
+    }
+
+    public String getOrderStatus() {
+        return getStatus().name();
+    }
 
     public Order() {
         this.createdAt = new Date();
@@ -243,6 +277,14 @@ public class Order {
 
     public void setPaymentStatus(String paymentStatus) {
         this.paymentStatus = paymentStatus;
+    }
+
+    public String getCustomerNote() {
+        return customerNote;
+    }
+
+    public void setCustomerNote(String customerNote) {
+        this.customerNote = customerNote;
     }
 
     public BigDecimal getDiscountAmount() {

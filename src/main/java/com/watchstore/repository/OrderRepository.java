@@ -108,8 +108,11 @@ public class OrderRepository {
 
         String sql = """
                 SELECT
+                    oi.VariantID,
+                    pv.ProductID,
                     pv.VariantName,
                     p.ProductName,
+                    pv.SKU,
                     oi.Quantity,
                     oi.UnitPrice,
                     (oi.Quantity * oi.UnitPrice) AS LineTotal
@@ -130,8 +133,11 @@ public class OrderRepository {
                 while (rs.next()) {
                     Map<String, Object> item = new HashMap<>();
 
+                    item.put("variantId", rs.getInt("VariantID"));
+                    item.put("productId", rs.getInt("ProductID"));
                     item.put("productName", rs.getString("ProductName"));
                     item.put("variantName", rs.getString("VariantName"));
+                    item.put("sku", rs.getString("SKU"));
                     item.put("quantity", rs.getInt("Quantity"));
                     item.put("price", rs.getBigDecimal("UnitPrice"));
                     item.put("lineTotal", rs.getBigDecimal("LineTotal"));
@@ -156,6 +162,17 @@ public class OrderRepository {
             String fromDate,
             String toDate
     ) {
+        return search(keyword, status, fromDate, toDate, null, null);
+    }
+
+    public List<Order> search(
+            String keyword,
+            String status,
+            String fromDate,
+            String toDate,
+            String minPrice,
+            String maxPrice
+    ) {
         List<Order> list = new ArrayList<>();
 
         StringBuilder sql = new StringBuilder(
@@ -168,6 +185,9 @@ public class OrderRepository {
                         LOWER(RecipientName) LIKE ?
                         OR RecipientPhone LIKE ?
                         OR LOWER(OrderCode) LIKE ?
+                        OR LOWER(ShippingAddress) LIKE ?
+                        OR LOWER(PaymentStatus) LIKE ?
+                        OR CAST(OrderID AS VARCHAR) LIKE ?
                     )
                     """);
         }
@@ -184,6 +204,14 @@ public class OrderRepository {
             sql.append("AND CreatedAt <= ? ");
         }
 
+        if (minPrice != null && !minPrice.trim().isEmpty()) {
+            sql.append("AND TotalAmount >= ? ");
+        }
+
+        if (maxPrice != null && !maxPrice.trim().isEmpty()) {
+            sql.append("AND TotalAmount <= ? ");
+        }
+
         sql.append("ORDER BY OrderID DESC");
 
         try (Connection conn = DBContext.getConnection();
@@ -195,6 +223,9 @@ public class OrderRepository {
                 String keyPattern =
                         "%" + keyword.trim().toLowerCase() + "%";
 
+                ps.setString(paramIndex++, keyPattern);
+                ps.setString(paramIndex++, keyPattern);
+                ps.setString(paramIndex++, keyPattern);
                 ps.setString(paramIndex++, keyPattern);
                 ps.setString(paramIndex++, keyPattern);
                 ps.setString(paramIndex++, keyPattern);
@@ -216,6 +247,22 @@ public class OrderRepository {
                         paramIndex++,
                         toDate.trim() + " 23:59:59"
                 );
+            }
+
+            if (minPrice != null && !minPrice.trim().isEmpty()) {
+                try {
+                    ps.setBigDecimal(paramIndex++, new java.math.BigDecimal(minPrice.trim()));
+                } catch (NumberFormatException e) {
+                    ps.setNull(paramIndex++, java.sql.Types.DECIMAL);
+                }
+            }
+
+            if (maxPrice != null && !maxPrice.trim().isEmpty()) {
+                try {
+                    ps.setBigDecimal(paramIndex++, new java.math.BigDecimal(maxPrice.trim()));
+                } catch (NumberFormatException e) {
+                    ps.setNull(paramIndex++, java.sql.Types.DECIMAL);
+                }
             }
 
             try (ResultSet rs = ps.executeQuery()) {
@@ -476,6 +523,10 @@ public class OrderRepository {
 
         order.setPaymentStatus(
                 rs.getString("PaymentStatus")
+        );
+
+        order.setCustomerNote(
+                rs.getString("CustomerNote")
         );
 
         BigDecimal discountAmount =
@@ -1454,6 +1505,169 @@ public class OrderRepository {
             closeQuietly(psQueryItems);
             closeQuietly(psQueryStock);
             closeQuietly(psUpdateStock);
+            closeQuietly(psInsertTx);
+            closeQuietly(conn);
+        }
+    }
+
+    public long createSalesOrder(
+            Order order,
+            List<Map<String, Object>> items,
+            int staffId
+    ) throws SQLException {
+        String insertOrderSql = """
+                INSERT INTO Orders
+                (
+                    OrderCode, CustomerID, RecipientName, RecipientPhone, ShippingAddress,
+                    CustomerNote, SubtotalAmount, DiscountAmount, ShippingFee, TaxAmount, TotalAmount,
+                    OrderStatus, PaymentStatus, CreatedAt, UpdatedAt
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, 0, ?, ?, ?, GETDATE(), GETDATE())
+                """;
+
+        String queryVariantSql = """
+                SELECT pv.VariantID, p.ProductName, pv.VariantName, pv.SKU, pv.SalePrice,
+                       ib.QuantityOnHand
+                FROM ProductVariants pv
+                JOIN Products p ON pv.ProductID = p.ProductID
+                LEFT JOIN InventoryBalances ib ON pv.VariantID = ib.VariantID
+                WHERE pv.VariantID = ?
+                """;
+
+        String updateStockSql = """
+                UPDATE InventoryBalances
+                SET QuantityOnHand = QuantityOnHand - ?
+                WHERE VariantID = ? AND WarehouseID = 1 AND QuantityOnHand >= ?
+                """;
+
+        String insertItemSql = """
+                INSERT INTO OrderItems
+                (
+                    OrderID, VariantID, ProductName, VariantName, SKU, ImageUrl, UnitPrice, Quantity, DiscountAmount
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)
+                """;
+
+        String insertTxSql = """
+                INSERT INTO InventoryTransactions
+                (
+                    WarehouseID, VariantID, TransactionType, QuantityChange,
+                    QuantityBefore, QuantityAfter, ReferenceType, ReferenceID, Note, CreatedBy, CreatedAt
+                )
+                VALUES (1, ?, 'SALE', ?, ?, ?, 'ORDER', ?, N'Sales Order Checkout', ?, GETDATE())
+                """;
+
+        Connection conn = null;
+        PreparedStatement psOrder = null;
+        PreparedStatement psQueryVar = null;
+        PreparedStatement psUpdateStock = null;
+        PreparedStatement psInsertItem = null;
+        PreparedStatement psInsertTx = null;
+        ResultSet rsKeys = null;
+
+        try {
+            conn = DBContext.getConnection();
+            conn.setAutoCommit(false);
+
+            psOrder = conn.prepareStatement(insertOrderSql, Statement.RETURN_GENERATED_KEYS);
+            psOrder.setString(1, order.getCode());
+            psOrder.setInt(2, order.getUserId() > 0 ? order.getUserId() : 4);
+            psOrder.setString(3, order.getCustomerName());
+            psOrder.setString(4, order.getPhone());
+            psOrder.setString(5, order.getShippingAddress());
+            psOrder.setString(6, order.getCustomerNote());
+            psOrder.setBigDecimal(7, order.getTotalPrice());
+            psOrder.setBigDecimal(8, order.getTotalPrice());
+            psOrder.setString(9, order.getStatus() != null ? order.getStatus().name() : "PENDING");
+            psOrder.setString(10, order.getPaymentStatus() != null ? order.getPaymentStatus() : "UNPAID");
+
+            psOrder.executeUpdate();
+            rsKeys = psOrder.getGeneratedKeys();
+
+            long orderId = 0;
+            if (rsKeys.next()) {
+                orderId = rsKeys.getLong(1);
+            } else {
+                throw new SQLException("Lỗi hệ thống: Không lấy được OrderID vừa tạo.");
+            }
+
+            psQueryVar = conn.prepareStatement(queryVariantSql);
+            psUpdateStock = conn.prepareStatement(updateStockSql);
+            psInsertItem = conn.prepareStatement(insertItemSql);
+            psInsertTx = conn.prepareStatement(insertTxSql);
+
+            for (Map<String, Object> item : items) {
+                int variantId = ((Number) item.get("variantId")).intValue();
+                int qty = ((Number) item.get("quantity")).intValue();
+
+                psQueryVar.setInt(1, variantId);
+                try (ResultSet rs = psQueryVar.executeQuery()) {
+                    if (!rs.next()) {
+                        throw new SQLException("Không tìm thấy sản phẩm có mã biến thể #" + variantId);
+                    }
+
+                    int stock = rs.getInt("QuantityOnHand");
+                    if (rs.wasNull()) stock = 0;
+
+                    if (stock < qty) {
+                        throw new SQLException("Sản phẩm '" + rs.getString("ProductName") + "' không đủ hàng trong kho (Còn " + stock + ", yêu cầu " + qty + ")");
+                    }
+
+                    BigDecimal price = null;
+                    if (item.containsKey("unitPrice") && ((Number) item.get("unitPrice")).doubleValue() >= 0) {
+                        price = BigDecimal.valueOf(((Number) item.get("unitPrice")).doubleValue());
+                    } else {
+                        price = rs.getBigDecimal("SalePrice");
+                    }
+                    if (price == null) price = BigDecimal.ZERO;
+
+                    // Update stock
+                    psUpdateStock.setInt(1, qty);
+                    psUpdateStock.setInt(2, variantId);
+                    psUpdateStock.setInt(3, qty);
+                    int affected = psUpdateStock.executeUpdate();
+                    if (affected == 0) {
+                        throw new SQLException("Không thể trừ tồn kho cho sản phẩm mã biến thể #" + variantId);
+                    }
+
+                    // Insert OrderItem
+                    psInsertItem.setLong(1, orderId);
+                    psInsertItem.setInt(2, variantId);
+                    psInsertItem.setString(3, rs.getString("ProductName"));
+                    psInsertItem.setString(4, rs.getString("VariantName"));
+                    psInsertItem.setString(5, rs.getString("SKU"));
+                    psInsertItem.setString(6, "seiko-5.jpg");
+                    psInsertItem.setBigDecimal(7, price);
+                    psInsertItem.setInt(8, qty);
+                    psInsertItem.executeUpdate();
+
+                    // Insert InventoryTransaction
+                    psInsertTx.setInt(1, variantId);
+                    psInsertTx.setInt(2, -qty);
+                    psInsertTx.setInt(3, stock);
+                    psInsertTx.setInt(4, stock - qty);
+                    psInsertTx.setLong(5, orderId);
+                    psInsertTx.setInt(6, staffId);
+                    psInsertTx.executeUpdate();
+                }
+            }
+
+            conn.commit();
+            return orderId;
+
+        } catch (SQLException e) {
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException ignored) {}
+            }
+            throw e;
+        } finally {
+            closeQuietly(rsKeys);
+            closeQuietly(psOrder);
+            closeQuietly(psQueryVar);
+            closeQuietly(psUpdateStock);
+            closeQuietly(psInsertItem);
             closeQuietly(psInsertTx);
             closeQuietly(conn);
         }

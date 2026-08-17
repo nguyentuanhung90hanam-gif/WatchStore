@@ -15,6 +15,7 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
 
 @WebServlet("/page/*")
@@ -23,6 +24,7 @@ public class PageController extends HttpServlet {
     private ProductRepository products;
     private UserAccountRepository accountRepo;
     private OrderRepository orderRepository;
+    private com.watchstore.repository.ReviewRepository reviewRepository;
 
     @Override
     public void init() {
@@ -35,6 +37,7 @@ public class PageController extends HttpServlet {
         if (orderRepository == null) {
             orderRepository = new OrderRepository();
         }
+        reviewRepository = (com.watchstore.repository.ReviewRepository) getServletContext().getAttribute("reviewRepository");
     }
 
     @Override
@@ -109,14 +112,33 @@ public class PageController extends HttpServlet {
                         new String[]{"customer/wishlist", "Sản phẩm yêu thích"}
                 ),
                 Map.entry(
-                        "/reviews",
-                        new String[]{"customer/review", "Đánh giá của tôi"}
-                ),
-                Map.entry(
                         "/notifications",
                         new String[]{"customer/notification", "Thông báo"}
                 )
         );
+
+        if ("/reviews".equals(path)) {
+            User currentUser = (User) req.getSession().getAttribute("user");
+            if (currentUser == null) {
+                resp.sendRedirect(req.getContextPath() + "/auth/login?required=1");
+                return;
+            }
+            String prodIdParam = req.getParameter("productId");
+            if (prodIdParam != null && !prodIdParam.trim().isEmpty()) {
+                try {
+                    int prodId = Integer.parseInt(prodIdParam.trim());
+                    Product product = products != null ? products.findById(prodId).orElse(null) : null;
+                    if (product != null && reviewRepository != null) {
+                        req.setAttribute("reviewProduct", product);
+                        Long orderItemId = reviewRepository.getCompletedOrderItemId(currentUser.getId(), prodId);
+                        req.setAttribute("orderItemId", orderItemId);
+                        req.setAttribute("hasPurchased", orderItemId != null);
+                    }
+                } catch (NumberFormatException ignored) {}
+            }
+            ViewRouter.customer(req, resp, "customer/review", "Đánh giá sản phẩm");
+            return;
+        }
 
         if ("/product".equals(path)) {
 
@@ -138,6 +160,27 @@ public class PageController extends HttpServlet {
                         product = featuredProducts.get(0);
                     }
                 }
+            }
+
+            if (product != null && reviewRepository != null) {
+                List<com.watchstore.model.Review> reviewsList = reviewRepository.findApprovedByProductId(id);
+                double avgRating = 5.0;
+                if (reviewsList != null && !reviewsList.isEmpty()) {
+                    double sum = 0;
+                    for (com.watchstore.model.Review r : reviewsList) {
+                        sum += r.getRating();
+                    }
+                    avgRating = sum / reviewsList.size();
+                }
+                boolean hasPurchased = false;
+                User currentUser = (User) req.getSession().getAttribute("user");
+                if (currentUser != null) {
+                    hasPurchased = reviewRepository.hasPurchased(currentUser.getId(), id);
+                }
+                req.setAttribute("reviewsList", reviewsList);
+                req.setAttribute("reviewsCount", reviewsList != null ? reviewsList.size() : 0);
+                req.setAttribute("averageRating", String.format("%.1f", avgRating));
+                req.setAttribute("hasPurchased", hasPurchased);
             }
 
             req.setAttribute(
@@ -190,6 +233,11 @@ public class PageController extends HttpServlet {
         String path = req.getPathInfo() == null
                 ? "/home"
                 : req.getPathInfo();
+
+        if ("/reviews/submit".equals(path)) {
+            submitReview(req, resp);
+            return;
+        }
 
         User user =
                 (User) req.getSession().getAttribute("user");
@@ -361,7 +409,7 @@ public class PageController extends HttpServlet {
     ) {
 
         return path.matches(
-                "/(profile|change-password|address|wishlist|reviews|notifications)"
+                "/(profile|change-password|address|wishlist|notifications)"
         );
     }
 
@@ -402,6 +450,63 @@ public class PageController extends HttpServlet {
         } catch (Exception ignored) {
 
             return fallback;
+
+        }
+    }
+
+
+
+    private void submitReview(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        User currentUser = (User) req.getSession().getAttribute("user");
+        if (currentUser == null) {
+            resp.sendRedirect(req.getContextPath() + "/auth/login?required=1");
+            return;
+        }
+
+        String prodIdParam = req.getParameter("productId");
+        String ratingParam = req.getParameter("rating");
+        String title = req.getParameter("title");
+        String content = req.getParameter("content");
+
+        if (prodIdParam == null || ratingParam == null) {
+            req.getSession().setAttribute("flash", "Thiếu thông tin đánh giá.");
+            resp.sendRedirect(req.getContextPath() + "/page/home");
+            return;
+        }
+
+        try {
+            int prodId = Integer.parseInt(prodIdParam.trim());
+            int rating = Integer.parseInt(ratingParam.trim());
+
+            if (reviewRepository != null) {
+                Long orderItemId = reviewRepository.getCompletedOrderItemId(currentUser.getId(), prodId);
+                if (orderItemId == null) {
+                    req.getSession().setAttribute("flash", "Lỗi: Bạn chỉ được đánh giá sản phẩm sau khi đơn hàng hoàn thành!");
+                    resp.sendRedirect(req.getContextPath() + "/page/product?id=" + prodId);
+                    return;
+                }
+
+                com.watchstore.model.Review review = new com.watchstore.model.Review();
+                review.setProductId(prodId);
+                review.setOrderItemId(orderItemId);
+                review.setUserId(currentUser.getId());
+                review.setRating(rating);
+                review.setReviewTitle(title != null ? title.trim() : "Đánh giá sản phẩm");
+                review.setReviewContent(content != null ? content.trim() : "");
+                review.setVerifiedPurchase(true);
+                review.setStatus("PENDING");
+
+                boolean success = reviewRepository.add(review);
+                if (success) {
+                    req.getSession().setAttribute("flash", "Cảm ơn bạn! Đánh giá của bạn đã được gửi và đang chờ duyệt.");
+                } else {
+                    req.getSession().setAttribute("flash", "Lỗi: Không thể lưu đánh giá của bạn.");
+                }
+            }
+            resp.sendRedirect(req.getContextPath() + "/page/product?id=" + prodId);
+        } catch (Exception e) {
+            e.printStackTrace();
+            resp.sendRedirect(req.getContextPath() + "/page/home");
         }
     }
 }
