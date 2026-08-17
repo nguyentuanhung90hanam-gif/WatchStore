@@ -1,6 +1,7 @@
 <%@ page contentType="text/html;charset=UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <main class="page-shell listing-page pro-listing-page">
     <div class="breadcrumbs">
         <a href="${cp}/page/home">Trang chủ</a><span>›</span><b>Sản phẩm</b>
@@ -106,8 +107,22 @@
                                             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z"/></svg>
                                         </button>
                                     </form>
+                                    <c:set var="prodImg" value="${not empty product.imageUrl ? product.imageUrl : product.image}" />
                                     <a class="product-image-link" href="${cp}/page/product?id=${product.id}">
-                                        <img src="${cp}/assets/images/${product.image}" alt="${product.name}" loading="lazy">
+                                        <c:choose>
+                                            <c:when test="${fn:startsWith(prodImg, 'http://') || fn:startsWith(prodImg, 'https://')}">
+                                                <img src="${prodImg}" alt="${product.name}" loading="lazy"
+                                                     onerror="this.onerror=null;this.src='${cp}/assets/images/watch-1.png';">
+                                            </c:when>
+                                            <c:when test="${fn:startsWith(prodImg, '/')}">
+                                                <img src="${cp}${prodImg}" alt="${product.name}" loading="lazy"
+                                                     onerror="this.onerror=null;this.src='${cp}/assets/images/watch-1.png';">
+                                            </c:when>
+                                            <c:otherwise>
+                                                <img src="${cp}/assets/images/${prodImg}" alt="${product.name}" loading="lazy"
+                                                     onerror="this.onerror=null;this.src='${cp}/assets/images/watch-1.png';">
+                                            </c:otherwise>
+                                        </c:choose>
                                     </a>
                                     <form action="${cp}/cart/add" method="post">
                                         <input type="hidden" name="id" value="${product.id}">

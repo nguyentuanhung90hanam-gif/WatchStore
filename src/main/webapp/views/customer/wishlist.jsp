@@ -1,6 +1,7 @@
 <%@ page contentType="text/html;charset=UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <main class="page-shell account-page">
     <jsp:include page="/views/shared/account-nav.jsp" />
     <section class="account-content">
@@ -39,8 +40,22 @@
                                         </svg>
                                     </button>
                                 </form>
+                                <c:set var="prodImg" value="${not empty product.imageUrl ? product.imageUrl : product.image}" />
                                 <a class="product-image-link" href="${cp}/page/product?id=${product.id}">
-                                    <img src="${cp}/assets/images/${product.image}" alt="${product.name}" loading="lazy">
+                                    <c:choose>
+                                        <c:when test="${fn:startsWith(prodImg, 'http://') || fn:startsWith(prodImg, 'https://')}">
+                                            <img src="${prodImg}" alt="${product.name}" loading="lazy"
+                                                 onerror="this.onerror=null;this.src='${cp}/assets/images/watch-1.png';">
+                                        </c:when>
+                                        <c:when test="${fn:startsWith(prodImg, '/')}">
+                                            <img src="${cp}${prodImg}" alt="${product.name}" loading="lazy"
+                                                 onerror="this.onerror=null;this.src='${cp}/assets/images/watch-1.png';">
+                                        </c:when>
+                                        <c:otherwise>
+                                            <img src="${cp}/assets/images/${prodImg}" alt="${product.name}" loading="lazy"
+                                                 onerror="this.onerror=null;this.src='${cp}/assets/images/watch-1.png';">
+                                        </c:otherwise>
+                                    </c:choose>
                                 </a>
                             </div>
                             <div class="product-info">
