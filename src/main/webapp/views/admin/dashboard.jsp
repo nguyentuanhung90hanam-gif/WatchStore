@@ -155,7 +155,7 @@
                 </div>
                 <div class="action-value">
                     <span class="count-badge warning">${empty pendingOrders ? 0 : pendingOrders}</span>
-                    <a href="${cp}/manage/admin/reports" class="action-link">Xem &rarr;</a>
+                    <a href="${cp}/manage/sales/orders" class="action-link">Xem &rarr;</a>
                 </div>
             </div>
 

@@ -1,15 +1,7 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <title>Thêm phiếu bảo hành – WatchStore</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Segoe UI', Arial, sans-serif; background: #f5f6fa; color: #333; }
-        .container { max-width: 750px; margin: auto; padding: 30px 24px; }
+        .container { max-width: 750px; margin: auto; padding: 10px 0; }
         .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
         .page-header h1 { font-size: 26px; font-weight: 700; }
         .back-link { color: #2563eb; text-decoration: none; font-size: 14px; font-weight: 500; }
@@ -37,8 +29,7 @@
         .flash-error { background: #fef2f2; border: 1px solid #fca5a5; color: #b91c1c; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; }
         @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } .actions { flex-direction: column; } }
     </style>
-</head>
-<body>
+
 <div class="container">
 
     <div class="page-header">
@@ -108,5 +99,4 @@
     </div>
 
 </div>
-</body>
-</html>
+

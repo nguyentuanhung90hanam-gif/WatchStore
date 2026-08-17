@@ -61,9 +61,24 @@ public class PermissionController extends HttpServlet {
                 com.watchstore.repository.UserRepository userRepo = (com.watchstore.repository.UserRepository) getServletContext().getAttribute("userRepository");
                 if (userRepo == null) userRepo = new com.watchstore.repository.UserRepositoryImpl();
                 User found = userRepo.findById(selectedUserId);
-                if (found != null) {
+                if (found != null && found.getRole() == com.watchstore.enums.Role.EMPLOYEE) {
                     selectedEmployee = found;
                 }
+            }
+        }
+
+        // Tự động chọn nhân viên Sales (ưu tiên sales@watchstore.vn) nếu chưa chỉ định
+        if (selectedEmployee == null && employees != null && !employees.isEmpty()) {
+            for (User u : employees) {
+                if ("sales@watchstore.vn".equalsIgnoreCase(u.getEmail())) {
+                    selectedEmployee = u;
+                    selectedUserId = u.getUserId();
+                    break;
+                }
+            }
+            if (selectedEmployee == null) {
+                selectedEmployee = employees.get(0);
+                selectedUserId = selectedEmployee.getUserId();
             }
         }
 
@@ -95,55 +110,60 @@ public class PermissionController extends HttpServlet {
     protected void doPost(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
 
-        String path = req.getPathInfo();
-        if ("/toggle".equals(path)) {
-            String userIdStr = req.getParameter("userId");
-            String permIdStr = req.getParameter("permissionId");
-            String enabledStr = req.getParameter("enabled");
-            if (userIdStr != null && permIdStr != null) {
-                try {
-                    int uid = Integer.parseInt(userIdStr);
-                    int pid = Integer.parseInt(permIdStr);
-                    boolean enabled = Boolean.parseBoolean(enabledStr);
-                    Set<Integer> currentPerms = permissionRepository.getUserPermissionIds(uid);
-                    if (enabled) {
-                        currentPerms.add(pid);
-                    } else {
-                        currentPerms.remove(pid);
-                    }
-                    permissionRepository.updateUserPermissions(uid, new ArrayList<>(currentPerms));
-                    resp.setContentType("application/json");
-                    resp.setCharacterEncoding("UTF-8");
-                    resp.getWriter().write("{\"success\": true}");
-                    return;
-                } catch (Exception e) {
-                    resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                    resp.getWriter().write("{\"success\": false, \"error\": \"" + e.getMessage() + "\"}");
-                    return;
-                }
-            }
-        }
-
         String userIdParam = req.getParameter("userId");
         if (userIdParam == null || userIdParam.isBlank()) {
             resp.sendRedirect(req.getContextPath() + "/manage/admin/permissions");
             return;
         }
 
-        int userId = Integer.parseInt(userIdParam);
-        String[] permParamArr = req.getParameterValues("permissionIds");
+        int userId;
+        try {
+            userId = Integer.parseInt(userIdParam);
+        } catch (NumberFormatException e) {
+            resp.sendRedirect(req.getContextPath() + "/manage/admin/permissions");
+            return;
+        }
 
-        List<Integer> permissionIds = new ArrayList<>();
+        // Xác thực người dùng mục tiêu phải có Role EMPLOYEE
+        com.watchstore.repository.UserRepository userRepo = (com.watchstore.repository.UserRepository) getServletContext().getAttribute("userRepository");
+        if (userRepo == null) userRepo = new com.watchstore.repository.UserRepositoryImpl();
+        User targetUser = userRepo.findById(userId);
+        if (targetUser == null || targetUser.getRole() != com.watchstore.enums.Role.EMPLOYEE) {
+            req.getSession().setAttribute("flash", "Chỉ được phân quyền cho tài khoản Nhân viên (EMPLOYEE).");
+            resp.sendRedirect(req.getContextPath() + "/manage/admin/permissions");
+            return;
+        }
+
+        // Đọc toàn bộ permissions để kiểm tra và loại bỏ quyền Hệ Thống (ADMIN ONLY)
+        List<Permission> allPerms = permissionRepository.findAll();
+        java.util.Map<Integer, Permission> permMap = new java.util.HashMap<>();
+        for (Permission p : allPerms) {
+            permMap.put(p.getPermissionId(), p);
+        }
+
+        String[] permParamArr = req.getParameterValues("permissionIds");
+        List<Integer> sanitizedPermissionIds = new ArrayList<>();
         if (permParamArr != null) {
             for (String pidStr : permParamArr) {
                 try {
-                    permissionIds.add(Integer.parseInt(pidStr));
+                    int pid = Integer.parseInt(pidStr);
+                    Permission p = permMap.get(pid);
+                    if (p != null) {
+                        String code = p.getPermissionCode().toUpperCase();
+                        String module = p.getModuleCode() != null ? p.getModuleCode().toUpperCase() : "";
+                        // KHÓA CỨNG: Tuyệt đối không lưu quyền Hệ thống (Account, Role, Permission) cho Employee
+                        if (!code.startsWith("ACCOUNT") && !code.startsWith("ROLE")
+                                && !code.startsWith("PERMISSION") && !code.startsWith("SYSTEM")
+                                && !module.equals("SYSTEM") && !module.equals("ROLE") && !module.equals("ACCOUNT")) {
+                            sanitizedPermissionIds.add(pid);
+                        }
+                    }
                 } catch (NumberFormatException ignored) {}
             }
         }
 
-        permissionRepository.updateUserPermissions(userId, permissionIds);
-        req.getSession().setAttribute("flash", "Đã lưu ma trận phân quyền chi tiết cho nhân viên thành công!");
+        permissionRepository.updateUserPermissions(userId, sanitizedPermissionIds);
+        req.getSession().setAttribute("flash", "Đã lưu phân quyền cho nhân viên " + targetUser.getFullName() + " (" + targetUser.getEmail() + ") thành công!");
         resp.sendRedirect(req.getContextPath() + "/manage/admin/permissions?userId=" + userId);
     }
 }

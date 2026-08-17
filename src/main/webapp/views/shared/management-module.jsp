@@ -1,6 +1,7 @@
 <%@ page contentType="text/html;charset=UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 
 <div class="module-heading">
 
@@ -273,12 +274,12 @@
                     <thead>
 
                     <tr>
-                        <th>STT</th>
+                        <th style="width: 50px; text-align: center;">STT</th>
                         <th>Sản phẩm</th>
-                        <th>Mã / SKU</th>
-                        <th>Giá bán</th>
-                        <th>Trạng thái</th>
-                        <th>Thao tác</th>
+                        <th style="width: 140px;">Mã / SKU</th>
+                        <th style="width: 150px;">Giá bán</th>
+                        <th style="width: 130px; text-align: center;">Trạng thái</th>
+                        <th style="width: 120px; text-align: center;">Thao tác</th>
                     </tr>
 
                     </thead>
@@ -289,24 +290,40 @@
 
                         <tr>
 
-                            <td>
+                            <td style="text-align: center; color: #64748b; font-weight: 600;">
                                 ${status.index + 1}
                             </td>
 
                             <td>
 
-                                <div class="table-product">
+                                <div class="table-product" style="display: flex; align-items: center; gap: 14px;">
 
-                                    <c:if test="${not empty p.image}">
-                                        <img src="${cp}/assets/images/${p.image}"
-                                             alt="${p.name}">
-                                    </c:if>
+                                    <c:set var="prodImg" value="${not empty p.imageUrl ? p.imageUrl : p.image}" />
+                                    <c:choose>
+                                        <c:when test="${fn:startsWith(prodImg, 'http://') || fn:startsWith(prodImg, 'https://')}">
+                                            <img src="${prodImg}"
+                                                 alt="${p.name}"
+                                                 style="width: 54px; height: 54px; object-fit: contain; background: #faf8f5; border: 1px solid #e8e4dc; border-radius: 8px; padding: 2px;"
+                                                 onerror="this.onerror=null;this.src='${cp}/assets/images/watch-1.png';" />
+                                        </c:when>
+                                        <c:when test="${fn:startsWith(prodImg, '/')}">
+                                            <img src="${cp}${prodImg}"
+                                                 alt="${p.name}"
+                                                 style="width: 54px; height: 54px; object-fit: contain; background: #faf8f5; border: 1px solid #e8e4dc; border-radius: 8px; padding: 2px;"
+                                                 onerror="this.onerror=null;this.src='${cp}/assets/images/watch-1.png';" />
+                                        </c:when>
+                                        <c:otherwise>
+                                            <img src="${cp}/assets/images/${prodImg}"
+                                                 alt="${p.name}"
+                                                 style="width: 54px; height: 54px; object-fit: contain; background: #faf8f5; border: 1px solid #e8e4dc; border-radius: 8px; padding: 2px;"
+                                                 onerror="this.onerror=null;this.src='${cp}/assets/images/watch-1.png';" />
+                                        </c:otherwise>
+                                    </c:choose>
 
                                     <span>
-                                        <b>${p.name}</b>
-                                        <small>
-                                            Hãng:
-                                            ${not empty p.brand ? p.brand : 'Chưa phân loại'}
+                                        <b style="font-size: 14px; color: #1e293b;">${p.name}</b>
+                                        <small style="color: #64748b; font-size: 12px; margin-top: 3px;">
+                                            Thương hiệu: <strong style="color: #b8860b;">${not empty p.brand ? p.brand : (not empty p.brandName ? p.brandName : 'Chưa phân loại')}</strong>
                                         </small>
                                     </span>
 
@@ -315,27 +332,27 @@
                             </td>
 
                             <td>
-                                <b style="font-family:monospace;color:var(--gold-dark,#b8860b);">
+                                <b style="font-family: monospace; font-size: 13px; color: var(--gold-dark,#b8860b);">
                                     ${p.sku}
                                 </b>
                             </td>
 
                             <td>
 
-                                <b>
+                                <b style="font-size: 14px; color: #1e293b;">
                                     <fmt:formatNumber value="${p.price}" pattern="#,##0"/>₫
                                 </b>
 
                                 <c:if test="${not empty p.oldPrice && p.oldPrice > 0}">
                                     <br>
-                                    <small style="color:#999;text-decoration:line-through;">
+                                    <small style="color: #94a3b8; text-decoration: line-through; font-size: 12px;">
                                         <fmt:formatNumber value="${p.oldPrice}" pattern="#,##0"/>₫
                                     </small>
                                 </c:if>
 
                             </td>
 
-                            <td>
+                            <td style="text-align: center;">
 
                                 <c:choose>
 
@@ -353,7 +370,7 @@
 
                                     <c:when test="${p.status == 'DISCONTINUED'}">
                                         <span class="status-badge danger">
-                                            Ngừng sản xuất
+                                            Ngừng bán
                                         </span>
                                     </c:when>
 
@@ -368,15 +385,16 @@
 
                             </td>
 
-                            <td>
+                            <td style="text-align: center;">
                                 <a class="table-action"
-                                   href="${pageContext.request.contextPath}/manage/admin/products/edit?id=${p.id}">
+                                   href="${pageContext.request.contextPath}/manage/admin/products/edit?id=${p.id}"
+                                   style="padding: 4px 8px; margin-right: 6px; font-weight: 600;">
                                     Sửa
                                 </a>
                                 <a class="table-action"
                                    href="${pageContext.request.contextPath}/manage/admin/products/delete?id=${p.id}"
                                    onclick="return confirm('Bạn có chắc muốn xóa sản phẩm này không?')"
-                                   style="color:#e74c3c;">
+                                   style="color: #dc2626; padding: 4px 8px; font-weight: 600;">
                                     Xóa
                                 </a>
                             </td>
@@ -708,65 +726,59 @@
                             </td>
 
                             <td>
-
                                 <c:choose>
-
-                                    <c:when test="${not empty user.roleNames}">
-                                        <span class="status-badge success">
-                                            ${user.roleNames}
+                                    <c:when test="${user.role == 'ADMIN' || fn:contains(user.roleNames, 'ADMIN') || fn:contains(user.roleNames, 'Quản trị')}">
+                                        <span class="status-badge" style="background:#fef3c7;color:#92400e;font-weight:700;">
+                                            ADMIN
                                         </span>
                                     </c:when>
-
+                                    <c:when test="${user.role == 'EMPLOYEE' || fn:contains(user.roleNames, 'EMPLOYEE') || fn:contains(user.roleNames, 'Nhân viên')}">
+                                        <span class="status-badge" style="background:#eff6ff;color:#1d4ed8;font-weight:700;">
+                                            EMPLOYEE
+                                        </span>
+                                    </c:when>
                                     <c:otherwise>
-                                        <span style="color:#aaa;font-size:0.85em;">
-                                            —
+                                        <span class="status-badge" style="background:#f1f5f9;color:#475569;font-weight:600;">
+                                            CUSTOMER
                                         </span>
                                     </c:otherwise>
-
                                 </c:choose>
-
                             </td>
 
                             <td>
-
                                 <c:choose>
-
                                     <c:when test="${user.status == 'ACTIVE'}">
                                         <span class="status-badge success">
                                             Hoạt động
                                         </span>
                                     </c:when>
-
                                     <c:when test="${user.status == 'LOCKED'}">
                                         <span class="status-badge danger">
                                             Đã khóa
                                         </span>
                                     </c:when>
-
                                     <c:otherwise>
                                         <span class="status-badge warning">
                                             Tạm ngưng
                                         </span>
                                     </c:otherwise>
-
                                 </c:choose>
-
                             </td>
 
                             <td>
-
                                 <a class="table-action"
                                    href="${pageContext.request.contextPath}/manage/admin/accounts/edit?id=${user.userId}">
                                     Sửa
                                 </a>
 
-                                <a class="table-action"
-                                   href="${pageContext.request.contextPath}/manage/admin/accounts/delete?id=${user.userId}"
-                                   onclick="return confirm('Bạn có chắc muốn xóa tài khoản này?')"
-                                   style="color:#e74c3c;">
-                                    Xóa
-                                </a>
-
+                                <c:if test="${user.email != 'admin@watchstore.vn' && user.role != 'ADMIN' && !fn:contains(user.roleNames, 'ADMIN') && !fn:contains(user.roleNames, 'Quản trị')}">
+                                    <a class="table-action"
+                                       href="${pageContext.request.contextPath}/manage/admin/accounts/delete?id=${user.userId}"
+                                       onclick="return confirm('Bạn có chắc muốn xóa tài khoản này?')"
+                                       style="color:#e74c3c;">
+                                        Xóa
+                                    </a>
+                                </c:if>
                             </td>
 
                         </tr>

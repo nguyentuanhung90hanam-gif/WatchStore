@@ -1,11 +1,6 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <title>Thêm đơn hàng</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <style>
         * { box-sizing: border-box; }
         body { margin: 0; font-family: Arial, sans-serif; background: #f5f6fa; color: #333; }
@@ -47,8 +42,7 @@
             .buttons { flex-direction: column; }
         }
     </style>
-</head>
-<body>
+
 <div class="container">
 
     <div class="header">
@@ -122,5 +116,4 @@
     </div>
 
 </div>
-</body>
-</html>
+

@@ -1,16 +1,9 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <title>Quản lý Bảo hành – WatchStore</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Segoe UI', Arial, sans-serif; background: #f5f6fa; color: #333; }
-        .container { max-width: 1200px; margin: auto; padding: 28px 24px; }
+        .container { max-width: 1200px; margin: auto; padding: 10px 0; }
         .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
         .page-header h1 { font-size: 26px; font-weight: 700; }
         .page-header p { color: #777; font-size: 14px; margin-top: 4px; }
@@ -67,8 +60,7 @@
             .stats-row { grid-template-columns: 1fr 1fr; }
         }
     </style>
-</head>
-<body>
+
 <div class="container">
 
     <div class="page-header">
@@ -597,5 +589,4 @@
         }
     </script>
 </div>
-</body>
-</html>
+

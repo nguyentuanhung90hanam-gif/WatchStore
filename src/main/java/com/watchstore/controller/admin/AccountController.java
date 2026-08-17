@@ -123,11 +123,18 @@ public class AccountController extends HttpServlet {
                 if (idStr != null && !idStr.isBlank()) {
                     try {
                         int id = Integer.parseInt(idStr);
-                        if (userRepository.isUserInUse(id)) {
-                            req.getSession().setAttribute("errorMessage", "Không thể xóa tài khoản này vì đã có dữ liệu liên quan.");
-                        } else {
-                            userRepository.delete(id);
-                            req.getSession().setAttribute("successMessage", "Xóa tài khoản thành công.");
+                        User target = userRepository.findById(id);
+                        if (target != null) {
+                            if ("admin@watchstore.vn".equalsIgnoreCase(target.getEmail())
+                                    || target.getRole() == com.watchstore.enums.Role.ADMIN
+                                    || (target.getRoleNames() != null && target.getRoleNames().contains("ADMIN"))) {
+                                req.getSession().setAttribute("errorMessage", "Không thể xóa tài khoản Quản trị viên tối cao (ADMIN).");
+                            } else if (userRepository.isUserInUse(id)) {
+                                req.getSession().setAttribute("errorMessage", "Không thể xóa tài khoản này vì đã có dữ liệu liên quan.");
+                            } else {
+                                userRepository.delete(id);
+                                req.getSession().setAttribute("successMessage", "Xóa tài khoản thành công.");
+                            }
                         }
                     } catch (NumberFormatException ignored) {}
                 }
@@ -182,10 +189,9 @@ public class AccountController extends HttpServlet {
         String gender      = trim(req.getParameter("gender"));
         String dobStr      = trim(req.getParameter("dateOfBirth"));
         String status      = trim(req.getParameter("status"));
-        String[] roleIdStrs = req.getParameterValues("roleIds");
 
-        List<Integer> roleIds = parseRoleIds(roleIdStrs);
-        boolean isEmployee = isEmployeeRoleSelected(roleIds);
+        // Tài khoản tạo mới mặc định có Role CUSTOMER (RoleID = 3)
+        List<Integer> defaultRoleIds = java.util.Collections.singletonList(3);
 
         // Validation
         String error = validateUser(email, fullName, password, phone, dobStr, status, true);
@@ -198,7 +204,7 @@ public class AccountController extends HttpServlet {
 
         if (error != null) {
             User draft = buildUser(0, email, null, fullName, phone, gender, dobStr, status);
-            showFormWithError(req, resp, draft, roleIds, error, "Thêm tài khoản", "add");
+            showFormWithError(req, resp, draft, defaultRoleIds, error, "Thêm tài khoản", "add");
             return;
         }
 
@@ -206,14 +212,9 @@ public class AccountController extends HttpServlet {
         String passwordHash = hashSHA256(password);
 
         User user = buildUser(0, email, passwordHash, fullName, phone, gender, dobStr, status);
-        userRepository.insert(user, roleIds);
+        userRepository.insert(user, defaultRoleIds);
 
-        if (isEmployee) {
-            updateEmployeePermissions(user.getUserId());
-        } else {
-            permissionRepository.updateUserPermissions(user.getUserId(), java.util.Collections.emptyList());
-        }
-
+        req.getSession().setAttribute("successMessage", "Tạo mới tài khoản thành công!");
         resp.sendRedirect(req.getContextPath() + "/manage/admin/accounts");
     }
 
@@ -230,13 +231,33 @@ public class AccountController extends HttpServlet {
         String gender      = trim(req.getParameter("gender"));
         String dobStr      = trim(req.getParameter("dateOfBirth"));
         String status      = trim(req.getParameter("status"));
-        String[] roleIdStrs = req.getParameterValues("roleIds");
 
         int id = 0;
         try { id = Integer.parseInt(idStr); } catch (NumberFormatException ignored) {}
 
-        List<Integer> roleIds = parseRoleIds(roleIdStrs);
-        boolean isEmployee = isEmployeeRoleSelected(roleIds);
+        User existing = userRepository.findById(id);
+        if (existing == null) {
+            resp.sendRedirect(req.getContextPath() + "/manage/admin/accounts");
+            return;
+        }
+
+        // Bảo vệ tài khoản admin@watchstore.vn: không cho đổi email
+        if ("admin@watchstore.vn".equalsIgnoreCase(existing.getEmail())
+                || existing.getRole() == com.watchstore.enums.Role.ADMIN
+                || (existing.getRoleNames() != null && existing.getRoleNames().contains("ADMIN"))) {
+            email = "admin@watchstore.vn";
+        }
+
+        // LẤY ROLE HIỆN CÓ — TUYỆT ĐỐI KHÔNG ĐỔI ROLE TỪ TRANG ACCOUNT
+        List<Integer> existingRoleIds = new ArrayList<>();
+        if (existing.getRoles() != null) {
+            for (Role r : existing.getRoles()) {
+                existingRoleIds.add(r.getRoleId());
+            }
+        }
+        if (existingRoleIds.isEmpty()) {
+            existingRoleIds.add(3); // Mặc định Customer
+        }
 
         // Validation — password không bắt buộc khi update
         String error = validateUser(email, fullName, password, phone, dobStr, status, false);
@@ -249,28 +270,24 @@ public class AccountController extends HttpServlet {
 
         if (error != null) {
             User draft = buildUser(id, email, null, fullName, phone, gender, dobStr, status);
-            showFormWithError(req, resp, draft, roleIds, error, "Sửa tài khoản", "edit");
+            draft.setRoles(existing.getRoles());
+            draft.setRoleNames(existing.getRoleNames());
+            showFormWithError(req, resp, draft, existingRoleIds, error, "Sửa tài khoản", "edit");
             return;
         }
 
         // Xử lý password: nếu để trống → giữ hash cũ
         String passwordHash;
         if (password.isEmpty()) {
-            User existing = userRepository.findById(id);
-            passwordHash = (existing != null) ? existing.getPasswordHash() : "";
+            passwordHash = existing.getPasswordHash();
         } else {
             passwordHash = hashSHA256(password);
         }
 
         User user = buildUser(id, email, passwordHash, fullName, phone, gender, dobStr, status);
-        userRepository.update(user, roleIds);
+        userRepository.update(user, existingRoleIds);
 
-        if (isEmployee) {
-            updateEmployeePermissions(user.getUserId());
-        } else {
-            permissionRepository.updateUserPermissions(user.getUserId(), java.util.Collections.emptyList());
-        }
-
+        req.getSession().setAttribute("successMessage", "Cập nhật tài khoản " + user.getFullName() + " thành công!");
         resp.sendRedirect(req.getContextPath() + "/manage/admin/accounts");
     }
 

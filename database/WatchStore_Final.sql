@@ -889,9 +889,7 @@ GO
 SET IDENTITY_INSERT dbo.Users ON;
 INSERT INTO dbo.Users (UserID, Email, PasswordHash, FullName, Phone, Gender, DateOfBirth, Status, EmailVerified, EmailVerifiedAt, CreatedAt) VALUES
 (1, 'admin@watchstore.vn',     '8D969EEF6ECAD3C29A3A629280E686CF0C3F5D5A86AFF3CA12020C923ADC6C92', N'Tân Tân',       '0988000001', 'MALE',  '2007-01-15', 'ACTIVE', 1, SYSDATETIME(), SYSDATETIME()),
-(2, 'employee@watchstore.vn',  '8D969EEF6ECAD3C29A3A629280E686CF0C3F5D5A86AFF3CA12020C923ADC6C92', N'Nhân viên bán hàng 1', '0977777777', 'MALE',  '1995-05-05', 'ACTIVE', 1, SYSDATETIME(), SYSDATETIME()),
-(3, 'sales@watchstore.vn',     '8D969EEF6ECAD3C29A3A629280E686CF0C3F5D5A86AFF3CA12020C923ADC6C92', N'Nhân viên bán hàng 2', '0988000002', 'MALE',  '1999-06-10', 'ACTIVE', 1, SYSDATETIME(), SYSDATETIME()),
-(4, 'sales3@watchstore.vn',    '8D969EEF6ECAD3C29A3A629280E686CF0C3F5D5A86AFF3CA12020C923ADC6C92', N'Nhân viên bán hàng 3', '0988000003', 'MALE',  '1998-09-20', 'INACTIVE', 1, SYSDATETIME(), SYSDATETIME()),
+(3, 'sales@watchstore.vn',     '8D969EEF6ECAD3C29A3A629280E686CF0C3F5D5A86AFF3CA12020C923ADC6C92', N'Tài Sales',      '0988000002', 'MALE',  '1999-06-10', 'ACTIVE', 1, SYSDATETIME(), SYSDATETIME()),
 (5, 'customer@watchstore.vn',  '8D969EEF6ECAD3C29A3A629280E686CF0C3F5D5A86AFF3CA12020C923ADC6C92', N'Khách hàng WatchStore', '0988000004', 'OTHER', '2002-03-12', 'ACTIVE', 1, SYSDATETIME(), SYSDATETIME()),
 (6, 'an.nguyen@example.com',   '8D969EEF6ECAD3C29A3A629280E686CF0C3F5D5A86AFF3CA12020C923ADC6C92', N'Nguyễn Văn An', '0988000005', 'MALE',  '1995-04-18', 'ACTIVE', 1, SYSDATETIME(), SYSDATETIME()),
 (7, 'duc.tran@example.com',    '8D969EEF6ECAD3C29A3A629280E686CF0C3F5D5A86AFF3CA12020C923ADC6C92', N'Trần Minh Đức', '0988000006', 'MALE',  '1993-11-05', 'ACTIVE', 1, SYSDATETIME(), SYSDATETIME()),
@@ -902,9 +900,7 @@ GO
 -- 4. USER ROLES
 INSERT INTO dbo.UserRoles (UserID, RoleID) VALUES
 (1, 1), -- admin@watchstore.vn -> ADMIN
-(2, 2), -- employee@watchstore.vn -> EMPLOYEE
 (3, 2), -- sales@watchstore.vn -> EMPLOYEE
-(4, 2), -- sales2@watchstore.vn -> EMPLOYEE
 (5, 3), -- customer@watchstore.vn -> CUSTOMER
 (6, 3), -- an.nguyen@example.com -> CUSTOMER
 (7, 3), -- duc.tran@example.com -> CUSTOMER
@@ -912,9 +908,6 @@ INSERT INTO dbo.UserRoles (UserID, RoleID) VALUES
 GO
 
 -- 5. USER PERMISSIONS
-INSERT INTO dbo.UserPermissions (UserID, PermissionID)
-SELECT 2, PermissionID FROM dbo.Permissions WHERE ModuleGroup IN ('PRODUCT', 'ORDER', 'CUSTOMER', 'WARRANTY', 'REPORT');
-
 INSERT INTO dbo.UserPermissions (UserID, PermissionID)
 SELECT 3, PermissionID FROM dbo.Permissions WHERE ModuleGroup IN ('PRODUCT', 'ORDER', 'CUSTOMER', 'WARRANTY', 'REPORT');
 GO
@@ -974,8 +967,8 @@ GO
 -- 11. WAREHOUSES
 SET IDENTITY_INSERT dbo.Warehouses ON;
 INSERT INTO dbo.Warehouses (WarehouseID, WarehouseCode, WarehouseName, Address, ManagerID, Status) VALUES
-(1, 'WH-HN-01',  N'Kho Tổng Hà Nội',          N'Số 154 Cầu Giấy, Q. Cầu Giấy, Hà Nội', 4, 'ACTIVE'),
-(2, 'WH-HCM-01', N'Kho Chi Nhánh TP.HCM',      N'Số 285 Cách Mạng Tháng 8, Q.10, TP.HCM', 4, 'ACTIVE');
+(1, 'WH-HN-01',  N'Kho Tổng Hà Nội',          N'Số 154 Cầu Giấy, Q. Cầu Giấy, Hà Nội', 1, 'ACTIVE'),
+(2, 'WH-HCM-01', N'Kho Chi Nhánh TP.HCM',      N'Số 285 Cách Mạng Tháng 8, Q.10, TP.HCM', 1, 'ACTIVE');
 SET IDENTITY_INSERT dbo.Warehouses OFF;
 GO
 

@@ -94,8 +94,8 @@ public class RoleFilter implements Filter {
     private boolean checkEmployeePermissionForUri(HttpServletRequest req, String uri, Set<String> perms) {
         String method = req.getMethod();
 
-        // SẢN PHẨM
-        if (uri.contains("/manage/admin/products")) {
+        // SẢN PHẨM, DANH MỤC, THƯƠNG HIỆU
+        if (uri.contains("/manage/admin/products") || uri.contains("/manage/admin/categories") || uri.contains("/manage/admin/brands")) {
             if (uri.contains("/add") || uri.contains("/create")) {
                 return perms.contains("PRODUCT_CREATE");
             }
@@ -106,8 +106,8 @@ public class RoleFilter implements Filter {
         }
 
         // ĐƠN HÀNG (SALES / ORDERS)
-        if (uri.contains("/manage/sales/orders") || uri.contains("/manage/sales/order-") || uri.contains("/manage/sales/pos")) {
-            if (uri.contains("/order-add") || uri.contains("/pos") || uri.contains("/create")) {
+        if (uri.contains("/manage/sales/orders") || uri.contains("/manage/sales/order-")) {
+            if (uri.contains("/order-add") || uri.contains("/create")) {
                 return perms.contains("ORDER_CREATE") || perms.contains("SALES_ORDER");
             }
             if (uri.contains("/order-edit") || uri.contains("/edit")) {
@@ -140,15 +140,15 @@ public class RoleFilter implements Filter {
 
         // ĐÁNH GIÁ & BÌNH LUẬN
         if (uri.contains("/manage/sales/reviews") || uri.contains("/manage/sales/comments")) {
-            return perms.contains("PRODUCT_VIEW") || perms.contains("SALES_DASHBOARD") || perms.contains("ORDER_VIEW");
+            return perms.contains("PRODUCT_VIEW") || perms.contains("SALES_DASHBOARD") || perms.contains("ORDER_VIEW") || perms.contains("SALES_ORDER");
         }
 
-        // VOUCHER
-        if (uri.contains("/manage/admin/vouchers")) {
+        // MARKETING & NỘI DUNG (VOUCHER, BANNER, BÀI VIẾT)
+        if (uri.contains("/manage/admin/vouchers") || uri.contains("/manage/admin/banners") || uri.contains("/manage/admin/posts")) {
             if (uri.contains("/add") || uri.contains("/create")) {
                 return perms.contains("VOUCHER_CREATE");
             }
-            if (uri.contains("/edit") || uri.contains("/update") || uri.contains("/status")) {
+            if (uri.contains("/edit") || uri.contains("/update") || uri.contains("/status") || uri.contains("/delete")) {
                 return perms.contains("VOUCHER_EDIT");
             }
             return perms.contains("VOUCHER_VIEW");

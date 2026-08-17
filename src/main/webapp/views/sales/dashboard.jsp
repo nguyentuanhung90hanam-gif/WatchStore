@@ -2,10 +2,10 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 
-<!DOCTYPE html>
-<html lang="vi">
 
-<head>
+
+
+
     <meta charset="UTF-8">
     <title>Tổng quan bán hàng</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -193,9 +193,9 @@
             }
         }
     </style>
-</head>
 
-<body>
+
+
 
 <div class="container">
 
@@ -488,6 +488,4 @@
 
 </div>
 
-</body>
-
-</html>
+
