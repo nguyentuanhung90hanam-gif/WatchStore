@@ -18,6 +18,28 @@ import java.util.Map;
 
 public class OrderRepository {
 
+    static {
+        try (Connection conn = DBContext.getConnection();
+             Statement stmt = conn.createStatement()) {
+            String sql = """
+                IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[OrderHistory]') AND type in (N'U'))
+                BEGIN
+                    CREATE TABLE dbo.OrderHistory (
+                        HistoryID           BIGINT IDENTITY(1,1) PRIMARY KEY,
+                        OrderID             BIGINT NOT NULL,
+                        ActionType          NVARCHAR(50) NOT NULL,
+                        ActionDetail        NVARCHAR(1000) NOT NULL,
+                        PerformedBy         NVARCHAR(150) NOT NULL,
+                        CreatedAt           DATETIME2 NOT NULL DEFAULT SYSDATETIME()
+                    );
+                END
+                """;
+            stmt.execute(sql);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     public List<Order> findAll() {
         List<Order> list = new ArrayList<>();
         String sql = "SELECT * FROM Orders ORDER BY OrderID DESC";
@@ -110,6 +132,7 @@ public class OrderRepository {
                 SELECT
                     pv.VariantName,
                     p.ProductName,
+                    pv.SKU,
                     oi.Quantity,
                     oi.UnitPrice,
                     (oi.Quantity * oi.UnitPrice) AS LineTotal
@@ -132,6 +155,7 @@ public class OrderRepository {
 
                     item.put("productName", rs.getString("ProductName"));
                     item.put("variantName", rs.getString("VariantName"));
+                    item.put("sku", rs.getString("SKU"));
                     item.put("quantity", rs.getInt("Quantity"));
                     item.put("price", rs.getBigDecimal("UnitPrice"));
                     item.put("lineTotal", rs.getBigDecimal("LineTotal"));
@@ -170,6 +194,17 @@ public class OrderRepository {
             String fromDate,
             String toDate
     ) {
+        return search(keyword, status, fromDate, toDate, null, null);
+    }
+
+    public List<Order> search(
+            String keyword,
+            String status,
+            String fromDate,
+            String toDate,
+            BigDecimal minAmount,
+            BigDecimal maxAmount
+    ) {
         List<Order> list = new ArrayList<>();
 
         StringBuilder sql = new StringBuilder(
@@ -196,6 +231,14 @@ public class OrderRepository {
 
         if (toDate != null && !toDate.trim().isEmpty()) {
             sql.append("AND CreatedAt <= ? ");
+        }
+
+        if (minAmount != null) {
+            sql.append("AND TotalAmount >= ? ");
+        }
+
+        if (maxAmount != null) {
+            sql.append("AND TotalAmount <= ? ");
         }
 
         sql.append("ORDER BY OrderID DESC");
@@ -230,6 +273,14 @@ public class OrderRepository {
                         paramIndex++,
                         toDate.trim() + " 23:59:59"
                 );
+            }
+
+            if (minAmount != null) {
+                ps.setBigDecimal(paramIndex++, minAmount);
+            }
+
+            if (maxAmount != null) {
+                ps.setBigDecimal(paramIndex++, maxAmount);
             }
 
             try (ResultSet rs = ps.executeQuery()) {
@@ -553,5 +604,50 @@ public class OrderRepository {
             e.printStackTrace();
             return false;
         }
+    }
+
+    public void logHistory(long orderId, String actionType, String detail, String performedBy) {
+        String sql = """
+            INSERT INTO dbo.OrderHistory (OrderID, ActionType, ActionDetail, PerformedBy)
+            VALUES (?, ?, ?, ?)
+            """;
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setLong(1, orderId);
+            ps.setString(2, actionType);
+            ps.setString(3, detail);
+            ps.setString(4, performedBy);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public List<Map<String, Object>> getHistory(long orderId) {
+        List<Map<String, Object>> historyList = new ArrayList<>();
+        String sql = """
+            SELECT HistoryID, ActionType, ActionDetail, PerformedBy, CreatedAt 
+            FROM dbo.OrderHistory 
+            WHERE OrderID = ? 
+            ORDER BY HistoryID DESC
+            """;
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setLong(1, orderId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("id", rs.getLong("HistoryID"));
+                    map.put("actionType", rs.getString("ActionType"));
+                    map.put("detail", rs.getString("ActionDetail"));
+                    map.put("performedBy", rs.getString("PerformedBy"));
+                    map.put("createdAt", rs.getTimestamp("CreatedAt"));
+                    historyList.add(map);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return historyList;
     }
 }

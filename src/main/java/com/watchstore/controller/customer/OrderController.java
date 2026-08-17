@@ -103,7 +103,17 @@ public class OrderController extends HttpServlet {
                 String note = req.getParameter("note");
                 if (note == null || note.trim().length() < 3) throw new IllegalArgumentException("Vui lòng mô tả vấn đề sản phẩm gặp phải.");
 
-                warrantyRepo.insert(orderId, productName.trim(), "", 12, note.trim());
+                if (warrantyRepo.hasActiveWarranty(orderId, productName.trim())) {
+                    throw new IllegalArgumentException("Sản phẩm này trong đơn hàng đang được bảo hành hoặc xử lý.");
+                }
+
+                String productImage = req.getParameter("productImage");
+                String finalNote = note.trim();
+                if (productImage != null && !productImage.trim().isEmpty()) {
+                    finalNote += " (Ảnh đính kèm: " + productImage.trim() + ")";
+                }
+
+                warrantyRepo.insert(orderId, productName.trim(), "", 12, finalNote);
                 req.getSession().setAttribute("flash", "Đã gửi yêu cầu bảo hành thành công. Nhân viên sẽ kiểm tra và phản hồi.");
                 resp.sendRedirect(req.getContextPath() + "/orders/detail?code=" + o.getCode());
                 return;

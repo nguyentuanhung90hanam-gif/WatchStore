@@ -1083,4 +1083,57 @@ public class VariantRepository {
 
         return value.trim();
     }
+
+    public List<java.util.Map<String, Object>> searchForPOS(String queryStr) {
+        List<java.util.Map<String, Object>> list = new ArrayList<>();
+        String sql = """
+            SELECT TOP 15
+                pv.VariantID, 
+                pv.ProductID, 
+                p.ProductName, 
+                pv.VariantName, 
+                pv.SKU, 
+                pv.SalePrice,
+                (SELECT COALESCE(SUM(ib.QuantityOnHand - ib.QuantityReserved), 0) 
+                 FROM dbo.InventoryBalances ib 
+                 WHERE ib.VariantID = pv.VariantID) AS Stock,
+                (SELECT TOP 1 pi.ImageUrl 
+                 FROM dbo.ProductImages pi 
+                 WHERE pi.ProductID = p.ProductID 
+                 ORDER BY pi.IsPrimary DESC, pi.DisplayOrder ASC) AS ImageUrl
+            FROM dbo.ProductVariants pv
+            INNER JOIN dbo.Products p ON pv.ProductID = p.ProductID
+            """;
+        if (queryStr != null && !queryStr.trim().isEmpty()) {
+            sql += " WHERE LOWER(p.ProductName) LIKE ? OR LOWER(pv.SKU) LIKE ? OR LOWER(pv.VariantName) LIKE ? ";
+        }
+        sql += " ORDER BY p.ProductName, pv.VariantName ";
+
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            if (queryStr != null && !queryStr.trim().isEmpty()) {
+                String pattern = "%" + queryStr.trim().toLowerCase() + "%";
+                ps.setString(1, pattern);
+                ps.setString(2, pattern);
+                ps.setString(3, pattern);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    java.util.Map<String, Object> map = new java.util.HashMap<>();
+                    map.put("variantId", rs.getInt("VariantID"));
+                    map.put("productId", rs.getInt("ProductID"));
+                    map.put("productName", rs.getString("ProductName"));
+                    map.put("variantName", rs.getString("VariantName"));
+                    map.put("sku", rs.getString("SKU"));
+                    map.put("salePrice", rs.getBigDecimal("SalePrice"));
+                    map.put("stock", rs.getInt("Stock"));
+                    map.put("imageUrl", rs.getString("ImageUrl"));
+                    list.add(map);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
 }

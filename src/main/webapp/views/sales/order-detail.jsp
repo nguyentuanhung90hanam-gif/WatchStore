@@ -486,7 +486,7 @@
                         </div>
                         <div style="margin-bottom:12px;">
                             <label style="font-size:12px; font-weight:600; color:#555; display:block; margin-bottom:4px;">Số điện thoại</label>
-                            <input type="text" name="phone" value="${order.phone}" required style="width:100%; height:36px; padding:0 10px; border:1px solid #ddd; border-radius:6px; font-size:13px;">
+                            <input type="text" name="phone" value="${order.phone}" required style="width:100%; height:36px; padding:0 10px; border:1px solid #ddd; border-radius:6px; font-size:13px;" oninput="this.value = this.value.replace(/[^0-9]/g, '')" pattern="[0-9]{9,11}" title="Số điện thoại phải từ 9 đến 11 chữ số và chỉ gồm số">
                         </div>
                         <div style="margin-bottom:15px;">
                             <label style="font-size:12px; font-weight:600; color:#555; display:block; margin-bottom:4px;">Địa chỉ giao hàng</label>
@@ -564,6 +564,32 @@
 
             </div>
 
+            <!-- ================= LỊCH SỬ THAO TÁC ================= -->
+            <div class="box">
+                <h2>Lịch sử thao tác</h2>
+                <c:choose>
+                    <c:when test="${not empty orderHistory}">
+                        <div style="font-size: 13px; line-height: 1.6;">
+                            <c:forEach var="h" items="${orderHistory}">
+                                <div style="padding: 10px 0; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; gap: 15px; align-items: center;">
+                                    <div>
+                                        <span style="display:inline-block; padding:3px 8px; border-radius:4px; background:#e0f2fe; color:#0369a1; font-weight:bold; font-size:11px; margin-right:8px;">${h.actionType}</span>
+                                        <span>${h.detail}</span>
+                                    </div>
+                                    <div style="text-align: right; color: #64748b; font-size: 11px; min-width: 150px;">
+                                        Bởi: <strong>${h.performedBy}</strong><br/>
+                                        <fmt:formatDate value="${h.createdAt}" pattern="dd/MM/yyyy HH:mm:ss"/>
+                                    </div>
+                                </div>
+                            </c:forEach>
+                        </div>
+                    </c:when>
+                    <c:otherwise>
+                        <p style="color: #888; font-style: italic; font-size: 13px;">Chưa có lịch sử thao tác nào.</p>
+                    </c:otherwise>
+                </c:choose>
+            </div>
+
         </div>
 
 
@@ -592,40 +618,51 @@
                         </div>
                     </c:when>
                     <c:otherwise>
-                        <form method="post"
-                              action="${pageContext.request.contextPath}/manage/sales/order-detail">
+                        <c:choose>
+                            <c:when test="${sessionScope.user.role == 'EMPLOYEE' && (order.statusCode == 'SHIPPING' || order.statusCode == 'DELIVERED' || order.statusCode == 'COMPLETED' || order.statusCode == 'RETURNED')}">
+                                <div style="background:#f0fdf4; border:1px solid #bbf7d0; color:#15803d; padding:12px; border-radius:6px; font-size:13px; font-weight:600; margin-bottom:10px;">
+                                    ✓ Đơn hàng đang được bộ phận giao vận xử lý. Nhân viên bán hàng không thể thay đổi trạng thái này.
+                                </div>
+                            </c:when>
+                            <c:otherwise>
+                                <form method="post"
+                                      action="${pageContext.request.contextPath}/manage/sales/order-detail">
 
-                            <input type="hidden"
-                                   name="id"
-                                   value="${order.id}">
+                                    <input type="hidden"
+                                           name="id"
+                                           value="${order.id}">
 
-                            <div class="form-group">
+                                    <div class="form-group">
 
-                                <label for="status">
-                                    Trạng thái đơn hàng
-                                </label>
+                                        <label for="status">
+                                            Trạng thái đơn hàng
+                                        </label>
 
-                                <select id="status" name="status" required>
-                                    <option value="PENDING" ${order.statusCode == 'PENDING' ? 'selected' : ''}>Chờ xử lý</option>
-                                    <option value="CONFIRMED" ${order.statusCode == 'CONFIRMED' ? 'selected' : ''}>Đã xác nhận</option>
-                                    <option value="PACKING" ${order.statusCode == 'PACKING' ? 'selected' : ''}>Đang đóng gói</option>
-                                    <option value="SHIPPING" ${order.statusCode == 'SHIPPING' ? 'selected' : ''}>Đang giao hàng</option>
-                                    <option value="DELIVERED" ${order.statusCode == 'DELIVERED' ? 'selected' : ''}>Đã giao hàng</option>
-                                    <option value="COMPLETED" ${order.statusCode == 'COMPLETED' ? 'selected' : ''}>Hoàn thành</option>
-                                    <option value="CANCELLED" ${order.statusCode == 'CANCELLED' ? 'selected' : ''}>Đã hủy</option>
-                                    <option value="RETURNED" ${order.statusCode == 'RETURNED' ? 'selected' : ''}>Đã đổi trả</option>
-                                </select>
+                                        <select id="status" name="status" required>
+                                            <option value="PENDING" ${order.statusCode == 'PENDING' ? 'selected' : ''}>Chờ xử lý</option>
+                                            <option value="CONFIRMED" ${order.statusCode == 'CONFIRMED' ? 'selected' : ''}>Đã xác nhận</option>
+                                            <option value="PACKING" ${order.statusCode == 'PACKING' ? 'selected' : ''}>Đang đóng gói</option>
+                                            <c:if test="${sessionScope.user.role != 'EMPLOYEE'}">
+                                                <option value="SHIPPING" ${order.statusCode == 'SHIPPING' ? 'selected' : ''}>Đang giao hàng</option>
+                                                <option value="DELIVERED" ${order.statusCode == 'DELIVERED' ? 'selected' : ''}>Đã giao hàng</option>
+                                                <option value="COMPLETED" ${order.statusCode == 'COMPLETED' ? 'selected' : ''}>Hoàn thành</option>
+                                                <option value="RETURNED" ${order.statusCode == 'RETURNED' ? 'selected' : ''}>Đã đổi trả</option>
+                                            </c:if>
+                                            <option value="CANCELLED" ${order.statusCode == 'CANCELLED' ? 'selected' : ''}>Đã hủy</option>
+                                        </select>
 
-                            </div>
+                                    </div>
 
-                            <button type="submit"
-                                    class="btn">
+                                    <button type="submit"
+                                            class="btn">
 
-                                Cập nhật trạng thái
+                                        Cập nhật trạng thái
 
-                            </button>
+                                    </button>
 
-                        </form>
+                                </form>
+                            </c:otherwise>
+                        </c:choose>
                     </c:otherwise>
                 </c:choose>
 
@@ -638,7 +675,7 @@
 
                 <h2>Thao tác</h2>
 
-                <c:if test="${order.statusCode == 'PENDING'}">
+                <c:if test="${order.statusCode == 'PENDING' && sessionScope.user.role == 'EMPLOYEE'}">
                     <p style="margin-bottom: 12px;">
                         <button type="button" class="btn" style="background:#059669; font-weight:600; cursor:pointer;" onclick="confirmAction(${order.id}, 'confirm')">
                             ✅ Xác nhận đơn hàng
@@ -646,7 +683,7 @@
                     </p>
                 </c:if>
 
-                <c:if test="${order.statusCode != 'COMPLETED'}">
+                <c:if test="${order.statusCode == 'PENDING' || order.statusCode == 'CONFIRMED'}">
                     <p style="margin-bottom: 12px;">
                         <a href="${pageContext.request.contextPath}/manage/sales/order-edit?id=${order.id}" class="btn" style="background:#d97706; font-weight:600; display:inline-flex; align-items:center; justify-content:center; text-decoration:none; cursor:pointer;">
                             ✏️ Sửa thông tin đơn hàng

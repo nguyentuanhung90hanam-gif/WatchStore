@@ -68,9 +68,11 @@
             <h1>🛡 Quản lý Bảo hành</h1>
             <p>Theo dõi phiếu bảo hành sản phẩm đồng hồ.</p>
         </div>
-        <a href="${pageContext.request.contextPath}/manage/sales/warranty-add" class="btn btn-primary">
-            ➕ Thêm phiếu bảo hành
-        </a>
+        <c:if test="${sessionScope.user.role != 'ADMIN'}">
+            <a href="${pageContext.request.contextPath}/manage/sales/warranty-add" class="btn btn-primary">
+                ➕ Thêm phiếu bảo hành
+            </a>
+        </c:if>
     </div>
 
     <%-- Flash message --%>
@@ -86,33 +88,33 @@
             <div class="value">${warranties.size()}</div>
         </div>
         <div class="stat-card active">
-            <div class="label">🟢 Đang bảo hành</div>
+            <div class="label">🟡 Chờ tiếp nhận</div>
             <div class="value">
-                <c:set var="activeCount" value="0"/>
+                <c:set var="pendingCount" value="0"/>
                 <c:forEach var="w" items="${warranties}">
-                    <c:if test="${w.status == 'Đang bảo hành' or w.status == 'ACTIVE'}"><c:set var="activeCount" value="${activeCount + 1}"/></c:if>
+                    <c:if test="${w.status == 'Chờ tiếp nhận'}"><c:set var="pendingCount" value="${pendingCount + 1}"/></c:if>
                 </c:forEach>
-                ${activeCount}
+                ${pendingCount}
             </div>
         </div>
         <div class="stat-card pending">
-            <div class="label">🔧 Đang sửa chữa</div>
+            <div class="label">🔧 Đang xử lý</div>
             <div class="value">
-                <c:set var="repairCount" value="0"/>
+                <c:set var="processingCount" value="0"/>
                 <c:forEach var="w" items="${warranties}">
-                    <c:if test="${w.status == 'Đang sửa chữa' or w.status == 'REPAIR'}"><c:set var="repairCount" value="${repairCount + 1}"/></c:if>
+                    <c:if test="${w.status == 'Đã tiếp nhận' or w.status == 'Đang xử lý' or w.status == 'Hoàn tất'}"><c:set var="processingCount" value="${processingCount + 1}"/></c:if>
                 </c:forEach>
-                ${repairCount}
+                ${processingCount}
             </div>
         </div>
         <div class="stat-card expired">
-            <div class="label">🔴 Hết hạn / Từ chối</div>
+            <div class="label">🟢 Đã trả khách</div>
             <div class="value">
-                <c:set var="expiredCount" value="0"/>
+                <c:set var="closedCount" value="0"/>
                 <c:forEach var="w" items="${warranties}">
-                    <c:if test="${w.status == 'Hết hạn' or w.status == 'Từ chối bảo hành' or w.status == 'EXPIRED' or w.status == 'REJECTED'}"><c:set var="expiredCount" value="${expiredCount + 1}"/></c:if>
+                    <c:if test="${w.status == 'Đã trả khách'}"><c:set var="closedCount" value="${closedCount + 1}"/></c:if>
                 </c:forEach>
-                ${expiredCount}
+                ${closedCount}
             </div>
         </div>
     </div>
@@ -123,12 +125,12 @@
             <input type="text" name="keyword" value="${param.keyword}" placeholder="🔍 Tìm mã đơn, tên KH, serial..."/>
             <select name="status">
                 <option value="">-- Tất cả trạng thái --</option>
-                <option value="Đang bảo hành"   ${param.status == 'Đang bảo hành'   ? 'selected' : ''}>Đang bảo hành</option>
-                <option value="Đang sửa chữa"   ${param.status == 'Đang sửa chữa'   ? 'selected' : ''}>Đang sửa chữa</option>
-                <option value="Đã sửa xong"     ${param.status == 'Đã sửa xong'     ? 'selected' : ''}>Đã sửa xong</option>
-                <option value="Đã trả khách"     ${param.status == 'Đã trả khách'     ? 'selected' : ''}>Đã trả khách</option>
+                <option value="Chờ tiếp nhận"   ${param.status == 'Chờ tiếp nhận'   ? 'selected' : ''}>Chờ tiếp nhận</option>
+                <option value="Đã tiếp nhận"    ${param.status == 'Đã tiếp nhận'    ? 'selected' : ''}>Đã tiếp nhận</option>
+                <option value="Đang xử lý"      ${param.status == 'Đang xử lý'      ? 'selected' : ''}>Đang xử lý</option>
+                <option value="Hoàn tất"        ${param.status == 'Hoàn tất'        ? 'selected' : ''}>Hoàn tất</option>
+                <option value="Đã trả khách"    ${param.status == 'Đã trả khách'    ? 'selected' : ''}>Đã trả khách</option>
                 <option value="Từ chối bảo hành" ${param.status == 'Từ chối bảo hành' ? 'selected' : ''}>Từ chối bảo hành</option>
-                <option value="Hết hạn"         ${param.status == 'Hết hạn'         ? 'selected' : ''}>Hết hạn</option>
             </select>
             <button type="submit" class="btn btn-primary">Lọc</button>
             <a href="${pageContext.request.contextPath}/manage/sales/warranty" class="btn btn-outline">Đặt lại</a>
@@ -171,22 +173,25 @@
                                 </td>
                                 <td>
                                     <c:choose>
-                                        <c:when test="${w.status == 'Đang bảo hành' or w.status == 'ACTIVE'}">
-                                            <span class="badge badge-active">Đang bảo hành</span>
+                                        <c:when test="${w.status == 'Chờ tiếp nhận'}">
+                                            <span class="badge badge-pending">Chờ tiếp nhận</span>
                                         </c:when>
-                                        <c:when test="${w.status == 'Đang sửa chữa' or w.status == 'REPAIR'}">
-                                            <span class="badge badge-repair">Đang sửa chữa</span>
+                                        <c:when test="${w.status == 'Đã tiếp nhận'}">
+                                            <span class="badge badge-repair" style="background:#e0f2fe; color:#0369a1;">Đã tiếp nhận</span>
                                         </c:when>
-                                        <c:when test="${w.status == 'Đã sửa xong'}">
-                                            <span class="badge badge-repair" style="background:#dbeafe; color:#1e40af;">Đã sửa xong</span>
+                                        <c:when test="${w.status == 'Đang xử lý'}">
+                                            <span class="badge badge-repair">Đang xử lý</span>
+                                        </c:when>
+                                        <c:when test="${w.status == 'Hoàn tất'}">
+                                            <span class="badge badge-repair" style="background:#d1fae5; color:#065f46;">Hoàn tất</span>
                                         </c:when>
                                         <c:when test="${w.status == 'Đã trả khách'}">
-                                            <span class="badge badge-active" style="background:#e0f2fe; color:#0369a1;">Đã trả khách</span>
+                                            <span class="badge badge-active">Đã trả khách</span>
                                         </c:when>
                                         <c:when test="${w.status == 'Từ chối bảo hành'}">
                                             <span class="badge badge-expired">Từ chối BH</span>
                                         </c:when>
-                                        <c:when test="${w.status == 'Hết hạn' or w.status == 'EXPIRED'}">
+                                        <c:when test="${w.status == 'Hết hạn'}">
                                             <span class="badge badge-expired">Hết hạn</span>
                                         </c:when>
                                         <c:otherwise>
@@ -221,36 +226,44 @@
                                             Chi tiết
                                         </button>
                                         
-                                        <c:choose>
-                                            <c:when test="${w.status == 'Đang bảo hành' or w.status == 'ACTIVE'}">
-                                                <button type="button" class="btn btn-sm btn-primary"
-                                                        data-id="${w.id}"
-                                                        data-order-code="${w.orderCode}"
-                                                        data-product="${w.productName}"
-                                                        onclick="openReceiveModal(event)">
-                                                    Tiếp nhận
-                                                </button>
-                                                <button type="button" class="btn btn-sm btn-outline" style="border-color:#dc2626; color:#dc2626;"
-                                                        onclick="quickRejectWarranty(${w.id})">
-                                                    Từ chối
-                                                </button>
-                                            </c:when>
-                                            <c:when test="${w.status == 'Đang sửa chữa' or w.status == 'REPAIR'}">
-                                                <button type="button" class="btn btn-sm btn-primary" style="background:#d97706; color:white; border:none;"
-                                                        data-id="${w.id}"
-                                                        data-order-code="${w.orderCode}"
-                                                        data-product="${w.productName}"
-                                                        onclick="openRepairModal(event)">
-                                                    Cập nhật sửa chữa
-                                                </button>
-                                            </c:when>
-                                            <c:when test="${w.status == 'Đã sửa xong'}">
-                                                <button type="button" class="btn btn-sm btn-primary" style="background:#16a34a; color:white; border:none;"
-                                                        onclick="quickReturnWarranty(${w.id})">
-                                                    Trả khách
-                                                </button>
-                                            </c:when>
-                                        </c:choose>
+                                        <c:if test="${sessionScope.user.role != 'ADMIN'}">
+                                            <c:choose>
+                                                <c:when test="${w.status == 'Chờ tiếp nhận'}">
+                                                    <button type="button" class="btn btn-sm btn-primary"
+                                                            data-id="${w.id}"
+                                                            data-order-code="${w.orderCode}"
+                                                            data-product="${w.productName}"
+                                                            onclick="openReceiveModal(event)">
+                                                        Tiếp nhận
+                                                    </button>
+                                                    <button type="button" class="btn btn-sm btn-outline" style="border-color:#dc2626; color:#dc2626;"
+                                                            onclick="quickRejectWarranty(${w.id})">
+                                                        Từ chối
+                                                    </button>
+                                                </c:when>
+                                                <c:when test="${w.status == 'Đã tiếp nhận'}">
+                                                    <button type="button" class="btn btn-sm btn-primary" style="background:#2563eb; color:white; border:none;"
+                                                            onclick="startProcessingWarranty(${w.id})">
+                                                        Bắt đầu xử lý
+                                                    </button>
+                                                </c:when>
+                                                <c:when test="${w.status == 'Đang xử lý'}">
+                                                    <button type="button" class="btn btn-sm btn-primary" style="background:#d97706; color:white; border:none;"
+                                                            data-id="${w.id}"
+                                                            data-order-code="${w.orderCode}"
+                                                            data-product="${w.productName}"
+                                                            onclick="openRepairModal(event)">
+                                                        Hoàn tất sửa chữa
+                                                    </button>
+                                                </c:when>
+                                                <c:when test="${w.status == 'Hoàn tất'}">
+                                                    <button type="button" class="btn btn-sm btn-primary" style="background:#16a34a; color:white; border:none;"
+                                                            onclick="quickReturnWarranty(${w.id})">
+                                                        Trả khách
+                                                    </button>
+                                                </c:when>
+                                            </c:choose>
+                                        </c:if>
                                     </div>
                                 </td>
                             </tr>
@@ -421,6 +434,7 @@
         <input type="hidden" name="action" id="action-type">
         <input type="hidden" name="status" id="action-status">
         <input type="hidden" name="returnDate" id="action-return-date">
+        <input type="hidden" name="note" id="action-note">
     </form>
 
     <script>
@@ -442,13 +456,27 @@
             document.getElementById('action-form').submit();
         }
 
-        function quickRejectWarranty(id) {
-            if (confirm("Xác nhận từ chối bảo hành cho sản phẩm này?")) {
+        function startProcessingWarranty(id) {
+            if (confirm("Xác nhận bắt đầu xử lý bảo hành cho sản phẩm này?")) {
                 document.getElementById('action-id').value = id;
-                document.getElementById('action-type').value = '';
-                document.getElementById('action-status').value = 'Từ chối bảo hành';
+                document.getElementById('action-type').value = 'start_processing';
+                document.getElementById('action-status').value = '';
                 document.getElementById('action-form').submit();
             }
+        }
+
+        function quickRejectWarranty(id) {
+            let reason = prompt("Vui lòng nhập lý do từ chối bảo hành:");
+            if (reason === null) return;
+            if (reason.trim() === "") {
+                alert("Lý do từ chối không được để trống!");
+                return;
+            }
+            document.getElementById('action-id').value = id;
+            document.getElementById('action-type').value = '';
+            document.getElementById('action-status').value = 'Từ chối bảo hành';
+            document.getElementById('action-note').value = reason.trim();
+            document.getElementById('action-form').submit();
         }
 
         function quickReturnWarranty(id) {
@@ -526,26 +554,29 @@
             badge.style.background = '';
             badge.style.color = '';
             
-            if (status === 'Đang bảo hành' || status === 'ACTIVE') {
-                badge.innerText = 'Đang bảo hành';
-                badge.classList.add('badge-active');
-            } else if (status === 'Đang sửa chữa' || status === 'REPAIR') {
-                badge.innerText = 'Đang sửa chữa';
+            if (status === 'Chờ tiếp nhận') {
+                badge.innerText = 'Chờ tiếp nhận';
+                badge.classList.add('badge-pending');
+            } else if (status === 'Đã tiếp nhận') {
+                badge.innerText = 'Đã tiếp nhận';
                 badge.classList.add('badge-repair');
-            } else if (status === 'Đã sửa xong') {
-                badge.innerText = 'Đã sửa xong';
+                badge.style.background = '#e0f2fe';
+                badge.style.color = '#0369a1';
+            } else if (status === 'Đang xử lý') {
+                badge.innerText = 'Đang xử lý';
                 badge.classList.add('badge-repair');
-                badge.style.background = '#dbeafe';
-                badge.style.color = '#1e40af';
+            } else if (status === 'Hoàn tất') {
+                badge.innerText = 'Hoàn tất';
+                badge.classList.add('badge-repair');
+                badge.style.background = '#d1fae5';
+                badge.style.color = '#065f46';
             } else if (status === 'Đã trả khách') {
                 badge.innerText = 'Đã trả khách';
                 badge.classList.add('badge-active');
-                badge.style.background = '#e0f2fe';
-                badge.style.color = '#0369a1';
             } else if (status === 'Từ chối bảo hành') {
                 badge.innerText = 'Từ chối BH';
                 badge.classList.add('badge-expired');
-            } else if (status === 'Hết hạn' || status === 'EXPIRED') {
+            } else if (status === 'Hết hạn') {
                 badge.innerText = 'Hết hạn';
                 badge.classList.add('badge-expired');
             } else {

@@ -36,6 +36,7 @@ public class SalesController extends HttpServlet {
     private CustomerRepository customerRepository;
     private OrderRepository orderRepository;
     private WarrantyRepository warrantyRepository;
+    private com.watchstore.repository.VariantRepository variantRepository = new com.watchstore.repository.VariantRepository();
 
     private static final Map<String, String[]> PAGES = Map.ofEntries(
             Map.entry("/dashboard", new String[]{"dashboard", "Tổng quan bán hàng"}),
@@ -62,6 +63,21 @@ public class SalesController extends HttpServlet {
             throws ServletException, IOException {
 
         String path = req.getPathInfo();
+
+        if ("/api/order-details".equals(path)) {
+            getOrderDetailsJson(req, resp);
+            return;
+        }
+
+        if ("/api/orders-search".equals(path)) {
+            searchOrdersJson(req, resp);
+            return;
+        }
+
+        if ("/api/products-search".equals(path)) {
+            searchProductsJson(req, resp);
+            return;
+        }
 
         if (path == null || path.isBlank() || "/dashboard".equals(path)) {
             showDashboard(req, resp);
@@ -90,6 +106,7 @@ public class SalesController extends HttpServlet {
         }
 
         if ("/order-add".equals(path)) {
+            req.setAttribute("customers", customerRepository != null ? customerRepository.findAll() : java.util.Collections.emptyList());
             req.setAttribute("moduleTitle", "Thêm đơn hàng");
             ViewRouter.admin(req, resp, "sales/order-add", "Thêm đơn hàng", "sales");
             return;
@@ -111,8 +128,13 @@ public class SalesController extends HttpServlet {
         }
 
         if ("/warranty-add".equals(path) && "GET".equals(req.getMethod())) {
+            User user = (User) req.getSession().getAttribute("user");
+            if (user != null && user.getRole() == com.watchstore.enums.Role.ADMIN) {
+                req.getSession().setAttribute("flash", "Lỗi: Quản trị viên không thực hiện lập phiếu bảo hành trong luồng nghiệp vụ thông thường.");
+                resp.sendRedirect(req.getContextPath() + "/manage/sales/warranty");
+                return;
+            }
             req.setAttribute("moduleTitle", "Thêm phiếu bảo hành");
-            req.setAttribute("orders", orderRepository != null ? orderRepository.findAll() : java.util.Collections.emptyList());
             ViewRouter.admin(req, resp, "sales/warranty-add", "Thêm phiếu bảo hành", "sales");
             return;
         }
@@ -233,6 +255,12 @@ public class SalesController extends HttpServlet {
         }
 
         if ("/warranty-add".equals(path)) {
+            User user = (User) req.getSession().getAttribute("user");
+            if (user != null && user.getRole() == com.watchstore.enums.Role.ADMIN) {
+                req.getSession().setAttribute("flash", "Lỗi: Quản trị viên không thực hiện lập phiếu bảo hành trong luồng nghiệp vụ thông thường.");
+                resp.sendRedirect(req.getContextPath() + "/manage/sales/warranty");
+                return;
+            }
             createWarranty(req, resp);
             return;
         }
@@ -339,6 +367,7 @@ public class SalesController extends HttpServlet {
 
             req.setAttribute("order", order);
             req.setAttribute("orderItems", orderRepository != null ? orderRepository.getOrderItems(id) : new ArrayList<>());
+            req.setAttribute("orderHistory", orderRepository != null ? orderRepository.getHistory(id) : new ArrayList<>());
             req.setAttribute("moduleTitle", "Chi tiết đơn hàng");
 
             ViewRouter.admin(req, resp, "sales/order-detail", "Chi tiết đơn hàng", "sales");
@@ -416,7 +445,19 @@ public class SalesController extends HttpServlet {
         if (idParam != null && status != null) {
             try {
                 int id = Integer.parseInt(idParam);
-                if (orderRepository != null) orderRepository.updateStatus(id, status);
+                User user = (User) req.getSession().getAttribute("user");
+                if (user != null && user.getRole() == com.watchstore.enums.Role.EMPLOYEE) {
+                    if (!"PENDING".equals(status) && !"CONFIRMED".equals(status) && !"PACKING".equals(status) && !"CANCELLED".equals(status)) {
+                        req.getSession().setAttribute("flash", "Lỗi: Nhân viên bán hàng không có quyền cập nhật trạng thái vận chuyển hoặc hoàn thành đơn hàng.");
+                        resp.sendRedirect(req.getContextPath() + "/manage/sales/order-detail?id=" + id);
+                        return;
+                    }
+                }
+                if (orderRepository != null) {
+                    orderRepository.updateStatus(id, status);
+                    String performerName = user != null ? user.getFullName() : "Hệ thống";
+                    orderRepository.logHistory(id, "UPDATE_STATUS", "Cập nhật trạng thái sang: " + status, performerName);
+                }
                 req.getSession().setAttribute("flash", "Cập nhật trạng thái đơn hàng thành công!");
                 resp.sendRedirect(req.getContextPath() + "/manage/sales/order-detail?id=" + id);
                 return;
@@ -438,7 +479,7 @@ public class SalesController extends HttpServlet {
             throws IOException {
         if (warrantyRepository == null) {
             req.getSession().setAttribute("flash", "Lỗi: Chức năng bảo hành chưa khởi tạo.");
-            resp.sendRedirect(req.getContextPath() + "/manage/sales/warranty");
+            resp.sendRedirect(req.getContextPath() + "/manage/sales/warranty-add");
             return;
         }
         try {
@@ -450,20 +491,27 @@ public class SalesController extends HttpServlet {
 
             if (orderRepository == null) {
                 req.getSession().setAttribute("flash", "Lỗi hệ thống: Không thể kết nối cơ sở dữ liệu đơn hàng.");
-                resp.sendRedirect(req.getContextPath() + "/manage/sales/warranty");
+                resp.sendRedirect(req.getContextPath() + "/manage/sales/warranty-add");
                 return;
             }
             Order order = orderRepository.findById(orderId);
             if (order == null) {
                 req.getSession().setAttribute("flash", "Lỗi: Đơn hàng #" + orderId + " không tồn tại!");
-                resp.sendRedirect(req.getContextPath() + "/manage/sales/warranty");
+                resp.sendRedirect(req.getContextPath() + "/manage/sales/warranty-add");
+                return;
+            }
+
+            // Check if an active warranty card for this product in this order already exists
+            if (warrantyRepository.hasActiveWarranty(orderId, productName)) {
+                req.getSession().setAttribute("flash", "Lỗi: Phiếu bảo hành đang hoạt động cho sản phẩm '" + productName + "' của đơn hàng #" + orderId + " đã tồn tại!");
+                resp.sendRedirect(req.getContextPath() + "/manage/sales/warranty-add");
                 return;
             }
 
             List<Map<String, Object>> items = orderRepository.getOrderItems(orderId);
             boolean exists = items.stream().anyMatch(item -> {
-                String pName = String.valueOf(item.get("ProductName"));
-                String vName = String.valueOf(item.get("VariantName"));
+                String pName = String.valueOf(item.get("productName"));
+                String vName = String.valueOf(item.get("variantName"));
                 return productName.equalsIgnoreCase(pName) || productName.equalsIgnoreCase(vName) ||
                         pName.toLowerCase().contains(productName.toLowerCase()) ||
                         vName.toLowerCase().contains(productName.toLowerCase());
@@ -471,18 +519,23 @@ public class SalesController extends HttpServlet {
 
             if (!exists) {
                 req.getSession().setAttribute("flash", "Lỗi: Sản phẩm '" + productName + "' không có trong đơn hàng #" + orderId + "!");
-                resp.sendRedirect(req.getContextPath() + "/manage/sales/warranty");
+                resp.sendRedirect(req.getContextPath() + "/manage/sales/warranty-add");
                 return;
             }
 
             warrantyRepository.insert(orderId, productName, serial, months, note);
             req.getSession().setAttribute("flash", "Đã tạo phiếu bảo hành thành công!");
+            resp.sendRedirect(req.getContextPath() + "/manage/sales/warranty");
+            return;
         } catch (NumberFormatException e) {
             req.getSession().setAttribute("flash", "Lỗi: Định dạng mã đơn hàng hoặc thời hạn không hợp lệ.");
+            resp.sendRedirect(req.getContextPath() + "/manage/sales/warranty-add");
+            return;
         } catch (Exception e) {
             req.getSession().setAttribute("flash", "Lỗi khi tạo phiếu bảo hành: " + e.getMessage());
+            resp.sendRedirect(req.getContextPath() + "/manage/sales/warranty-add");
+            return;
         }
-        resp.sendRedirect(req.getContextPath() + "/manage/sales/warranty");
     }
 
     private void updateWarrantyStatus(HttpServletRequest req, HttpServletResponse resp)
@@ -516,8 +569,17 @@ public class SalesController extends HttpServlet {
                     warrantyRepository.updateReturn(id, returnDate);
                     req.getSession().setAttribute("flash", "Đã xác nhận trả máy cho khách thành công!");
                 }
+                else if ("start_processing".equalsIgnoreCase(action)) {
+                    warrantyRepository.updateProcessing(id);
+                    req.getSession().setAttribute("flash", "Đã chuyển trạng thái bảo hành sang Đang xử lý!");
+                }
                 else if (status != null) {
-                    warrantyRepository.updateStatus(id, status);
+                    String note = req.getParameter("note");
+                    if (note != null && !note.trim().isEmpty()) {
+                        warrantyRepository.updateStatusAndNote(id, status, note);
+                    } else {
+                        warrantyRepository.updateStatus(id, status);
+                    }
                     req.getSession().setAttribute("flash", "Đã cập nhật trạng thái bảo hành!");
                 }
             } catch (Exception e) {
@@ -533,8 +595,23 @@ public class SalesController extends HttpServlet {
         String status  = req.getParameter("status");
         String fromDate = req.getParameter("fromDate");
         String toDate   = req.getParameter("toDate");
+        String minAmountStr = req.getParameter("minAmount");
+        String maxAmountStr = req.getParameter("maxAmount");
 
-        List<Order> orders = orderRepository != null ? orderRepository.search(keyword, status, fromDate, toDate) : java.util.Collections.emptyList();
+        BigDecimal minAmount = null;
+        BigDecimal maxAmount = null;
+        try {
+            if (minAmountStr != null && !minAmountStr.trim().isEmpty()) {
+                minAmount = new BigDecimal(minAmountStr.trim());
+            }
+        } catch (NumberFormatException ignored) {}
+        try {
+            if (maxAmountStr != null && !maxAmountStr.trim().isEmpty()) {
+                maxAmount = new BigDecimal(maxAmountStr.trim());
+            }
+        } catch (NumberFormatException ignored) {}
+
+        List<Order> orders = orderRepository != null ? orderRepository.search(keyword, status, fromDate, toDate, minAmount, maxAmount) : java.util.Collections.emptyList();
         List<Order> allOrders = orderRepository != null ? orderRepository.findAll() : java.util.Collections.emptyList();
 
         long totalCount = allOrders.size();
@@ -548,6 +625,8 @@ public class SalesController extends HttpServlet {
         req.setAttribute("status", status);
         req.setAttribute("fromDate", fromDate);
         req.setAttribute("toDate", toDate);
+        req.setAttribute("minAmount", minAmountStr);
+        req.setAttribute("maxAmount", maxAmountStr);
         req.setAttribute("totalCount", totalCount);
         req.setAttribute("pendingCount", pendingCount);
         req.setAttribute("shippingCount", shippingCount);
@@ -876,8 +955,8 @@ public class SalesController extends HttpServlet {
                 resp.sendRedirect(req.getContextPath() + "/manage/sales/orders");
                 return;
             }
-            if (order.getStatus() == OrderStatus.COMPLETED) {
-                req.getSession().setAttribute("flash", "Lỗi: Không thể chỉnh sửa đơn hàng đã hoàn thành!");
+            if (order.getStatus() != OrderStatus.PENDING && order.getStatus() != OrderStatus.CONFIRMED) {
+                req.getSession().setAttribute("flash", "Lỗi: Chỉ có thể sửa thông tin đơn hàng ở trạng thái Chờ xử lý hoặc Đã xác nhận!");
                 resp.sendRedirect(req.getContextPath() + "/manage/sales/order-detail?id=" + id);
                 return;
             }
@@ -891,38 +970,269 @@ public class SalesController extends HttpServlet {
 
     private void createOrder(HttpServletRequest req, HttpServletResponse resp)
             throws IOException {
+        User user = (User) req.getSession().getAttribute("user");
+        String customerIdStr = req.getParameter("customerId");
         String customerName = req.getParameter("customerName");
         String phone = req.getParameter("phone");
         String shippingAddress = req.getParameter("shippingAddress");
-        String totalPriceStr = req.getParameter("totalPrice");
         String status = req.getParameter("status");
         String paymentStatus = req.getParameter("paymentStatus");
+        String cartItemsJson = req.getParameter("cartItemsJson");
 
+        if (customerName == null || customerName.trim().isEmpty() ||
+            phone == null || phone.trim().isEmpty() ||
+            shippingAddress == null || shippingAddress.trim().isEmpty()) {
+            req.getSession().setAttribute("flash", "Lỗi: Vui lòng nhập đầy đủ thông tin khách hàng.");
+            resp.sendRedirect(req.getContextPath() + "/manage/sales/order-add");
+            return;
+        }
+
+        if (cartItemsJson == null || cartItemsJson.trim().isEmpty() || "[]".equals(cartItemsJson.trim())) {
+            req.getSession().setAttribute("flash", "Lỗi: Đơn hàng phải có ít nhất một sản phẩm.");
+            resp.sendRedirect(req.getContextPath() + "/manage/sales/order-add");
+            return;
+        }
+
+        // Parse JSON items
+        List<Map<String, Object>> parsedItems = new ArrayList<>();
         try {
-            BigDecimal totalPrice = new BigDecimal(totalPriceStr);
-            String code = "WS" + (8500 + (orderRepository != null ? orderRepository.findAll().size() : 0) + 1);
-
-            Order order = new Order();
-            order.setCode(code);
-            order.setCustomerName(customerName);
-            order.setPhone(phone);
-            order.setShippingAddress(shippingAddress);
-            order.setTotalPrice(totalPrice);
-            order.setStatus(status);
-            order.setPaymentStatus(paymentStatus != null ? paymentStatus : "UNPAID");
-            order.setUserId(4);
-            order.setCreatedAt(new java.util.Date());
-
-            if (orderRepository != null) {
-                orderRepository.add(order);
-                req.getSession().setAttribute("flash", "Thêm đơn hàng thành công! Mã đơn: " + code);
-            } else {
-                req.getSession().setAttribute("flash", "Lỗi: Không tìm thấy orderRepository.");
+            String json = cartItemsJson.trim();
+            json = json.substring(1, json.length() - 1); // remove outer brackets
+            String[] parts = json.split("\\},\\{");
+            for (String part : parts) {
+                part = part.replace("{", "").replace("}", "").trim();
+                if (part.isEmpty()) continue;
+                String[] fields = part.split(",");
+                int variantId = 0;
+                int qty = 0;
+                for (String field : fields) {
+                    String[] kv = field.split(":");
+                    if (kv.length == 2) {
+                        String key = kv[0].replace("\"", "").trim();
+                        String val = kv[1].replace("\"", "").trim();
+                        if ("variantId".equals(key)) {
+                            variantId = Integer.parseInt(val);
+                        } else if ("quantity".equals(key)) {
+                            qty = Integer.parseInt(val);
+                        }
+                    }
+                }
+                if (variantId > 0 && qty > 0) {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("variantId", variantId);
+                    map.put("quantity", qty);
+                    parsedItems.add(map);
+                }
             }
         } catch (Exception e) {
-            e.printStackTrace();
-            req.getSession().setAttribute("flash", "Lỗi khi thêm đơn hàng: " + e.getMessage());
+            req.getSession().setAttribute("flash", "Lỗi định dạng giỏ hàng: " + e.getMessage());
+            resp.sendRedirect(req.getContextPath() + "/manage/sales/order-add");
+            return;
         }
+
+        if (parsedItems.isEmpty()) {
+            req.getSession().setAttribute("flash", "Lỗi: Không phân tích được sản phẩm nào trong giỏ hàng.");
+            resp.sendRedirect(req.getContextPath() + "/manage/sales/order-add");
+            return;
+        }
+
+        Connection conn = null;
+        try {
+            conn = com.watchstore.config.DBContext.getConnection();
+            conn.setAutoCommit(false); // start transaction
+
+            // 1. Resolve customer
+            int finalCustomerId = 4; // guest fallback
+            if (customerIdStr != null && !customerIdStr.trim().isEmpty() && !"new".equals(customerIdStr.trim())) {
+                finalCustomerId = Integer.parseInt(customerIdStr.trim());
+            } else {
+                // Check if customer phone already exists
+                List<com.watchstore.model.Customer> match = customerRepository.search(phone.trim());
+                com.watchstore.model.Customer existing = null;
+                if (match != null) {
+                    for (com.watchstore.model.Customer c : match) {
+                        if (phone.trim().equals(c.getPhone())) {
+                            existing = c;
+                            break;
+                        }
+                    }
+                }
+                if (existing != null) {
+                    finalCustomerId = existing.getId();
+                } else {
+                    // Create new customer
+                    com.watchstore.model.Customer newCustomer = new com.watchstore.model.Customer();
+                    newCustomer.setFullName(customerName);
+                    newCustomer.setPhone(phone);
+                    newCustomer.setEmail(phone.trim() + "@watchstore.com");
+                    newCustomer.setAddress(shippingAddress);
+                    customerRepository.insert(newCustomer);
+
+                    // Re-find to get ID
+                    List<com.watchstore.model.Customer> matchNew = customerRepository.search(phone.trim());
+                    if (matchNew != null) {
+                        for (com.watchstore.model.Customer c : matchNew) {
+                            if (phone.trim().equals(c.getPhone())) {
+                                finalCustomerId = c.getId();
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 2. Resolve items & check stock & calculate total
+            BigDecimal totalAmount = BigDecimal.ZERO;
+            List<Map<String, Object>> resolvedItems = new ArrayList<>();
+
+            String selectVarSql = """
+                SELECT 
+                    pv.VariantID, 
+                    pv.SKU, 
+                    p.ProductName, 
+                    pv.VariantName, 
+                    pv.SalePrice,
+                    (SELECT COALESCE(SUM(ib.QuantityOnHand - ib.QuantityReserved), 0) 
+                     FROM dbo.InventoryBalances ib 
+                     WHERE ib.VariantID = pv.VariantID) AS AvailableStock,
+                    (SELECT TOP 1 pi.ImageUrl 
+                     FROM dbo.ProductImages pi 
+                     WHERE pi.ProductID = p.ProductID 
+                     ORDER BY pi.IsPrimary DESC, pi.DisplayOrder ASC) AS ImageUrl
+                FROM dbo.ProductVariants pv
+                INNER JOIN dbo.Products p ON pv.ProductID = p.ProductID
+                WHERE pv.VariantID = ?
+                """;
+
+            for (Map<String, Object> item : parsedItems) {
+                int vId = (Integer) item.get("variantId");
+                int quantity = (Integer) item.get("quantity");
+
+                try (PreparedStatement ps = conn.prepareStatement(selectVarSql)) {
+                    ps.setInt(1, vId);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (!rs.next()) {
+                            throw new Exception("Sản phẩm ID #" + vId + " không tồn tại trong hệ thống.");
+                        }
+                        String pName = rs.getString("ProductName");
+                        String vName = rs.getString("VariantName");
+                        String sku = rs.getString("SKU");
+                        BigDecimal price = rs.getBigDecimal("SalePrice");
+                        int stock = rs.getInt("AvailableStock");
+                        String imgUrl = rs.getString("ImageUrl");
+
+                        if (quantity > stock) {
+                            throw new Exception("Sản phẩm '" + pName + " (" + vName + ")' không đủ hàng tồn kho (Tồn: " + stock + ", yêu cầu: " + quantity + ").");
+                        }
+
+                        BigDecimal lineTotal = price.multiply(new BigDecimal(quantity));
+                        totalAmount = totalAmount.add(lineTotal);
+
+                        Map<String, Object> resolved = new HashMap<>();
+                        resolved.put("variantId", vId);
+                        resolved.put("productName", pName);
+                        resolved.put("variantName", vName);
+                        resolved.put("sku", sku);
+                        resolved.put("price", price);
+                        resolved.put("quantity", quantity);
+                        resolved.put("imageUrl", imgUrl);
+                        resolvedItems.add(resolved);
+                    }
+                }
+            }
+
+            // 3. Insert order
+            String orderCode = "WS" + (8500 + (orderRepository != null ? orderRepository.findAll().size() : 0) + 1);
+            String insertOrderSql = """
+                INSERT INTO Orders (OrderCode, CustomerID, RecipientName, RecipientPhone, ShippingAddress, SubtotalAmount, DiscountAmount, ShippingFee, TotalAmount, OrderStatus, PaymentStatus)
+                VALUES (?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?)
+                """;
+
+            long orderId = 0;
+            try (PreparedStatement ps = conn.prepareStatement(insertOrderSql, java.sql.Statement.RETURN_GENERATED_KEYS)) {
+                ps.setString(1, orderCode);
+                ps.setInt(2, finalCustomerId);
+                ps.setString(3, customerName);
+                ps.setString(4, phone);
+                ps.setString(5, shippingAddress);
+                ps.setBigDecimal(6, totalAmount);
+                ps.setBigDecimal(7, totalAmount);
+                ps.setString(8, status);
+                ps.setString(9, paymentStatus);
+                ps.executeUpdate();
+
+                try (ResultSet generatedKeys = ps.getGeneratedKeys()) {
+                    if (generatedKeys.next()) {
+                        orderId = generatedKeys.getLong(1);
+                    } else {
+                        throw new SQLException("Không thể tạo đơn hàng (Không lấy được ID).");
+                    }
+                }
+            }
+
+            // 4. Insert order items & update stock
+            String insertItemSql = """
+                INSERT INTO OrderItems (OrderID, VariantID, ProductName, VariantName, SKU, ImageUrl, UnitPrice, Quantity, DiscountAmount)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)
+                """;
+
+            String updateStockSql = """
+                UPDATE dbo.InventoryBalances 
+                SET QuantityOnHand = QuantityOnHand - ? 
+                WHERE VariantID = ? AND WarehouseID = 1
+                """;
+
+            for (Map<String, Object> resolved : resolvedItems) {
+                int vId = (Integer) resolved.get("variantId");
+                String pName = (String) resolved.get("productName");
+                String vName = (String) resolved.get("variantName");
+                String sku = (String) resolved.get("sku");
+                BigDecimal price = (BigDecimal) resolved.get("price");
+                int qty = (Integer) resolved.get("quantity");
+                String imgUrl = (String) resolved.get("imageUrl");
+
+                // Insert item
+                try (PreparedStatement ps = conn.prepareStatement(insertItemSql)) {
+                    ps.setLong(1, orderId);
+                    ps.setInt(2, vId);
+                    ps.setString(3, pName);
+                    ps.setString(4, vName);
+                    ps.setString(5, sku);
+                    ps.setString(6, imgUrl);
+                    ps.setBigDecimal(7, price);
+                    ps.setInt(8, qty);
+                    ps.executeUpdate();
+                }
+
+                // Update stock
+                try (PreparedStatement ps = conn.prepareStatement(updateStockSql)) {
+                    ps.setInt(1, qty);
+                    ps.setInt(2, vId);
+                    ps.executeUpdate();
+                }
+            }
+
+            conn.commit(); // commit transaction
+            String performerName = user != null ? user.getFullName() : "Hệ thống";
+            if (orderRepository != null) {
+                orderRepository.logHistory(orderId, "CREATE", "Khởi tạo đơn hàng từ nhân viên/quản trị.", performerName);
+            }
+            req.getSession().setAttribute("flash", "Tạo đơn hàng thành công! Mã đơn: " + orderCode);
+
+        } catch (Exception e) {
+            if (conn != null) {
+                try { conn.rollback(); } catch (SQLException ignored) {}
+            }
+            e.printStackTrace();
+            req.getSession().setAttribute("flash", "Lỗi khi tạo đơn hàng: " + e.getMessage());
+            resp.sendRedirect(req.getContextPath() + "/manage/sales/order-add");
+            return;
+        } finally {
+            if (conn != null) {
+                try { conn.close(); } catch (SQLException ignored) {}
+            }
+        }
+
         resp.sendRedirect(req.getContextPath() + "/manage/sales/orders");
     }
 
@@ -947,8 +1257,8 @@ public class SalesController extends HttpServlet {
 
             Order order = orderRepository != null ? orderRepository.findById(id) : null;
             if (order != null) {
-                if (order.getStatus() == OrderStatus.COMPLETED) {
-                    req.getSession().setAttribute("flash", "Lỗi: Không thể chỉnh sửa đơn hàng đã hoàn thành!");
+                if (order.getStatus() != OrderStatus.PENDING && order.getStatus() != OrderStatus.CONFIRMED) {
+                    req.getSession().setAttribute("flash", "Lỗi: Chỉ có thể sửa thông tin đơn hàng ở trạng thái Chờ xử lý hoặc Đã xác nhận!");
                     resp.sendRedirect(req.getContextPath() + "/manage/sales/order-detail?id=" + id);
                     return;
                 }
@@ -961,8 +1271,14 @@ public class SalesController extends HttpServlet {
                     order.setPaymentStatus(paymentStatus);
                 }
 
-                orderRepository.update(order);
-                req.getSession().setAttribute("flash", "Cập nhật đơn hàng thành công!");
+                if (orderRepository != null && orderRepository.update(order)) {
+                    User user = (User) req.getSession().getAttribute("user");
+                    String performerName = user != null ? user.getFullName() : "Hệ thống";
+                    orderRepository.logHistory(id, "EDIT", "Chỉnh sửa chi tiết thông tin đơn hàng.", performerName);
+                    req.getSession().setAttribute("flash", "Cập nhật đơn hàng thành công!");
+                } else {
+                    req.getSession().setAttribute("flash", "Lỗi khi cập nhật thông tin đơn hàng.");
+                }
                 resp.sendRedirect(req.getContextPath() + "/manage/sales/order-detail?id=" + id);
                 return;
             }
@@ -995,7 +1311,15 @@ public class SalesController extends HttpServlet {
         if (idParam != null) {
             try {
                 int id = Integer.parseInt(idParam);
+                User user = (User) req.getSession().getAttribute("user");
+                if (user != null && user.getRole() == com.watchstore.enums.Role.ADMIN) {
+                    req.getSession().setAttribute("flash", "Lỗi: Quản trị viên không thực hiện xác nhận đơn hàng trong nghiệp vụ thông thường.");
+                    resp.sendRedirect(req.getContextPath() + "/manage/sales/order-detail?id=" + id);
+                    return;
+                }
                 if (orderRepository != null && orderRepository.updateStatus(id, "CONFIRMED")) {
+                    String performerName = user != null ? user.getFullName() : "Hệ thống";
+                    orderRepository.logHistory(id, "CONFIRM", "Xác nhận đơn hàng thành công.", performerName);
                     req.getSession().setAttribute("flash", "Đã xác nhận đơn hàng thành công!");
                 } else {
                     req.getSession().setAttribute("flash", "Lỗi khi xác nhận đơn hàng.");
@@ -1016,10 +1340,28 @@ public class SalesController extends HttpServlet {
         if (idParam != null) {
             try {
                 int id = Integer.parseInt(idParam);
-                if (orderRepository != null && orderRepository.cancelOrderAndRestoreStock(id)) {
-                    req.getSession().setAttribute("flash", "Đã hủy đơn hàng thành công!");
-                } else {
-                    req.getSession().setAttribute("flash", "Lỗi khi hủy đơn hàng.");
+                Order order = orderRepository != null ? orderRepository.findById(id) : null;
+                if (order != null) {
+                    if (order.getStatus() == OrderStatus.COMPLETED || order.getStatus() == OrderStatus.CANCELLED) {
+                        req.getSession().setAttribute("flash", "Lỗi: Không thể hủy đơn hàng đã hoàn thành hoặc đã hủy.");
+                        resp.sendRedirect(req.getContextPath() + "/manage/sales/order-detail?id=" + id);
+                        return;
+                    }
+                    User user = (User) req.getSession().getAttribute("user");
+                    if (user != null && user.getRole() == com.watchstore.enums.Role.EMPLOYEE) {
+                        if (order.getStatus() != OrderStatus.PENDING && order.getStatus() != OrderStatus.CONFIRMED && order.getStatus() != OrderStatus.PACKING) {
+                            req.getSession().setAttribute("flash", "Lỗi: Nhân viên bán hàng chỉ có thể hủy đơn ở trạng thái Chờ xử lý, Đã xác nhận hoặc Đang đóng gói.");
+                            resp.sendRedirect(req.getContextPath() + "/manage/sales/order-detail?id=" + id);
+                            return;
+                        }
+                    }
+                    if (orderRepository != null && orderRepository.cancelOrderAndRestoreStock(id)) {
+                        String performerName = user != null ? user.getFullName() : "Hệ thống";
+                        orderRepository.logHistory(id, "CANCEL", "Hủy đơn hàng và hoàn trả lại số lượng tồn kho.", performerName);
+                        req.getSession().setAttribute("flash", "Đã hủy đơn hàng thành công!");
+                    } else {
+                        req.getSession().setAttribute("flash", "Lỗi khi hủy đơn hàng.");
+                    }
                 }
             } catch (NumberFormatException ignored) {}
         }
@@ -1061,6 +1403,9 @@ public class SalesController extends HttpServlet {
                             if (status != null && !status.trim().isEmpty()) {
                                 orderRepository.updateStatus(id, status.trim());
                             }
+                            User user = (User) req.getSession().getAttribute("user");
+                            String performerName = user != null ? user.getFullName() : "Hệ thống";
+                            orderRepository.logHistory(id, "EDIT_SHIPPING", "Cập nhật thông tin giao nhận: Người nhận: " + customerName + ", SĐT: " + phone + ", Địa chỉ: " + shippingAddress, performerName);
                             req.getSession().setAttribute("flash", "Cập nhật thông tin giao nhận thành công!");
                         } else {
                             req.getSession().setAttribute("flash", "Lỗi khi cập nhật thông tin giao hàng.");
@@ -1074,5 +1419,118 @@ public class SalesController extends HttpServlet {
             }
         }
         resp.sendRedirect(req.getContextPath() + "/manage/sales/orders");
+    }
+
+    private void getOrderDetailsJson(HttpServletRequest req, HttpServletResponse resp)
+            throws IOException {
+        resp.setContentType("application/json");
+        resp.setCharacterEncoding("UTF-8");
+        String idParam = req.getParameter("orderId");
+        if (idParam == null || idParam.isBlank()) {
+            resp.getWriter().write("{\"error\": \"Missing orderId\"}");
+            return;
+        }
+        try {
+            int orderId = Integer.parseInt(idParam);
+            Order order = orderRepository.findById(orderId);
+            if (order == null) {
+                resp.getWriter().write("{\"error\": \"Order not found\"}");
+                return;
+            }
+            List<Map<String, Object>> items = orderRepository.getOrderItems(orderId);
+            StringBuilder sb = new StringBuilder();
+            sb.append("{");
+            sb.append("\"id\":").append(order.getId()).append(",");
+            sb.append("\"code\":\"").append(escapeJson(order.getCode())).append("\",");
+            sb.append("\"customerName\":\"").append(escapeJson(order.getCustomerName())).append("\",");
+            sb.append("\"phone\":\"").append(escapeJson(order.getPhone())).append("\",");
+            sb.append("\"items\":[");
+            for (int i = 0; i < items.size(); i++) {
+                Map<String, Object> item = items.get(i);
+                String pName = String.valueOf(item.get("productName"));
+                String vName = String.valueOf(item.get("variantName"));
+                
+                String targetName = (vName != null && !vName.trim().isEmpty()) ? vName : pName;
+                boolean hasWarranty = warrantyRepository.hasActiveWarranty(orderId, targetName);
+
+                sb.append("{");
+                sb.append("\"productName\":\"").append(escapeJson(pName)).append("\",");
+                sb.append("\"variantName\":\"").append(escapeJson(vName)).append("\",");
+                sb.append("\"sku\":\"").append(escapeJson(String.valueOf(item.get("sku")))).append("\",");
+                sb.append("\"hasWarranty\":").append(hasWarranty);
+                sb.append("}");
+                if (i < items.size() - 1) sb.append(",");
+            }
+            sb.append("]");
+            sb.append("}");
+            resp.getWriter().write(sb.toString());
+        } catch (Exception e) {
+            resp.getWriter().write("{\"error\": \"" + escapeJson(e.getMessage()) + "\"}");
+        }
+    }
+
+    private void searchOrdersJson(HttpServletRequest req, HttpServletResponse resp)
+            throws IOException {
+        resp.setContentType("application/json");
+        resp.setCharacterEncoding("UTF-8");
+        String query = req.getParameter("query");
+        if (query == null) query = "";
+        try {
+            List<Order> orders = orderRepository.search(query, null);
+            StringBuilder sb = new StringBuilder();
+            sb.append("[");
+            for (int i = 0; i < orders.size(); i++) {
+                Order o = orders.get(i);
+                sb.append("{");
+                sb.append("\"id\":").append(o.getId()).append(",");
+                sb.append("\"code\":\"").append(escapeJson(o.getCode())).append("\",");
+                sb.append("\"customerName\":\"").append(escapeJson(o.getCustomerName())).append("\",");
+                sb.append("\"phone\":\"").append(escapeJson(o.getPhone())).append("\"");
+                sb.append("}");
+                if (i < orders.size() - 1) sb.append(",");
+            }
+            sb.append("]");
+            resp.getWriter().write(sb.toString());
+        } catch (Exception e) {
+            resp.getWriter().write("{\"error\": \"" + escapeJson(e.getMessage()) + "\"}");
+        }
+    }
+
+    private void searchProductsJson(HttpServletRequest req, HttpServletResponse resp)
+            throws IOException {
+        resp.setContentType("application/json");
+        resp.setCharacterEncoding("UTF-8");
+        String query = req.getParameter("query");
+        List<Map<String, Object>> list = variantRepository.searchForPOS(query);
+        StringBuilder sb = new StringBuilder();
+        sb.append("[");
+        for (int i = 0; i < list.size(); i++) {
+            Map<String, Object> map = list.get(i);
+            sb.append("{");
+            sb.append("\"variantId\":").append(map.get("variantId")).append(",");
+            sb.append("\"productId\":").append(map.get("productId")).append(",");
+            sb.append("\"productName\":\"").append(escapeJson(String.valueOf(map.get("productName")))).append("\",");
+            sb.append("\"variantName\":\"").append(escapeJson(String.valueOf(map.get("variantName")))).append("\",");
+            sb.append("\"sku\":\"").append(escapeJson(String.valueOf(map.get("sku")))).append("\",");
+            sb.append("\"salePrice\":").append(map.get("salePrice")).append(",");
+            sb.append("\"stock\":").append(map.get("stock")).append(",");
+            String imageUrl = map.get("imageUrl") != null ? String.valueOf(map.get("imageUrl")) : "";
+            sb.append("\"imageUrl\":\"").append(escapeJson(imageUrl)).append("\"");
+            sb.append("}");
+            if (i < list.size() - 1) sb.append(",");
+        }
+        sb.append("]");
+        resp.getWriter().write(sb.toString());
+    }
+
+    private String escapeJson(String s) {
+        if (s == null) return "";
+        return s.replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\b", "\\b")
+                .replace("\f", "\\f")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r")
+                .replace("\t", "\\t");
     }
 }

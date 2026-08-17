@@ -76,7 +76,7 @@
 
                 <div class="form-group">
                     <label for="phone">Số điện thoại <span class="required-mark">*</span></label>
-                    <input type="tel" id="phone" name="phone" value="${order.phone}" placeholder="Ví dụ: 0988666888" required>
+                    <input type="tel" id="phone" name="phone" value="${order.phone}" placeholder="Ví dụ: 0988666888" required oninput="this.value = this.value.replace(/[^0-9]/g, '')" pattern="[0-9]{9,11}" title="Số điện thoại phải từ 9 đến 11 chữ số và chỉ gồm số">
                 </div>
 
                 <div class="form-group full">

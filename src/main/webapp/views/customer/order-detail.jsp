@@ -77,6 +77,9 @@
                         <label style="display:block; margin-bottom:8px; font-size:13px; font-weight:600;">Mô tả lỗi sản phẩm:
                             <textarea name="note" required placeholder="Mô tả hiện trạng lỗi/sự cố của đồng hồ..." style="width:100%; padding:6px; margin-top:4px; border:1px solid #ccc; border-radius:4px;"></textarea>
                         </label>
+                        <label style="display:block; margin-bottom:8px; font-size:13px; font-weight:600;">Đường dẫn ảnh sản phẩm (Không bắt buộc):
+                            <input type="text" name="productImage" placeholder="Ví dụ: Link ảnh lỗi sản phẩm..." style="width:100%; padding:6px; margin-top:4px; border:1px solid #ccc; border-radius:4px; font-size:13px; outline:none;"/>
+                        </label>
                         <button type="submit" style="width:100%; padding:8px; background:#2563eb; color:#fff; border:none; border-radius:4px; font-weight:600; cursor:pointer;">Gửi yêu cầu bảo hành</button>
                     </form>
                 </details>

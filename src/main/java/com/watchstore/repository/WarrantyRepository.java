@@ -113,7 +113,7 @@ public class WarrantyRepository {
     public boolean insert(int orderId, String productName, String serial, int months, String note) {
         String sql = """
             INSERT INTO Warranties (OrderID, ProductName, SerialNumber, WarrantyMonths, StartDate, Status, Note)
-            VALUES (?, ?, ?, ?, GETDATE(), N'Đang bảo hành', ?)
+            VALUES (?, ?, ?, ?, GETDATE(), N'Chờ tiếp nhận', ?)
             """;
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -142,8 +142,22 @@ public class WarrantyRepository {
         }
     }
 
+    public boolean updateStatusAndNote(int id, String status, String note) {
+        String sql = "UPDATE Warranties SET Status = ?, Note = ? WHERE WarrantyID = ?";
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, status);
+            ps.setString(2, note);
+            ps.setInt(3, id);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     public boolean updateReceive(int id, Date receiveDate, String receiveNote) {
-        String sql = "UPDATE Warranties SET Status = N'Đang sửa chữa', ReceiveDate = ?, ReceiveNote = ? WHERE WarrantyID = ?";
+        String sql = "UPDATE Warranties SET Status = N'Đã tiếp nhận', ReceiveDate = ?, ReceiveNote = ? WHERE WarrantyID = ?";
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setDate(1, receiveDate);
@@ -156,8 +170,20 @@ public class WarrantyRepository {
         }
     }
 
+    public boolean updateProcessing(int id) {
+        String sql = "UPDATE Warranties SET Status = N'Đang xử lý' WHERE WarrantyID = ?";
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     public boolean updateRepair(int id, String repairContent, String componentReplaced, String repairNote, Date completeDate) {
-        String sql = "UPDATE Warranties SET Status = N'Đã sửa xong', RepairContent = ?, ComponentReplaced = ?, RepairNote = ?, CompleteDate = ? WHERE WarrantyID = ?";
+        String sql = "UPDATE Warranties SET Status = N'Hoàn tất', RepairContent = ?, ComponentReplaced = ?, RepairNote = ?, CompleteDate = ? WHERE WarrantyID = ?";
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, repairContent);
@@ -183,6 +209,44 @@ public class WarrantyRepository {
             e.printStackTrace();
             return false;
         }
+    }
+
+    public boolean existsByOrderAndProduct(int orderId, String productName) {
+        String sql = "SELECT COUNT(*) FROM Warranties WHERE OrderID = ? AND ProductName = ?";
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, orderId);
+            ps.setString(2, productName);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public boolean hasActiveWarranty(int orderId, String productName) {
+        String sql = """
+            SELECT COUNT(*) FROM Warranties 
+            WHERE OrderID = ? AND ProductName = ? 
+              AND Status IN (N'Chờ tiếp nhận', N'Đã tiếp nhận', N'Đang xử lý')
+            """;
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, orderId);
+            ps.setString(2, productName);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 
     private Map<String, Object> mapRow(ResultSet rs) throws SQLException {

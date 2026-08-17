@@ -50,20 +50,40 @@
         <form method="post" action="${pageContext.request.contextPath}/manage/sales/warranty-add">
             <div class="form-grid">
 
+                <!-- Tìm kiếm đơn hàng nhanh -->
+                <div class="form-group full" style="margin-bottom: 10px;">
+                    <label for="searchQuery">🔍 Tìm kiếm đơn hàng nhanh <span class="req">*</span></label>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="searchQuery" placeholder="Nhập tên khách hàng, số điện thoại hoặc mã đơn hàng..." style="flex: 1;"/>
+                        <button type="button" id="btnSearchOrder" class="btn btn-save" style="margin-top: 0; padding: 0 20px; white-space: nowrap; height: 42px;">Tìm kiếm</button>
+                    </div>
+                    <div class="hint">Nhập thông tin rồi nhấn Tìm kiếm để lọc danh sách đơn hàng liên kết bên dưới.</div>
+                </div>
+
                 <div class="form-group">
                     <label for="orderId">Đơn hàng liên kết <span class="req">*</span></label>
-                    <select id="orderId" name="orderId" required>
-                        <option value="">-- Chọn đơn hàng --</option>
-                        <c:forEach var="order" items="${orders}">
-                            <option value="${order.id}">${order.code} – ${order.customerName}</option>
-                        </c:forEach>
+                    <select id="orderId" name="orderId" required disabled style="background-color: #f1f5f9; cursor: not-allowed;">
+                        <option value="">-- Vui lòng tìm kiếm đơn hàng trước --</option>
                     </select>
                     <div class="hint">Chọn đơn hàng mà phiếu bảo hành này thuộc về.</div>
                 </div>
 
                 <div class="form-group">
                     <label for="productName">Tên sản phẩm <span class="req">*</span></label>
-                    <input type="text" id="productName" name="productName" placeholder="Ví dụ: Rolex Datejust 41" required/>
+                    <select id="productName" name="productName" required>
+                        <option value="">-- Chọn đơn hàng trước --</option>
+                    </select>
+                    <div id="allProductsWarrantedWarning" style="display:none; color:#dc2626; font-size:12px; font-weight:600; margin-top:5px;">⚠️ Đơn hàng này đã có phiếu bảo hành cho tất cả các sản phẩm!</div>
+                    <div class="hint">Sản phẩm thuộc đơn hàng liên kết đã chọn.</div>
+                </div>
+
+                <!-- Thẻ thông tin khách hàng liên kết -->
+                <div class="form-group full" id="customerInfoCard" style="display: none; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; margin: 10px 0;">
+                    <h3 style="margin-top: 0; font-size: 14px; color: #334155; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px;">👤 Thông tin khách hàng liên kết</h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13px; color: #475569;">
+                        <div><strong>Khách hàng:</strong> <span id="infoCustomerName">-</span></div>
+                        <div><strong>Số điện thoại:</strong> <span id="infoCustomerPhone">-</span></div>
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -100,3 +120,162 @@
 
 </div>
 
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const searchInput = document.getElementById("searchQuery");
+    const searchBtn = document.getElementById("btnSearchOrder");
+    const orderSelect = document.getElementById("orderId");
+    const productSelect = document.getElementById("productName");
+    const customerCard = document.getElementById("customerInfoCard");
+    const infoName = document.getElementById("infoCustomerName");
+    const infoPhone = document.getElementById("infoCustomerPhone");
+    const warningDiv = document.getElementById("allProductsWarrantedWarning");
+
+    let currentOrderItems = [];
+    let currentOrderCode = "";
+
+    searchInput.addEventListener("keypress", function(e) {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            searchBtn.click();
+        }
+    });
+
+    searchBtn.addEventListener("click", function() {
+        const query = searchInput.value.trim();
+        if (!query) {
+            alert("Vui lòng nhập tên khách hàng hoặc số điện thoại để tìm kiếm đơn hàng.");
+            return;
+        }
+        searchBtn.disabled = true;
+        searchBtn.innerHTML = "⌛ Đang tìm...";
+        
+        fetch(`${pageContext.request.contextPath}/manage/sales/api/orders-search?query=` + encodeURIComponent(query))
+            .then(res => res.json())
+            .then(data => {
+                orderSelect.innerHTML = '<option value="">-- Chọn đơn hàng --</option>';
+                if (data.error) {
+                    alert("Lỗi: " + data.error);
+                } else if (data.length === 0) {
+                    alert("Không tìm thấy đơn hàng nào khớp với thông tin tìm kiếm.");
+                    orderSelect.setAttribute("disabled", "true");
+                    orderSelect.style.backgroundColor = "#f1f5f9";
+                    orderSelect.style.cursor = "not-allowed";
+                } else {
+                    orderSelect.removeAttribute("disabled");
+                    orderSelect.style.backgroundColor = "";
+                    orderSelect.style.cursor = "";
+                    data.forEach(order => {
+                        const opt = document.createElement("option");
+                        opt.value = order.id;
+                        opt.textContent = order.code + " – " + order.customerName + " (" + order.phone + ")";
+                        orderSelect.appendChild(opt);
+                    });
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert("Đã xảy ra lỗi khi tìm kiếm đơn hàng.");
+            })
+            .finally(() => {
+                searchBtn.disabled = false;
+                searchBtn.innerHTML = "Tìm kiếm";
+                productSelect.innerHTML = '<option value="">-- Chọn đơn hàng trước --</option>';
+                customerCard.style.display = "none";
+                warningDiv.style.display = "none";
+                currentOrderItems = [];
+                currentOrderCode = "";
+                document.getElementById("serial").value = "";
+            });
+    });
+
+    orderSelect.addEventListener("change", function() {
+        const orderId = orderSelect.value;
+        if (!orderId) {
+            productSelect.innerHTML = '<option value="">-- Chọn đơn hàng trước --</option>';
+            customerCard.style.display = "none";
+            warningDiv.style.display = "none";
+            currentOrderItems = [];
+            currentOrderCode = "";
+            document.getElementById("serial").value = "";
+            return;
+        }
+
+        fetch(`${pageContext.request.contextPath}/manage/sales/api/order-details?orderId=` + orderId)
+            .then(res => res.json())
+            .then(data => {
+                warningDiv.style.display = "none";
+                if (data.error) {
+                    alert("Lỗi: " + data.error);
+                    productSelect.innerHTML = '<option value="">-- Lỗi tải sản phẩm --</option>';
+                    customerCard.style.display = "none";
+                    currentOrderItems = [];
+                    currentOrderCode = "";
+                } else {
+                    infoName.textContent = data.customerName || "N/A";
+                    infoPhone.textContent = data.phone || "N/A";
+                    customerCard.style.display = "block";
+                    currentOrderItems = data.items || [];
+                    currentOrderCode = data.code || "";
+
+                    productSelect.innerHTML = '<option value="">-- Chọn sản phẩm --</option>';
+                    if (data.items && data.items.length > 0) {
+                        let allWarranted = true;
+                        data.items.forEach(item => {
+                            const opt = document.createElement("option");
+                            const name = item.variantName ? item.variantName : item.productName;
+                            opt.value = name;
+                            if (item.hasWarranty) {
+                                opt.textContent = name + " (Đã có phiếu bảo hành)";
+                                opt.disabled = true;
+                                opt.style.color = "#94a3b8";
+                            } else {
+                                opt.textContent = name;
+                                allWarranted = false;
+                            }
+                            productSelect.appendChild(opt);
+                        });
+                        if (allWarranted) {
+                            warningDiv.style.display = "block";
+                        }
+                    } else {
+                        productSelect.innerHTML = '<option value="">-- Đơn hàng không có sản phẩm --</option>';
+                    }
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert("Đã xảy ra lỗi khi lấy thông tin đơn hàng.");
+                productSelect.innerHTML = '<option value="">-- Lỗi tải sản phẩm --</option>';
+                customerCard.style.display = "none";
+                warningDiv.style.display = "none";
+                currentOrderItems = [];
+                currentOrderCode = "";
+            })
+            .finally(() => {
+                document.getElementById("serial").value = "";
+            });
+    });
+
+    productSelect.addEventListener("change", function() {
+        const productName = productSelect.value;
+        const serialInput = document.getElementById("serial");
+        if (!productName) {
+            serialInput.value = "";
+            return;
+        }
+        const item = currentOrderItems.find(i => {
+            const name = i.variantName ? i.variantName : i.productName;
+            return name === productName;
+        });
+        if (item) {
+            let sku = item.sku && item.sku !== "null" && item.sku.trim() !== "" 
+                ? item.sku 
+                : productName.toUpperCase().replace(/[^A-Z0-9]/g, "-").replace(/-+/g, "-");
+            serialInput.value = "SN-" + sku.toUpperCase() + "-" + currentOrderCode.toUpperCase();
+        } else {
+            serialInput.value = "";
+        }
+    });
+});
+</script>

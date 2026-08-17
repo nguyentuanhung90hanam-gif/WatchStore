@@ -221,7 +221,7 @@
             <h1 style="margin: 0;">Quản lý đơn hàng</h1>
             <p style="margin: 8px 0 0 0; color: #777;">Xem, tìm kiếm và theo dõi các đơn hàng của khách hàng.</p>
         </div>
-        <c:if test="${sessionScope.user.role == 'ADMIN' || (not empty sessionScope.userPermissions && (sessionScope.userPermissions.contains('ORDER_CREATE') || sessionScope.userPermissions.contains('SALES_ORDER')))}">
+        <c:if test="${sessionScope.user.role == 'ADMIN' || sessionScope.user.role == 'EMPLOYEE'}">
             <a href="${pageContext.request.contextPath}/manage/sales/order-add" class="btn btn-search" style="text-decoration: none; font-weight: bold; background: #2563eb; color: white;">
                 ➕ Thêm đơn hàng
             </a>
@@ -282,6 +282,14 @@
                 <input type="date" name="fromDate" value="${fromDate}" style="border: none; padding: 0; height: auto; width: 125px; font-size: 13px;">
                 <span style="font-size: 13px; color: #666;">Đến:</span>
                 <input type="date" name="toDate" value="${toDate}" style="border: none; padding: 0; height: auto; width: 125px; font-size: 13px;">
+            </div>
+
+            <!-- Lọc theo số tiền -->
+            <div style="display: flex; gap: 8px; align-items: center; background: white; border: 1px solid #ddd; border-radius: 6px; padding: 0 10px; height: 42px;">
+                <span style="font-size: 13px; color: #666;">Tiền từ:</span>
+                <input type="number" name="minAmount" value="${minAmount}" placeholder="Min VNĐ" style="border: none; padding: 0; height: auto; width: 100px; font-size: 13px; outline: none;">
+                <span style="font-size: 13px; color: #666;">Đến:</span>
+                <input type="number" name="maxAmount" value="${maxAmount}" placeholder="Max VNĐ" style="border: none; padding: 0; height: auto; width: 100px; font-size: 13px; outline: none;">
             </div>
 
             <!-- Nút tìm kiếm & Đặt lại -->
