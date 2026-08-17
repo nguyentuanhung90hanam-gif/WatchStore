@@ -61,23 +61,7 @@
             <c:if test="${order.status == 'COMPLETED'}">
                 <hr>
                 <h3 style="font-size:15px; font-weight:700; margin-bottom:12px;">Yêu cầu hỗ trợ</h3>
-                <details style="margin-bottom:12px; background:#f9f9f9; padding:10px; border-radius:6px; border:1px solid #eee;">
-                    <summary style="cursor:pointer; font-weight:600; color:#d4af37;">🔄 Gửi yêu cầu đổi trả</summary>
-                    <form action="${cp}/orders/return" method="post" style="margin-top:10px;">
-                        <input type="hidden" name="orderId" value="${order.id}">
-                        <label style="display:block; margin-bottom:8px; font-size:13px; font-weight:600;">Chọn sản phẩm:
-                            <select name="productName" required style="width:100%; padding:6px; margin-top:4px; border:1px solid #ccc; border-radius:4px;">
-                                <c:forEach items="${orderItems}" var="item">
-                                    <option value="${item.productName}">${item.productName} (${item.variantName})</option>
-                                </c:forEach>
-                            </select>
-                        </label>
-                        <label style="display:block; margin-bottom:8px; font-size:13px; font-weight:600;">Lý do đổi trả:
-                            <textarea name="reason" required placeholder="Nhập chi tiết lý do đổi trả..." style="width:100%; padding:6px; margin-top:4px; border:1px solid #ccc; border-radius:4px;"></textarea>
-                        </label>
-                        <button type="submit" style="width:100%; padding:8px; background:#d4af37; color:#fff; border:none; border-radius:4px; font-weight:600; cursor:pointer;">Gửi yêu cầu đổi trả</button>
-                    </form>
-                </details>
+
 
                 <details style="background:#f9f9f9; padding:10px; border-radius:6px; border:1px solid #eee;">
                     <summary style="cursor:pointer; font-weight:600; color:#2563eb;">🛡 Gửi yêu cầu bảo hành</summary>

@@ -86,11 +86,6 @@ public class AppBootstrapListener implements ServletContextListener {
                 new com.watchstore.repository.WarrantyRepository()
         );
         sce.getServletContext().setAttribute(
-                "returnRepository",
-                new com.watchstore.repository.ReturnRepository()
-        );
-
-        sce.getServletContext().setAttribute(
                 "appName",
                 "WatchStore"
         );

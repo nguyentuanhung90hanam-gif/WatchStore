@@ -178,54 +178,7 @@
                             <td style="color: #94a3b8; font-weight: 600;">—</td>
                         </tr>
 
-                        <%-- 4. KHO HÀNG --%>
-                        <tr style="border-bottom: 1px solid #e2e8f0; height: 56px; background: #fdfbf7;">
-                            <td style="text-align: left; padding-left: 20px; font-weight: 700; color: #1e293b;">
-                                🏢 Kho hàng
-                            </td>
-                            <%-- Xem --%>
-                            <td>
-                                <c:if test="${not empty permByCode['INVENTORY_VIEW']}">
-                                    <input type="checkbox" name="permissionIds" value="${permByCode['INVENTORY_VIEW'].permissionId}"
-                                           style="width: 20px; height: 20px; cursor: pointer; accent-color: #b8860b;"
-                                           ${activePermissionIds.contains(permByCode['INVENTORY_VIEW'].permissionId) || activePermissionIds.contains(permByCode['WAREHOUSE_INVENTORY'].permissionId) ? 'checked' : ''} />
-                                </c:if>
-                            </td>
-                            <%-- Thêm --%>
-                            <td>
-                                <c:if test="${not empty permByCode['INVENTORY_CREATE']}">
-                                    <input type="checkbox" name="permissionIds" value="${permByCode['INVENTORY_CREATE'].permissionId}"
-                                           style="width: 20px; height: 20px; cursor: pointer; accent-color: #b8860b;"
-                                           ${activePermissionIds.contains(permByCode['INVENTORY_CREATE'].permissionId) || activePermissionIds.contains(permByCode['WAREHOUSE_RECEIPT'].permissionId) ? 'checked' : ''} />
-                                </c:if>
-                            </td>
-                            <%-- Sửa --%>
-                            <td>
-                                <c:if test="${not empty permByCode['INVENTORY_EDIT']}">
-                                    <input type="checkbox" name="permissionIds" value="${permByCode['INVENTORY_EDIT'].permissionId}"
-                                           style="width: 20px; height: 20px; cursor: pointer; accent-color: #b8860b;"
-                                           ${activePermissionIds.contains(permByCode['INVENTORY_EDIT'].permissionId) ? 'checked' : ''} />
-                                </c:if>
-                            </td>
-                            <%-- Duyệt --%>
-                            <td>
-                                <c:if test="${not empty permByCode['INVENTORY_APPROVE']}">
-                                    <input type="checkbox" name="permissionIds" value="${permByCode['INVENTORY_APPROVE'].permissionId}"
-                                           style="width: 20px; height: 20px; cursor: pointer; accent-color: #b8860b;"
-                                           ${activePermissionIds.contains(permByCode['INVENTORY_APPROVE'].permissionId) || activePermissionIds.contains(permByCode['WAREHOUSE_EXPORT'].permissionId) ? 'checked' : ''} />
-                                </c:if>
-                            </td>
-                            <%-- Xuất báo cáo --%>
-                            <td>
-                                <c:if test="${not empty permByCode['INVENTORY_EXPORT']}">
-                                    <input type="checkbox" name="permissionIds" value="${permByCode['INVENTORY_EXPORT'].permissionId}"
-                                           style="width: 20px; height: 20px; cursor: pointer; accent-color: #b8860b;"
-                                           ${activePermissionIds.contains(permByCode['INVENTORY_EXPORT'].permissionId) || activePermissionIds.contains(permByCode['WAREHOUSE_REPORT'].permissionId) ? 'checked' : ''} />
-                                </c:if>
-                            </td>
-                        </tr>
-
-                        <%-- 5. VOUCHER --%>
+                        <%-- 4. VOUCHER --%>
                         <tr style="border-bottom: 1px solid #e2e8f0; height: 56px;">
                             <td style="text-align: left; padding-left: 20px; font-weight: 700; color: #1e293b;">
                                 🎟️ Voucher

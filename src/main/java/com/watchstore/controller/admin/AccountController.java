@@ -113,16 +113,9 @@ public class AccountController extends HttpServlet {
 
                         if (account != null) {
                             java.util.Set<String> perms = permissionRepository.getUserPermissionCodes(account.getUserId());
-                            boolean hasSales = perms != null && perms.stream().anyMatch(p -> p != null && p.startsWith("SALES_"));
-                            boolean hasWarehouse = perms != null && perms.stream().anyMatch(p -> p != null && p.startsWith("WAREHOUSE_"));
-
-                            if (hasSales && hasWarehouse) {
-                                req.setAttribute("errorMessage", "Dữ liệu RBAC không hợp lệ: Tài khoản đang có cả 2 nhóm quyền Bán hàng và Kho. Vui lòng chọn lại loại nhân viên.");
-                                employeeType = "";
-                            } else if (hasSales) {
+                            boolean hasSales = perms != null && perms.stream().anyMatch(p -> p != null && (p.startsWith("SALES_") || p.startsWith("ORDER_")));
+                            if (hasSales) {
                                 employeeType = "SALES";
-                            } else if (hasWarehouse) {
-                                employeeType = "WAREHOUSE";
                             }
                         }
                     } catch (NumberFormatException ignored) {}
@@ -221,8 +214,8 @@ public class AccountController extends HttpServlet {
         if (error == null && !phone.isEmpty() && userRepository.existsByPhone(phone, null)) {
             error = "Số điện thoại \"" + phone + "\" đã được sử dụng.";
         }
-        if (error == null && isEmployee && !"SALES".equalsIgnoreCase(employeeType) && !"WAREHOUSE".equalsIgnoreCase(employeeType)) {
-            error = "Vui lòng chọn loại nhân viên: ( ) Nhân viên bán hàng hoặc ( ) Nhân viên kho.";
+        if (error == null && isEmployee && employeeType.isEmpty()) {
+            employeeType = "SALES";
         }
 
         if (error != null) {
@@ -276,8 +269,8 @@ public class AccountController extends HttpServlet {
         if (error == null && !phone.isEmpty() && userRepository.existsByPhone(phone, id)) {
             error = "Số điện thoại \"" + phone + "\" đã được dùng bởi tài khoản khác.";
         }
-        if (error == null && isEmployee && !"SALES".equalsIgnoreCase(employeeType) && !"WAREHOUSE".equalsIgnoreCase(employeeType)) {
-            error = "Vui lòng chọn loại nhân viên: ( ) Nhân viên bán hàng hoặc ( ) Nhân viên kho.";
+        if (error == null && isEmployee && employeeType.isEmpty()) {
+            employeeType = "SALES";
         }
 
         if (error != null) {
@@ -336,17 +329,9 @@ public class AccountController extends HttpServlet {
     private void updateEmployeePermissions(int userId, String employeeType) {
         List<com.watchstore.model.Permission> allPerms = permissionRepository.findAll();
         List<Integer> targetPermIds = new ArrayList<>();
-        if ("SALES".equalsIgnoreCase(employeeType)) {
-            for (com.watchstore.model.Permission p : allPerms) {
-                if ("SALES".equalsIgnoreCase(p.getModuleCode()) || (p.getPermissionCode() != null && p.getPermissionCode().startsWith("SALES_"))) {
-                    targetPermIds.add(p.getPermissionId());
-                }
-            }
-        } else if ("WAREHOUSE".equalsIgnoreCase(employeeType)) {
-            for (com.watchstore.model.Permission p : allPerms) {
-                if ("WAREHOUSE".equalsIgnoreCase(p.getModuleCode()) || (p.getPermissionCode() != null && p.getPermissionCode().startsWith("WAREHOUSE_"))) {
-                    targetPermIds.add(p.getPermissionId());
-                }
+        for (com.watchstore.model.Permission p : allPerms) {
+            if ("SALES".equalsIgnoreCase(p.getModuleCode()) || (p.getPermissionCode() != null && (p.getPermissionCode().startsWith("SALES_") || p.getPermissionCode().startsWith("ORDER_") || p.getPermissionCode().startsWith("CUSTOMER_") || p.getPermissionCode().startsWith("WARRANTY_")))) {
+                targetPermIds.add(p.getPermissionId());
             }
         }
         permissionRepository.updateUserPermissions(userId, targetPermIds);

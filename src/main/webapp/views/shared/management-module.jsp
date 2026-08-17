@@ -19,23 +19,10 @@
         <c:choose>
 
             <c:when test="${tableKind == 'products'}">
-
-                <c:choose>
-                    <c:when test="${adminArea == 'warehouse'}">
-                        <a class="button button-gold"
-                           href="${pageContext.request.contextPath}/manage/warehouse/product-add">
-                            Thêm sản phẩm
-                        </a>
-                    </c:when>
-
-                    <c:otherwise>
-                        <a class="button button-gold"
-                           href="${pageContext.request.contextPath}/manage/admin/products/add">
-                            Thêm sản phẩm
-                        </a>
-                    </c:otherwise>
-                </c:choose>
-
+                <a class="button button-gold"
+                   href="${pageContext.request.contextPath}/manage/admin/products/add">
+                    Thêm sản phẩm
+                </a>
             </c:when>
 
             <c:when test="${tableKind == 'roles'}">
@@ -154,24 +141,6 @@
         </div>
 
     </form>
-
-    <c:if test="${adminArea == 'warehouse'}">
-
-        <div class="filter-area">
-
-            <select>
-                <option>Tất cả trạng thái</option>
-                <option>Đang hoạt động</option>
-                <option>Ngừng bán</option>
-            </select>
-
-            <button class="filter-btn">
-                ⚙ Bộ lọc
-            </button>
-
-        </div>
-
-    </c:if>
 
 </div>
 
@@ -400,36 +369,16 @@
                             </td>
 
                             <td>
-
-                                <c:choose>
-
-                                    <c:when test="${adminArea == 'warehouse'}">
-
-                                        <a class="table-action"
-                                           href="${cp}/manage/warehouse/product-detail?id=${p.id}">
-                                            Chi tiết
-                                        </a>
-
-                                    </c:when>
-
-                                    <c:otherwise>
-
-                                        <a class="table-action"
-                                           href="${pageContext.request.contextPath}/manage/admin/products/edit?id=${p.id}">
-                                            Sửa
-                                        </a>
-
-                                        <a class="table-action"
-                                           href="${pageContext.request.contextPath}/manage/admin/products/delete?id=${p.id}"
-                                           onclick="return confirm('Bạn có chắc muốn xóa sản phẩm này không?')"
-                                           style="color:#e74c3c;">
-                                            Xóa
-                                        </a>
-
-                                    </c:otherwise>
-
-                                </c:choose>
-
+                                <a class="table-action"
+                                   href="${pageContext.request.contextPath}/manage/admin/products/edit?id=${p.id}">
+                                    Sửa
+                                </a>
+                                <a class="table-action"
+                                   href="${pageContext.request.contextPath}/manage/admin/products/delete?id=${p.id}"
+                                   onclick="return confirm('Bạn có chắc muốn xóa sản phẩm này không?')"
+                                   style="color:#e74c3c;">
+                                    Xóa
+                                </a>
                             </td>
 
                         </tr>
@@ -628,40 +577,7 @@
                                             <td>—</td>
                                         </tr>
 
-                                        <%-- KHO HÀNG --%>
-                                        <tr>
-                                            <td><b>Kho hàng</b></td>
-                                            <td>
-                                                <c:if test="${not empty permByCode['INVENTORY_VIEW']}">
-                                                    <input type="checkbox" name="permissionIds" value="${permByCode['INVENTORY_VIEW'].permissionId}"
-                                                           ${activePermissionIds.contains(permByCode['INVENTORY_VIEW'].permissionId) || activePermissionIds.contains(permByCode['WAREHOUSE_INVENTORY'].permissionId) ? 'checked' : ''}>
-                                                </c:if>
-                                            </td>
-                                            <td>
-                                                <c:if test="${not empty permByCode['INVENTORY_CREATE']}">
-                                                    <input type="checkbox" name="permissionIds" value="${permByCode['INVENTORY_CREATE'].permissionId}"
-                                                           ${activePermissionIds.contains(permByCode['INVENTORY_CREATE'].permissionId) || activePermissionIds.contains(permByCode['WAREHOUSE_RECEIPT'].permissionId) ? 'checked' : ''}>
-                                                </c:if>
-                                            </td>
-                                            <td>
-                                                <c:if test="${not empty permByCode['INVENTORY_EDIT']}">
-                                                    <input type="checkbox" name="permissionIds" value="${permByCode['INVENTORY_EDIT'].permissionId}"
-                                                           ${activePermissionIds.contains(permByCode['INVENTORY_EDIT'].permissionId) ? 'checked' : ''}>
-                                                </c:if>
-                                            </td>
-                                            <td>
-                                                <c:if test="${not empty permByCode['INVENTORY_APPROVE']}">
-                                                    <input type="checkbox" name="permissionIds" value="${permByCode['INVENTORY_APPROVE'].permissionId}"
-                                                           ${activePermissionIds.contains(permByCode['INVENTORY_APPROVE'].permissionId) || activePermissionIds.contains(permByCode['WAREHOUSE_EXPORT'].permissionId) ? 'checked' : ''}>
-                                                </c:if>
-                                            </td>
-                                            <td>
-                                                <c:if test="${not empty permByCode['INVENTORY_EXPORT']}">
-                                                    <input type="checkbox" name="permissionIds" value="${permByCode['INVENTORY_EXPORT'].permissionId}"
-                                                           ${activePermissionIds.contains(permByCode['INVENTORY_EXPORT'].permissionId) || activePermissionIds.contains(permByCode['WAREHOUSE_REPORT'].permissionId) ? 'checked' : ''}>
-                                                </c:if>
-                                            </td>
-                                        </tr>
+
 
                                         <%-- VOUCHER --%>
                                         <tr>
@@ -1912,69 +1828,12 @@
     </c:when>
 
     <c:otherwise>
-
-        <c:choose>
-
-            <c:when test="${adminArea == 'warehouse'}">
-
-                <div class="brand-grid">
-
-                    <c:forEach begin="1" end="6" var="i">
-
-                        <article class="brand-card">
-
-                            <div class="module-card-icon">
-                                ${moduleIcon}
-                            </div>
-
-                            <span class="status-badge success">
-                                Đang hoạt động
-                            </span>
-
-                            <h3>
-                                ${moduleItemName} ${i}
-                            </h3>
-
-                            <p>
-                                Dữ liệu mẫu phục vụ phát triển giao diện và luồng nghiệp vụ.
-                                Có thể thay thế bằng dữ liệu SQL Server.
-                            </p>
-
-                            <div>
-
-                                <button data-demo-toast="Đã mở chi tiết">
-                                    Chi tiết
-                                </button>
-
-                                <button data-demo-toast="Đã mở chỉnh sửa">
-                                    Chỉnh sửa
-                                </button>
-
-                            </div>
-
-                        </article>
-
-                    </c:forEach>
-
-                </div>
-
-            </c:when>
-
-            <c:otherwise>
-
-                <div class="dashboard-card"
-                     style="text-align:center;padding:40px;color:#888;">
-
-                    <p style="font-size:1.1em;margin:0;">
-                        Chưa có dữ liệu trong hệ thống.
-                    </p>
-
-                </div>
-
-            </c:otherwise>
-
-        </c:choose>
-
+        <div class="dashboard-card"
+             style="text-align:center;padding:40px;color:#888;">
+            <p style="font-size:1.1em;margin:0;">
+                Chưa có dữ liệu trong hệ thống.
+            </p>
+        </div>
     </c:otherwise>
 
 </c:choose>

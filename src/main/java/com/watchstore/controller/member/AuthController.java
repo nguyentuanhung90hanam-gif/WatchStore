@@ -186,29 +186,11 @@ public class AuthController extends HttpServlet {
         if (perms.contains("SALES_ORDER") || perms.contains("ORDER_VIEW")) {
             return req.getContextPath() + "/manage/sales/orders";
         }
-        if (perms.contains("WAREHOUSE_INVENTORY") || perms.contains("INVENTORY_VIEW")) {
-            return req.getContextPath() + "/manage/warehouse/inventory";
-        }
         if (perms.contains("PRODUCT_VIEW")) {
             return req.getContextPath() + "/manage/admin/products";
         }
         if (perms.contains("SALES_CUSTOMER") || perms.contains("CUSTOMER_VIEW")) {
             return req.getContextPath() + "/manage/sales/customers";
-        }
-        if (perms.contains("WAREHOUSE_RECEIPT")) {
-            return req.getContextPath() + "/manage/warehouse/receipts";
-        }
-        if (perms.contains("WAREHOUSE_EXPORT")) {
-            return req.getContextPath() + "/manage/warehouse/exports";
-        }
-        if (perms.contains("WAREHOUSE_STOCKTAKE")) {
-            return req.getContextPath() + "/manage/warehouse/stocktake";
-        }
-        if (perms.contains("SALES_DELIVERY")) {
-            return req.getContextPath() + "/manage/sales/delivery";
-        }
-        if (perms.contains("SALES_RETURN")) {
-            return req.getContextPath() + "/manage/sales/returns";
         }
         if (perms.contains("SALES_WARRANTY")) {
             return req.getContextPath() + "/manage/sales/warranty";
@@ -219,20 +201,11 @@ public class AuthController extends HttpServlet {
         if (perms.contains("SALES_REPORT") || perms.contains("REPORT_VIEW")) {
             return req.getContextPath() + "/manage/sales/report";
         }
-        if (perms.contains("WAREHOUSE_REPORT")) {
-            return req.getContextPath() + "/manage/warehouse/reports";
-        }
         if (perms.contains("SALES_DASHBOARD")) {
             return req.getContextPath() + "/manage/sales/dashboard";
         }
-        if (perms.contains("WAREHOUSE_DASHBOARD")) {
-            return req.getContextPath() + "/manage/warehouse/dashboard";
-        }
-        if (perms.stream().anyMatch(p -> p.startsWith("SALES_"))) {
+        if (perms.stream().anyMatch(p -> p.startsWith("SALES_") || p.startsWith("ORDER_") || p.startsWith("CUSTOMER_") || p.startsWith("WARRANTY_"))) {
             return req.getContextPath() + "/manage/sales/orders";
-        }
-        if (perms.stream().anyMatch(p -> p.startsWith("WAREHOUSE_"))) {
-            return req.getContextPath() + "/manage/warehouse/inventory";
         }
         return null;
     }

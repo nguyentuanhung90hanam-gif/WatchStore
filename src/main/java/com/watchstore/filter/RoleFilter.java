@@ -94,15 +94,15 @@ public class RoleFilter implements Filter {
     private boolean checkEmployeePermissionForUri(HttpServletRequest req, String uri, Set<String> perms) {
         String method = req.getMethod();
 
-        // SẢN PHẨM & BIẾN THỂ
-        if (uri.contains("/manage/admin/products") || uri.contains("/manage/warehouse/variants") || uri.contains("/manage/warehouse/variant")) {
+        // SẢN PHẨM
+        if (uri.contains("/manage/admin/products")) {
             if (uri.contains("/add") || uri.contains("/create")) {
-                return perms.contains("PRODUCT_CREATE") || perms.contains("INVENTORY_CREATE");
+                return perms.contains("PRODUCT_CREATE");
             }
             if (uri.contains("/edit") || uri.contains("/update") || uri.contains("/status") || uri.contains("/toggle") || uri.contains("/delete")) {
-                return perms.contains("PRODUCT_EDIT") || perms.contains("INVENTORY_EDIT");
+                return perms.contains("PRODUCT_EDIT");
             }
-            return perms.contains("PRODUCT_VIEW") || perms.contains("INVENTORY_VIEW") || perms.contains("WAREHOUSE_INVENTORY");
+            return perms.contains("PRODUCT_VIEW");
         }
 
         // ĐƠN HÀNG (SALES / ORDERS)
@@ -133,42 +133,14 @@ public class RoleFilter implements Filter {
             return perms.contains("CUSTOMER_VIEW") || perms.contains("SALES_CUSTOMER");
         }
 
-        // KHO HÀNG (INVENTORY)
-        if (uri.contains("/manage/warehouse/inventory") || uri.contains("/manage/warehouse/transactions") || uri.contains("/manage/warehouse/alerts")) {
-            return perms.contains("INVENTORY_VIEW") || perms.contains("WAREHOUSE_INVENTORY") || perms.contains("WAREHOUSE_DASHBOARD");
+        // BẢO HÀNH (WARRANTY)
+        if (uri.contains("/manage/sales/warranty") || uri.contains("/manage/sales/warranty-add")) {
+            return perms.contains("SALES_WARRANTY") || perms.contains("ORDER_VIEW") || perms.contains("SALES_ORDER");
         }
 
-        // NHẬP KHO (RECEIPTS)
-        if (uri.contains("/manage/warehouse/receipt")) {
-            if (uri.contains("/receipt-create") || uri.contains("/create") || uri.contains("/add")) {
-                return perms.contains("INVENTORY_CREATE") || perms.contains("WAREHOUSE_RECEIPT");
-            }
-            if (uri.contains("/approve") || uri.contains("/complete")) {
-                return perms.contains("INVENTORY_APPROVE") || perms.contains("WAREHOUSE_RECEIPT");
-            }
-            return perms.contains("INVENTORY_VIEW") || perms.contains("WAREHOUSE_RECEIPT") || perms.contains("WAREHOUSE_INVENTORY");
-        }
-
-        // XUẤT KHO (EXPORTS)
-        if (uri.contains("/manage/warehouse/export")) {
-            if (uri.contains("/export-create") || uri.contains("/create") || uri.contains("/add")) {
-                return perms.contains("INVENTORY_CREATE") || perms.contains("WAREHOUSE_EXPORT");
-            }
-            if (uri.contains("/approve") || uri.contains("/complete")) {
-                return perms.contains("INVENTORY_APPROVE") || perms.contains("WAREHOUSE_EXPORT");
-            }
-            return perms.contains("INVENTORY_VIEW") || perms.contains("WAREHOUSE_EXPORT") || perms.contains("WAREHOUSE_INVENTORY");
-        }
-
-        // KIỂM KÊ (STOCKTAKE)
-        if (uri.contains("/manage/warehouse/stocktake")) {
-            if (uri.contains("/stocktake-create") || uri.contains("/create")) {
-                return perms.contains("INVENTORY_CREATE") || perms.contains("WAREHOUSE_STOCKTAKE");
-            }
-            if (uri.contains("/approve") || uri.contains("/balance")) {
-                return perms.contains("INVENTORY_APPROVE") || perms.contains("WAREHOUSE_STOCKTAKE");
-            }
-            return perms.contains("INVENTORY_VIEW") || perms.contains("WAREHOUSE_STOCKTAKE") || perms.contains("WAREHOUSE_INVENTORY");
+        // ĐÁNH GIÁ & BÌNH LUẬN
+        if (uri.contains("/manage/sales/reviews") || uri.contains("/manage/sales/comments")) {
+            return perms.contains("PRODUCT_VIEW") || perms.contains("SALES_DASHBOARD") || perms.contains("ORDER_VIEW");
         }
 
         // VOUCHER
@@ -183,33 +155,21 @@ public class RoleFilter implements Filter {
         }
 
         // BÁO CÁO (REPORTS & STATISTICS)
-        if (uri.contains("/manage/sales/report") || uri.contains("/manage/warehouse/reports") || uri.contains("/manage/warehouse/report")
-                || uri.contains("/manage/admin/reports") || uri.contains("/manage/admin/statistics")) {
+        if (uri.contains("/manage/sales/report") || uri.contains("/manage/admin/reports") || uri.contains("/manage/admin/statistics")) {
             if (uri.contains("/export") || uri.contains("/download")) {
-                return perms.contains("REPORT_EXPORT") || perms.contains("INVENTORY_EXPORT") || perms.contains("ORDER_EXPORT");
+                return perms.contains("REPORT_EXPORT") || perms.contains("ORDER_EXPORT");
             }
-            return perms.contains("REPORT_VIEW") || perms.contains("SALES_REPORT") || perms.contains("WAREHOUSE_REPORT") || perms.contains("REPORT_EXPORT");
+            return perms.contains("REPORT_VIEW") || perms.contains("SALES_REPORT") || perms.contains("REPORT_EXPORT");
         }
 
         // DASHBOARD CHUNG
         if (uri.contains("/manage/sales/dashboard")) {
             return perms.contains("SALES_DASHBOARD") || perms.contains("ORDER_VIEW") || perms.contains("SALES_ORDER");
         }
-        if (uri.contains("/manage/warehouse/dashboard")) {
-            return perms.contains("WAREHOUSE_DASHBOARD") || perms.contains("INVENTORY_VIEW") || perms.contains("WAREHOUSE_INVENTORY");
-        }
 
-        // CÁC ROUTE PHỤ TRỢ KHÁC
-        if (uri.contains("/manage/sales/delivery") || uri.contains("/manage/sales/returns") || uri.contains("/manage/sales/warranty")) {
-            return perms.contains("ORDER_VIEW") || perms.contains("SALES_ORDER") || perms.contains("SALES_DELIVERY") || perms.contains("SALES_RETURN") || perms.contains("SALES_WARRANTY");
-        }
-
-        // Bất kỳ route nào khác trong sales hoặc warehouse:
+        // Bất kỳ route nào khác trong sales:
         if (uri.contains("/manage/sales/")) {
-            return perms.stream().anyMatch(p -> p.startsWith("SALES_") || p.startsWith("ORDER_") || p.startsWith("CUSTOMER_"));
-        }
-        if (uri.contains("/manage/warehouse/")) {
-            return perms.stream().anyMatch(p -> p.startsWith("WAREHOUSE_") || p.startsWith("INVENTORY_") || p.startsWith("PRODUCT_"));
+            return perms.stream().anyMatch(p -> p.startsWith("SALES_") || p.startsWith("ORDER_") || p.startsWith("CUSTOMER_") || p.startsWith("WARRANTY_"));
         }
 
         return false;
@@ -222,29 +182,23 @@ public class RoleFilter implements Filter {
         if (perms.contains("ORDER_VIEW") || perms.contains("SALES_ORDER") || perms.contains("SALES_DASHBOARD")) {
             return req.getContextPath() + "/manage/sales/orders";
         }
-        if (perms.contains("INVENTORY_VIEW") || perms.contains("WAREHOUSE_INVENTORY") || perms.contains("WAREHOUSE_DASHBOARD")) {
-            return req.getContextPath() + "/manage/warehouse/inventory";
-        }
         if (perms.contains("PRODUCT_VIEW")) {
             return req.getContextPath() + "/manage/admin/products";
         }
         if (perms.contains("CUSTOMER_VIEW") || perms.contains("SALES_CUSTOMER")) {
             return req.getContextPath() + "/manage/sales/customers";
         }
-        if (perms.contains("INVENTORY_CREATE") || perms.contains("WAREHOUSE_RECEIPT")) {
-            return req.getContextPath() + "/manage/warehouse/receipts";
+        if (perms.contains("SALES_WARRANTY")) {
+            return req.getContextPath() + "/manage/sales/warranty";
         }
         if (perms.contains("VOUCHER_VIEW")) {
             return req.getContextPath() + "/manage/admin/vouchers";
         }
-        if (perms.contains("REPORT_VIEW") || perms.contains("SALES_REPORT") || perms.contains("WAREHOUSE_REPORT") || perms.contains("REPORT_EXPORT")) {
+        if (perms.contains("REPORT_VIEW") || perms.contains("SALES_REPORT") || perms.contains("REPORT_EXPORT")) {
             return req.getContextPath() + "/manage/sales/report";
         }
-        if (perms.stream().anyMatch(p -> p.startsWith("SALES_") || p.startsWith("ORDER_") || p.startsWith("CUSTOMER_"))) {
+        if (perms.stream().anyMatch(p -> p.startsWith("SALES_") || p.startsWith("ORDER_") || p.startsWith("CUSTOMER_") || p.startsWith("WARRANTY_"))) {
             return req.getContextPath() + "/manage/sales/orders";
-        }
-        if (perms.stream().anyMatch(p -> p.startsWith("WAREHOUSE_") || p.startsWith("INVENTORY_") || p.startsWith("PRODUCT_"))) {
-            return req.getContextPath() + "/manage/warehouse/inventory";
         }
         return null;
     }

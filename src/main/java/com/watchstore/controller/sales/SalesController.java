@@ -46,8 +46,6 @@ public class SalesController extends HttpServlet {
             Map.entry("/customer-add", new String[]{"customer-add", "Thêm khách hàng"}),
             Map.entry("/reviews", new String[]{"review", "Kiểm duyệt đánh giá"}),
             Map.entry("/comments", new String[]{"comment", "Bình luận"}),
-            Map.entry("/delivery", new String[]{"delivery", "Vận chuyển"}),
-            Map.entry("/returns", new String[]{"return", "Yêu cầu đổi trả"}),
             Map.entry("/warranty", new String[]{"warranty", "Quản lý bảo hành"}),
             Map.entry("/report", new String[]{"report", "Báo cáo bán hàng"})
     );
@@ -121,16 +119,6 @@ public class SalesController extends HttpServlet {
 
         if ("/report".equals(path)) {
             showReport(req, resp);
-            return;
-        }
-
-        if ("/delivery".equals(path)) {
-            showDelivery(req, resp);
-            return;
-        }
-
-        if ("/returns".equals(path)) {
-            showReturns(req, resp);
             return;
         }
 
@@ -251,11 +239,6 @@ public class SalesController extends HttpServlet {
 
         if ("/warranty".equals(path)) {
             updateWarrantyStatus(req, resp);
-            return;
-        }
-
-        if ("/returns".equals(path)) {
-            updateReturnStatus(req, resp);
             return;
         }
 
@@ -1034,7 +1017,7 @@ public class SalesController extends HttpServlet {
             try {
                 int id = Integer.parseInt(idParam);
                 if (orderRepository != null && orderRepository.cancelOrderAndRestoreStock(id)) {
-                    req.getSession().setAttribute("flash", "Đã hủy đơn hàng và hoàn lại tồn kho thành công!");
+                    req.getSession().setAttribute("flash", "Đã hủy đơn hàng thành công!");
                 } else {
                     req.getSession().setAttribute("flash", "Lỗi khi hủy đơn hàng.");
                 }
@@ -1083,10 +1066,6 @@ public class SalesController extends HttpServlet {
                             req.getSession().setAttribute("flash", "Lỗi khi cập nhật thông tin giao hàng.");
                         }
                     }
-                    if ("delivery".equals(redirect)) {
-                        resp.sendRedirect(req.getContextPath() + "/manage/sales/delivery");
-                        return;
-                    }
                     resp.sendRedirect(req.getContextPath() + "/manage/sales/order-detail?id=" + id);
                     return;
                 }
@@ -1095,86 +1074,5 @@ public class SalesController extends HttpServlet {
             }
         }
         resp.sendRedirect(req.getContextPath() + "/manage/sales/orders");
-    }
-
-    private void showDelivery(HttpServletRequest req, HttpServletResponse resp)
-            throws ServletException, IOException {
-        String keyword = req.getParameter("keyword");
-        String status = req.getParameter("status");
-
-        List<Order> orders = orderRepository != null ? orderRepository.findAll() : java.util.Collections.emptyList();
-
-        if (keyword != null && !keyword.trim().isEmpty()) {
-            String k = keyword.trim().toLowerCase();
-            orders = orders.stream().filter(o ->
-                    (String.valueOf(o.getId()).contains(k)) ||
-                            (o.getCode() != null && o.getCode().toLowerCase().contains(k)) ||
-                            (o.getCustomerName() != null && o.getCustomerName().toLowerCase().contains(k)) ||
-                            (o.getPhone() != null && o.getPhone().toLowerCase().contains(k)) ||
-                            (o.getShippingAddress() != null && o.getShippingAddress().toLowerCase().contains(k))
-            ).toList();
-        }
-
-        if (status != null && !status.trim().isEmpty()) {
-            String st = status.trim();
-            orders = orders.stream().filter(o ->
-                    st.equalsIgnoreCase(o.getStatusCode()) ||
-                            (st.equals("Chờ giao") && o.getStatus() == OrderStatus.CONFIRMED) ||
-                            (st.equals("Đang giao") && o.getStatus() == OrderStatus.SHIPPING) ||
-                            (st.equals("Giao thành công") && o.getStatus() == OrderStatus.COMPLETED) ||
-                            (st.equals("Giao thất bại") && o.getStatus() == OrderStatus.CANCELLED)
-            ).toList();
-        }
-
-        req.setAttribute("orders", orders);
-        req.setAttribute("keyword", keyword);
-        req.setAttribute("status", status);
-        req.setAttribute("moduleTitle", "Vận chuyển");
-        ViewRouter.admin(req, resp, "sales/delivery", "Vận chuyển", "sales");
-    }
-
-    private void showReturns(HttpServletRequest req, HttpServletResponse resp)
-            throws ServletException, IOException {
-        String keyword = req.getParameter("keyword");
-        String status  = req.getParameter("status");
-        com.watchstore.repository.ReturnRepository returnRepo = (com.watchstore.repository.ReturnRepository) getServletContext().getAttribute("returnRepository");
-        if (returnRepo == null) returnRepo = new com.watchstore.repository.ReturnRepository();
-        req.setAttribute("returns", returnRepo.search(keyword, status));
-        req.setAttribute("moduleTitle", "Yêu cầu đổi trả");
-        ViewRouter.admin(req, resp, "sales/return", "Yêu cầu đổi trả", "sales");
-    }
-
-    private void updateReturnStatus(HttpServletRequest req, HttpServletResponse resp)
-            throws IOException {
-        String idParam = req.getParameter("id");
-        String action  = req.getParameter("action");
-        String status  = req.getParameter("status");
-        String note    = req.getParameter("employeeNote");
-        com.watchstore.repository.ReturnRepository returnRepo = (com.watchstore.repository.ReturnRepository) getServletContext().getAttribute("returnRepository");
-        if (returnRepo == null) returnRepo = new com.watchstore.repository.ReturnRepository();
-
-        if (idParam != null) {
-            try {
-                int id = Integer.parseInt(idParam);
-                if ("approve".equalsIgnoreCase(action)) {
-                    returnRepo.updateStatus(id, "APPROVED", note != null ? note : "Đã duyệt yêu cầu đổi trả");
-                    req.getSession().setAttribute("flash", "Đã phê duyệt yêu cầu đổi trả!");
-                } else if ("reject".equalsIgnoreCase(action)) {
-                    returnRepo.updateStatus(id, "REJECTED", note != null ? note : "Từ chối yêu cầu đổi trả");
-                    req.getSession().setAttribute("flash", "Đã từ chối yêu cầu đổi trả!");
-                } else if ("receive".equalsIgnoreCase(action)) {
-                    returnRepo.updateStatus(id, "ITEM_RECEIVED", note != null ? note : "Kho đã nhận hàng hoàn");
-                    req.getSession().setAttribute("flash", "Đã xác nhận kho nhận hàng hoàn!");
-                } else if ("refund".equalsIgnoreCase(action)) {
-                    returnRepo.updateRefundStatus(id, "REFUNDED");
-                    returnRepo.updateStatus(id, "COMPLETED", "Đã hoàn tiền và kết thúc quy trình đổi trả");
-                    req.getSession().setAttribute("flash", "Đã ghi nhận hoàn tiền thành công!");
-                } else if (status != null && !status.isBlank()) {
-                    returnRepo.updateStatus(id, status, note);
-                    req.getSession().setAttribute("flash", "Đã cập nhật trạng thái yêu cầu đổi trả!");
-                }
-            } catch (NumberFormatException ignored) {}
-        }
-        resp.sendRedirect(req.getContextPath() + "/manage/sales/returns");
     }
 }

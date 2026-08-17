@@ -38,7 +38,7 @@ public class CartRepository {
           SELECT ci.VariantID,ci.Quantity,p.ProductID,p.ProductName,pv.VariantName,pv.SKU,
                  pv.SalePrice,pv.CompareAtPrice,b.BrandName,
                  (SELECT TOP 1 ImageUrl FROM ProductImages WHERE ProductID=p.ProductID ORDER BY IsPrimary DESC,DisplayOrder ASC) ImageUrl,
-                 ISNULL((SELECT SUM(AvailableQuantity) FROM InventoryBalances WHERE VariantID=pv.VariantID),0) Available
+                 999 AS Available
           FROM CartItems ci
           JOIN Carts c ON c.CartID=ci.CartID AND c.Status='ACTIVE'
           JOIN ProductVariants pv ON pv.VariantID=ci.VariantID

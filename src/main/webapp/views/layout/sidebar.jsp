@@ -46,14 +46,11 @@
                 <a href="${cp}/manage/admin/posts">Bài viết tin tức</a>
 
                 <div class="sidebar-section-title" style="padding:10px 12px 2px; font-size:11px; font-weight:700; color:#9ca3af; text-transform:uppercase; letter-spacing:0.5px;">
-                    BÁN HÀNG & KHO
+                    BÁN HÀNG
                 </div>
                 <a href="${cp}/manage/sales/orders">Quản lý đơn hàng</a>
                 <a href="${cp}/manage/sales/customers">Quản lý khách hàng</a>
-                <a href="${cp}/manage/warehouse/inventory">Quản lý tồn kho</a>
-                <a href="${cp}/manage/warehouse/receipts">Phiếu nhập kho</a>
-                <a href="${cp}/manage/warehouse/exports">Phiếu xuất kho</a>
-                <a href="${cp}/manage/warehouse/stocktake">Phiếu kiểm kê</a>
+                <a href="${cp}/manage/sales/warranty">Quản lý bảo hành</a>
                 <a href="${cp}/manage/admin/statistics">Thống kê hệ thống</a>
                 <a href="${cp}/manage/admin/reports">Báo cáo doanh thu</a>
             </c:when>
@@ -75,25 +72,9 @@
                     <a href="${cp}/manage/sales/customers">Khách hàng</a>
                 </c:if>
 
-                <%-- KHO HÀNG --%>
-                <c:if test="${sessionScope.userPermissions.contains('INVENTORY_VIEW') || sessionScope.userPermissions.contains('WAREHOUSE_INVENTORY')}">
-                    <a href="${cp}/manage/warehouse/inventory">Tồn kho</a>
-                    <a href="${cp}/manage/warehouse/variants">Biến thể sản phẩm</a>
-                </c:if>
-
-                <%-- NHẬP KHO --%>
-                <c:if test="${sessionScope.userPermissions.contains('INVENTORY_CREATE') || sessionScope.userPermissions.contains('WAREHOUSE_RECEIPT')}">
-                    <a href="${cp}/manage/warehouse/receipts">Nhập kho</a>
-                </c:if>
-
-                <%-- XUẤT KHO --%>
-                <c:if test="${sessionScope.userPermissions.contains('INVENTORY_APPROVE') || sessionScope.userPermissions.contains('WAREHOUSE_EXPORT')}">
-                    <a href="${cp}/manage/warehouse/exports">Xuất kho</a>
-                </c:if>
-
-                <%-- KIỂM KÊ --%>
-                <c:if test="${sessionScope.userPermissions.contains('INVENTORY_CREATE') || sessionScope.userPermissions.contains('WAREHOUSE_STOCKTAKE')}">
-                    <a href="${cp}/manage/warehouse/stocktake">Kiểm kê</a>
+                <%-- BẢO HÀNH --%>
+                <c:if test="${sessionScope.userPermissions.contains('SALES_WARRANTY') || sessionScope.userPermissions.contains('ORDER_VIEW')}">
+                    <a href="${cp}/manage/sales/warranty">Bảo hành</a>
                 </c:if>
 
                 <%-- VOUCHER --%>
@@ -102,7 +83,7 @@
                 </c:if>
 
                 <%-- BÁO CÁO --%>
-                <c:if test="${sessionScope.userPermissions.contains('REPORT_VIEW') || sessionScope.userPermissions.contains('SALES_REPORT') || sessionScope.userPermissions.contains('WAREHOUSE_REPORT') || sessionScope.userPermissions.contains('REPORT_EXPORT')}">
+                <c:if test="${sessionScope.userPermissions.contains('REPORT_VIEW') || sessionScope.userPermissions.contains('SALES_REPORT') || sessionScope.userPermissions.contains('REPORT_EXPORT')}">
                     <a href="${cp}/manage/sales/report">Báo cáo & Thống kê</a>
                 </c:if>
             </c:when>

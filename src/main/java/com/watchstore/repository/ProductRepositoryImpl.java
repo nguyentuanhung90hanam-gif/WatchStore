@@ -89,7 +89,7 @@ public class ProductRepositoryImpl implements ProductRepository {
                    pv.SKU,
                    pv.SalePrice,
                    pv.CompareAtPrice,
-                   ISNULL((SELECT SUM(QuantityOnHand) FROM InventoryBalances ib WHERE ib.VariantID = pv.VariantID), 10) AS TotalStock,
+                   10 AS TotalStock,
                    (SELECT TOP 1 ImageUrl FROM ProductImages pi WHERE pi.ProductID = p.ProductID ORDER BY pi.IsPrimary DESC, pi.DisplayOrder ASC) AS PrimaryImageUrl
             FROM Products p
             LEFT JOIN Brands b ON p.BrandID = b.BrandID
@@ -416,8 +416,7 @@ public class ProductRepositoryImpl implements ProductRepository {
                     (SELECT COUNT(*) FROM CartItems ci INNER JOIN ProductVariants pv ON ci.VariantID = pv.VariantID WHERE pv.ProductID = ?) +
                     (SELECT COUNT(*) FROM WishlistItems WHERE ProductID = ?) +
                     (SELECT COUNT(*) FROM Reviews WHERE ProductID = ?) +
-                    (SELECT COUNT(*) FROM VoucherProducts WHERE ProductID = ?) +
-                    (SELECT COUNT(*) FROM InventoryBalances ib INNER JOIN ProductVariants pv ON ib.VariantID = pv.VariantID WHERE pv.ProductID = ?)
+                    (SELECT COUNT(*) FROM VoucherProducts WHERE ProductID = ?)
                 ) AS TotalRefs
                 """;
         try (Connection con = getConnection();
@@ -427,7 +426,6 @@ public class ProductRepositoryImpl implements ProductRepository {
             ps.setInt(3, productId);
             ps.setInt(4, productId);
             ps.setInt(5, productId);
-            ps.setInt(6, productId);
             ResultSet rs = ps.executeQuery();
             if (rs.next()) {
                 return rs.getInt(1) > 0;

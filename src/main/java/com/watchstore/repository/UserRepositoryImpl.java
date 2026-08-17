@@ -366,8 +366,6 @@ public class UserRepositoryImpl implements UserRepository {
                     (SELECT COUNT(*) FROM Reviews WHERE UserID = ?) +
                     (SELECT COUNT(*) FROM Posts WHERE AuthorID = ?) +
                     (SELECT COUNT(*) FROM CustomerNotes WHERE CustomerID = ? OR StaffID = ?) +
-                    (SELECT COUNT(*) FROM StockReceipts WHERE CreatedBy = ? OR ApprovedBy = ?) +
-                    (SELECT COUNT(*) FROM StockExports WHERE CreatedBy = ? OR ApprovedBy = ?) +
                     (SELECT COUNT(*) FROM VoucherUsages WHERE UserID = ?)
                 ) AS TotalRefs
                 """;
@@ -379,10 +377,6 @@ public class UserRepositoryImpl implements UserRepository {
             ps.setInt(4, userId);
             ps.setInt(5, userId);
             ps.setInt(6, userId);
-            ps.setInt(7, userId);
-            ps.setInt(8, userId);
-            ps.setInt(9, userId);
-            ps.setInt(10, userId);
             ResultSet rs = ps.executeQuery();
             if (rs.next()) {
                 return rs.getInt(1) > 0;

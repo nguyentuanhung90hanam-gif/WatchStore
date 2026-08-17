@@ -65,18 +65,6 @@ public class StatisticRepositoryImpl implements StatisticRepository {
 
     @Override
     public int getLowStockCount() {
-        String sql = "SELECT COUNT(*) FROM vw_LowStock";
-        try (Connection con = getConnection();
-             PreparedStatement ps = con.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-            if (rs.next()) {
-                return rs.getInt(1);
-            }
-        } catch (Exception e) {
-            // Fallback query if view is not accessible
-            String fallback = "SELECT COUNT(*) FROM InventoryBalances WHERE AvailableQuantity <= ReorderLevel";
-            return queryCount(fallback);
-        }
         return 0;
     }
 

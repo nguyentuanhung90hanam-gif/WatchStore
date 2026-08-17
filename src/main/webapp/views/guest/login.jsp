@@ -45,8 +45,7 @@
 
             <div class="demo-accounts">
                 <b>Tài khoản demo — mật khẩu: 123456</b>
-                <span>admin@watchstore.vn · sales@watchstore.vn</span>
-                <span>warehouse@watchstore.vn · customer@watchstore.vn</span>
+                <span>admin@watchstore.vn · sales@watchstore.vn · customer@watchstore.vn</span>
             </div>
 
             <p class="auth-switch">Chưa có tài khoản? <a href="${cp}/auth/register">Đăng ký ngay</a></p>

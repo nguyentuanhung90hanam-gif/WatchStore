@@ -682,23 +682,9 @@
                 <hr style="border:none; border-top:1px solid #eee; margin:15px 0;"/>
 
                 <p>
-
-                    <a href="${pageContext.request.contextPath}/manage/sales/delivery" style="text-decoration:none; color:#2563eb;">
-
-                        🚚 Quản lý vận chuyển
-
+                    <a href="${pageContext.request.contextPath}/manage/sales/warranty" style="text-decoration:none; color:#2563eb;">
+                        🛡️ Quản lý bảo hành
                     </a>
-
-                </p>
-
-                <p>
-
-                    <a href="${pageContext.request.contextPath}/manage/sales/returns" style="text-decoration:none; color:#2563eb;">
-
-                        🔄 Xử lý đổi trả
-
-                    </a>
-
                 </p>
 
             </div>

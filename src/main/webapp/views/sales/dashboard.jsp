@@ -460,17 +460,7 @@
                     </a>
                 </li>
 
-                <li>
-                    <a href="${pageContext.request.contextPath}/manage/sales/delivery">
-                        Vận chuyển
-                    </a>
-                </li>
 
-                <li>
-                    <a href="${pageContext.request.contextPath}/manage/sales/returns">
-                        Đổi trả
-                    </a>
-                </li>
 
                 <li>
                     <a href="${pageContext.request.contextPath}/manage/sales/reviews">

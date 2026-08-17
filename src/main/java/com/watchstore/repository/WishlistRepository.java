@@ -17,7 +17,7 @@ public class WishlistRepository {
           (SELECT TOP 1 ImageUrl FROM ProductImages WHERE ProductID=p.ProductID ORDER BY IsPrimary DESC,DisplayOrder ASC) ImageUrl,
           (SELECT MIN(SalePrice) FROM ProductVariants WHERE ProductID=p.ProductID AND Status='ACTIVE') Price,
           (SELECT MIN(CompareAtPrice) FROM ProductVariants WHERE ProductID=p.ProductID AND Status='ACTIVE') CompareAtPrice,
-          ISNULL((SELECT SUM(AvailableQuantity) FROM InventoryBalances ib JOIN ProductVariants pv ON pv.VariantID=ib.VariantID WHERE pv.ProductID=p.ProductID),0) Quantity
+          10 AS Quantity
         FROM Wishlists w JOIN WishlistItems wi ON wi.WishlistID=w.WishlistID JOIN Products p ON p.ProductID=wi.ProductID
         JOIN Brands b ON b.BrandID=p.BrandID WHERE w.UserID=? ORDER BY wi.AddedAt DESC""";
         List<Product> out=new ArrayList<>();

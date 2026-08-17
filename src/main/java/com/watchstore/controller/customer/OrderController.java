@@ -6,7 +6,6 @@ import com.watchstore.model.User;
 import com.watchstore.repository.AddressRepository;
 import com.watchstore.repository.CartRepository;
 import com.watchstore.repository.OrderRepository;
-import com.watchstore.repository.ReturnRepository;
 import com.watchstore.repository.WarrantyRepository;
 import com.watchstore.util.ViewRouter;
 import jakarta.servlet.ServletException;
@@ -20,7 +19,6 @@ public class OrderController extends HttpServlet {
     private OrderRepository orders;
     private CartRepository cart;
     private AddressRepository addresses;
-    private ReturnRepository returnRepo;
     private WarrantyRepository warrantyRepo;
 
     @Override
@@ -28,8 +26,6 @@ public class OrderController extends HttpServlet {
         orders = (OrderRepository) getServletContext().getAttribute("orderRepository");
         cart = (CartRepository) getServletContext().getAttribute("cartRepository");
         addresses = (AddressRepository) getServletContext().getAttribute("addressRepository");
-        returnRepo = (ReturnRepository) getServletContext().getAttribute("returnRepository");
-        if (returnRepo == null) returnRepo = new ReturnRepository();
         warrantyRepo = (WarrantyRepository) getServletContext().getAttribute("warrantyRepository");
         if (warrantyRepo == null) warrantyRepo = new WarrantyRepository();
     }
@@ -95,21 +91,6 @@ public class OrderController extends HttpServlet {
                 orders.cancel(orderId, u.getId(), reason.trim());
                 req.getSession().setAttribute("flash", "Đã hủy đơn hàng.");
                 resp.sendRedirect(req.getContextPath() + "/orders/list");
-                return;
-            }
-            if ("/return".equals(path)) {
-                int orderId = parsePositive(req.getParameter("orderId"), "Đơn hàng không hợp lệ.");
-                Order o = orders.findById(orderId);
-                if (o == null || o.getUserId() != u.getId()) throw new IllegalArgumentException("Đơn hàng không hợp lệ.");
-                if (o.getStatus() != OrderStatus.COMPLETED) throw new IllegalArgumentException("Chỉ được yêu cầu đổi trả với đơn hàng đã hoàn thành.");
-                String productName = req.getParameter("productName");
-                if (productName == null || productName.isBlank()) throw new IllegalArgumentException("Vui lòng chọn sản phẩm cần đổi trả.");
-                String reason = req.getParameter("reason");
-                if (reason == null || reason.trim().length() < 3) throw new IllegalArgumentException("Vui lòng nhập lý do đổi trả.");
-
-                returnRepo.createReturn(orderId, null, u.getId(), productName.trim(), reason.trim());
-                req.getSession().setAttribute("flash", "Đã gửi yêu cầu đổi trả thành công. Nhân viên sẽ liên hệ để xử lý.");
-                resp.sendRedirect(req.getContextPath() + "/orders/detail?code=" + o.getCode());
                 return;
             }
             if ("/warranty".equals(path)) {

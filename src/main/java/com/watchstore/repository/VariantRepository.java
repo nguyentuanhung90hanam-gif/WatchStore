@@ -1041,26 +1041,6 @@ public class VariantRepository {
                         "WHERE VariantID = ?" +
                         ") " +
                         "OR EXISTS (" +
-                        "SELECT 1 FROM dbo.StockReceiptItems " +
-                        "WHERE VariantID = ?" +
-                        ") " +
-                        "OR EXISTS (" +
-                        "SELECT 1 FROM dbo.StockExportItems " +
-                        "WHERE VariantID = ?" +
-                        ") " +
-                        "OR EXISTS (" +
-                        "SELECT 1 FROM dbo.InventoryBalances " +
-                        "WHERE VariantID = ?" +
-                        ") " +
-                        "OR EXISTS (" +
-                        "SELECT 1 FROM dbo.StocktakeItems " +
-                        "WHERE VariantID = ?" +
-                        ") " +
-                        "OR EXISTS (" +
-                        "SELECT 1 FROM dbo.InventoryTransactions " +
-                        "WHERE VariantID = ?" +
-                        ") " +
-                        "OR EXISTS (" +
                         "SELECT 1 FROM dbo.VariantAttributeValues " +
                         "WHERE VariantID = ?" +
                         ") " +
@@ -1072,9 +1052,8 @@ public class VariantRepository {
                         conn.prepareStatement(sql)
         ) {
 
-            for (int i = 1; i <= 7; i++) {
-                ps.setInt(i, variantId);
-            }
+            ps.setInt(1, variantId);
+            ps.setInt(2, variantId);
 
             try (
                     ResultSet rs =
