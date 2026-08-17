@@ -57,6 +57,14 @@ public class PermissionController extends HttpServlet {
                     break;
                 }
             }
+            if (selectedEmployee == null) {
+                com.watchstore.repository.UserRepository userRepo = (com.watchstore.repository.UserRepository) getServletContext().getAttribute("userRepository");
+                if (userRepo == null) userRepo = new com.watchstore.repository.UserRepositoryImpl();
+                User found = userRepo.findById(selectedUserId);
+                if (found != null) {
+                    selectedEmployee = found;
+                }
+            }
         }
 
         List<Permission> permissions = permissionRepository.findAll();
@@ -86,6 +94,35 @@ public class PermissionController extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
+
+        String path = req.getPathInfo();
+        if ("/toggle".equals(path)) {
+            String userIdStr = req.getParameter("userId");
+            String permIdStr = req.getParameter("permissionId");
+            String enabledStr = req.getParameter("enabled");
+            if (userIdStr != null && permIdStr != null) {
+                try {
+                    int uid = Integer.parseInt(userIdStr);
+                    int pid = Integer.parseInt(permIdStr);
+                    boolean enabled = Boolean.parseBoolean(enabledStr);
+                    Set<Integer> currentPerms = permissionRepository.getUserPermissionIds(uid);
+                    if (enabled) {
+                        currentPerms.add(pid);
+                    } else {
+                        currentPerms.remove(pid);
+                    }
+                    permissionRepository.updateUserPermissions(uid, new ArrayList<>(currentPerms));
+                    resp.setContentType("application/json");
+                    resp.setCharacterEncoding("UTF-8");
+                    resp.getWriter().write("{\"success\": true}");
+                    return;
+                } catch (Exception e) {
+                    resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                    resp.getWriter().write("{\"success\": false, \"error\": \"" + e.getMessage() + "\"}");
+                    return;
+                }
+            }
+        }
 
         String userIdParam = req.getParameter("userId");
         if (userIdParam == null || userIdParam.isBlank()) {

@@ -30,7 +30,7 @@
             <option value="">-- Chọn Nhân viên bán hàng --</option>
             <c:forEach var="emp" items="${employees}">
                 <option value="${emp.userId}" ${emp.userId == selectedUserId ? 'selected' : ''}>
-                    ${emp.fullName} (${emp.email})
+                    ${emp.fullName} - ${emp.email}
                 </option>
             </c:forEach>
         </select>
