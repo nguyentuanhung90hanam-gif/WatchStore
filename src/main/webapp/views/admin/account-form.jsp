@@ -125,7 +125,7 @@
                         </c:forEach>
                     </c:if>
                     <label style="display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border:1px solid #ddd;border-radius:6px;cursor:pointer;background:${isChecked ? '#e8f5e9' : '#fff'};">
-                        <input type="checkbox" name="roleIds" value="${r.roleId}" data-role-code="${r.roleCode}" onchange="toggleEmployeeTypeSection()"
+                        <input type="checkbox" name="roleIds" value="${r.roleId}" data-role-code="${r.roleCode}"
                                ${isChecked ? 'checked' : ''}>
                         ${r.roleName}
                         <small style="color:#888;">(${r.roleCode})</small>
@@ -133,9 +133,6 @@
                 </c:forEach>
             </div>
         </div>
-
-        <%-- Loại nhân viên mặc định khi chọn vai trò EMPLOYEE --%>
-        <input type="hidden" name="employeeType" value="SALES">
 
         <div style="display:flex;gap:12px;">
             <button type="submit" class="button button-gold">Lưu</button>
@@ -146,38 +143,3 @@
     </form>
 
 </div>
-
-<script>
-    function toggleEmployeeTypeSection() {
-        const empCheckboxes = document.querySelectorAll('input[data-role-code="EMPLOYEE"]');
-        let isEmpChecked = false;
-        empCheckboxes.forEach(cb => {
-            if (cb.checked) isEmpChecked = true;
-        });
-        const section = document.getElementById('employeeTypeSection');
-        if (section) {
-            section.style.display = isEmpChecked ? 'block' : 'none';
-        }
-    }
-
-    document.addEventListener("DOMContentLoaded", function() {
-        toggleEmployeeTypeSection();
-
-        const form = document.querySelector('form');
-        if (form) {
-            form.addEventListener('submit', function(e) {
-                const empCheckboxes = document.querySelectorAll('input[data-role-code="EMPLOYEE"]');
-                let isEmpChecked = false;
-                empCheckboxes.forEach(cb => { if (cb.checked) isEmpChecked = true; });
-
-                if (isEmpChecked) {
-                    const selectedType = document.querySelector('input[name="employeeType"]:checked');
-                    if (!selectedType) {
-                        alert("Vui lòng chọn loại nhân viên (Nhân viên bán hàng hoặc Nhân viên kho).");
-                        e.preventDefault();
-                    }
-                }
-            });
-        }
-    });
-</script>

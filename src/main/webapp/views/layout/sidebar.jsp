@@ -55,16 +55,18 @@
                 <a href="${cp}/manage/admin/reports">Báo cáo doanh thu</a>
             </c:when>
 
-            <%-- MODE 2: EMPLOYEE (HIỂN THỊ CÁC MENU CÓ QUYỀN VIEW TƯƠNG ỨNG) --%>
+            <%-- MODE 2: EMPLOYEE (NHÂN VIÊN BÁN HÀNG) --%>
             <c:when test="${sessionScope.user.role == 'EMPLOYEE'}">
+                <a href="${cp}/manage/sales/dashboard">Bảng điều khiển bán hàng</a>
+
                 <%-- SẢN PHẨM --%>
                 <c:if test="${sessionScope.userPermissions.contains('PRODUCT_VIEW')}">
-                    <a href="${cp}/manage/admin/products">Sản phẩm</a>
+                    <a href="${cp}/manage/admin/products">Quản lý sản phẩm</a>
                 </c:if>
 
                 <%-- ĐƠN HÀNG --%>
-                <c:if test="${sessionScope.userPermissions.contains('ORDER_VIEW') || sessionScope.userPermissions.contains('SALES_ORDER')}">
-                    <a href="${cp}/manage/sales/orders">Đơn hàng</a>
+                <c:if test="${sessionScope.userPermissions.contains('ORDER_VIEW') || sessionScope.userPermissions.contains('SALES_ORDER') || sessionScope.userPermissions.contains('ORDER_CREATE')}">
+                    <a href="${cp}/manage/sales/orders">Quản lý đơn hàng</a>
                 </c:if>
 
                 <%-- KHÁCH HÀNG --%>
@@ -73,18 +75,13 @@
                 </c:if>
 
                 <%-- BẢO HÀNH --%>
-                <c:if test="${sessionScope.userPermissions.contains('SALES_WARRANTY') || sessionScope.userPermissions.contains('ORDER_VIEW')}">
+                <c:if test="${sessionScope.userPermissions.contains('SALES_WARRANTY') || sessionScope.userPermissions.contains('WARRANTY_VIEW') || sessionScope.userPermissions.contains('ORDER_VIEW')}">
                     <a href="${cp}/manage/sales/warranty">Bảo hành</a>
                 </c:if>
 
-                <%-- VOUCHER --%>
-                <c:if test="${sessionScope.userPermissions.contains('VOUCHER_VIEW')}">
-                    <a href="${cp}/manage/admin/vouchers">Mã giảm giá (Voucher)</a>
-                </c:if>
-
-                <%-- BÁO CÁO --%>
+                <%-- BÁO CÁO & THỐNG KÊ --%>
                 <c:if test="${sessionScope.userPermissions.contains('REPORT_VIEW') || sessionScope.userPermissions.contains('SALES_REPORT') || sessionScope.userPermissions.contains('REPORT_EXPORT')}">
-                    <a href="${cp}/manage/sales/report">Báo cáo & Thống kê</a>
+                    <a href="${cp}/manage/sales/report">Thống kê bán hàng</a>
                 </c:if>
             </c:when>
 

@@ -28,10 +28,6 @@
         <span>Số mặt hàng quản lý</span>
         <b>${totalProductsCount}</b>
     </article>
-    <article>
-        <span>Cảnh báo hết hàng / tồn thấp</span>
-        <b style="color:${lowStockCount > 0 ? '#d9534f' : 'inherit'};">${lowStockCount}</b>
-    </article>
 </div>
 
 <%-- Báo cáo sản phẩm bán chạy --%>
@@ -104,46 +100,6 @@
                 <tr>
                     <td colspan="6" style="text-align:center;color:#888;padding:20px;">
                         Chưa có dữ liệu khách hàng trong database.
-                    </td>
-                </tr>
-            </c:if>
-            </tbody>
-        </table>
-    </div>
-</div>
-
-<%-- Báo cáo tồn kho cần nhập bổ sung --%>
-<div class="dashboard-card" style="margin-bottom:24px;">
-    <div class="card-title">
-        <div><b>Báo cáo cảnh báo kho hàng</b><span>Truy vấn thực tế từ view vw_LowStock / InventoryBalances</span></div>
-    </div>
-    <div class="table-wrap">
-        <table>
-            <thead>
-            <tr>
-                <th>STT</th>
-                <th>Sản phẩm</th>
-                <th>SKU</th>
-                <th>Tồn thực tế</th>
-                <th>Có thể bán</th>
-                <th>Trạng thái kho</th>
-            </tr>
-            </thead>
-            <tbody>
-            <c:forEach items="${lowStockItems}" var="item" varStatus="st">
-                <tr>
-                    <td>${st.index + 1}</td>
-                    <td><b>${item.productName}</b></td>
-                    <td><b style="font-family:monospace;color:var(--gold-dark,#b8860b);">${item.sku}</b></td>
-                    <td>${item.onHand}</td>
-                    <td><b>${item.available}</b></td>
-                    <td><span class="status-badge danger">${item.status}</span></td>
-                </tr>
-            </c:forEach>
-            <c:if test="${empty lowStockItems}">
-                <tr>
-                    <td colspan="6" style="text-align:center;color:#28a745;padding:20px;font-weight:600;">
-                        ✓ Kho hàng ổn định — Không có sản phẩm nào chạm ngưỡng cảnh báo tồn thấp.
                     </td>
                 </tr>
             </c:if>

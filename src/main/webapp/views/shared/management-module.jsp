@@ -579,28 +579,49 @@
 
 
 
-                                        <%-- VOUCHER --%>
+                                        <%-- BẢO HÀNH --%>
                                         <tr>
-                                            <td><b>Voucher</b></td>
+                                            <td><b>Bảo hành</b></td>
                                             <td>
-                                                <c:if test="${not empty permByCode['VOUCHER_VIEW']}">
-                                                    <input type="checkbox" name="permissionIds" value="${permByCode['VOUCHER_VIEW'].permissionId}"
-                                                           ${activePermissionIds.contains(permByCode['VOUCHER_VIEW'].permissionId) ? 'checked' : ''}>
-                                                </c:if>
+                                                <c:choose>
+                                                    <c:when test="${not empty permByCode['WARRANTY_VIEW']}">
+                                                        <input type="checkbox" name="permissionIds" value="${permByCode['WARRANTY_VIEW'].permissionId}"
+                                                               ${activePermissionIds.contains(permByCode['WARRANTY_VIEW'].permissionId) ? 'checked' : ''}>
+                                                    </c:when>
+                                                    <c:when test="${not empty permByCode['SALES_WARRANTY']}">
+                                                        <input type="checkbox" name="permissionIds" value="${permByCode['SALES_WARRANTY'].permissionId}"
+                                                               ${activePermissionIds.contains(permByCode['SALES_WARRANTY'].permissionId) ? 'checked' : ''}>
+                                                    </c:when>
+                                                    <c:otherwise>—</c:otherwise>
+                                                </c:choose>
                                             </td>
                                             <td>
-                                                <c:if test="${not empty permByCode['VOUCHER_CREATE']}">
-                                                    <input type="checkbox" name="permissionIds" value="${permByCode['VOUCHER_CREATE'].permissionId}"
-                                                           ${activePermissionIds.contains(permByCode['VOUCHER_CREATE'].permissionId) ? 'checked' : ''}>
-                                                </c:if>
+                                                <c:choose>
+                                                    <c:when test="${not empty permByCode['WARRANTY_CREATE']}">
+                                                        <input type="checkbox" name="permissionIds" value="${permByCode['WARRANTY_CREATE'].permissionId}"
+                                                               ${activePermissionIds.contains(permByCode['WARRANTY_CREATE'].permissionId) ? 'checked' : ''}>
+                                                    </c:when>
+                                                    <c:otherwise>—</c:otherwise>
+                                                </c:choose>
                                             </td>
                                             <td>
-                                                <c:if test="${not empty permByCode['VOUCHER_EDIT']}">
-                                                    <input type="checkbox" name="permissionIds" value="${permByCode['VOUCHER_EDIT'].permissionId}"
-                                                           ${activePermissionIds.contains(permByCode['VOUCHER_EDIT'].permissionId) ? 'checked' : ''}>
-                                                </c:if>
+                                                <c:choose>
+                                                    <c:when test="${not empty permByCode['WARRANTY_EDIT']}">
+                                                        <input type="checkbox" name="permissionIds" value="${permByCode['WARRANTY_EDIT'].permissionId}"
+                                                               ${activePermissionIds.contains(permByCode['WARRANTY_EDIT'].permissionId) ? 'checked' : ''}>
+                                                    </c:when>
+                                                    <c:otherwise>—</c:otherwise>
+                                                </c:choose>
                                             </td>
-                                            <td>—</td>
+                                            <td>
+                                                <c:choose>
+                                                    <c:when test="${not empty permByCode['WARRANTY_APPROVE']}">
+                                                        <input type="checkbox" name="permissionIds" value="${permByCode['WARRANTY_APPROVE'].permissionId}"
+                                                               ${activePermissionIds.contains(permByCode['WARRANTY_APPROVE'].permissionId) ? 'checked' : ''}>
+                                                    </c:when>
+                                                    <c:otherwise>—</c:otherwise>
+                                                </c:choose>
+                                            </td>
                                             <td>—</td>
                                         </tr>
 

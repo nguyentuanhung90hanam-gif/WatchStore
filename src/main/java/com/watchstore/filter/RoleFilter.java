@@ -135,7 +135,7 @@ public class RoleFilter implements Filter {
 
         // BẢO HÀNH (WARRANTY)
         if (uri.contains("/manage/sales/warranty") || uri.contains("/manage/sales/warranty-add")) {
-            return perms.contains("SALES_WARRANTY") || perms.contains("ORDER_VIEW") || perms.contains("SALES_ORDER");
+            return perms.contains("SALES_WARRANTY") || perms.contains("WARRANTY_VIEW") || perms.contains("WARRANTY_CREATE") || perms.contains("ORDER_VIEW") || perms.contains("SALES_ORDER");
         }
 
         // ĐÁNH GIÁ & BÌNH LUẬN

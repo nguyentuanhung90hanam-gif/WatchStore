@@ -77,7 +77,6 @@ public class AccountController extends HttpServlet {
 
         String action = req.getPathInfo();
         if (action == null || action.equals("/")) {
-            // List all
             forwardToList(req, resp, userRepository.findAll());
             return;
         }
@@ -88,7 +87,6 @@ public class AccountController extends HttpServlet {
                 req.setAttribute("account", null);
                 req.setAttribute("user", null);
                 req.setAttribute("formMode", "add");
-                req.setAttribute("employeeType", "");
                 req.setAttribute("selectedRoleIds", new ArrayList<Integer>());
 
                 forwardToForm(req, resp, "Thêm tài khoản");
@@ -99,7 +97,6 @@ public class AccountController extends HttpServlet {
                 String idStr = req.getParameter("id");
                 User account = null;
                 List<Integer> selectedRoleIds = new ArrayList<>();
-                String employeeType = "";
 
                 if (idStr != null && !idStr.isBlank()) {
                     try {
@@ -110,20 +107,11 @@ public class AccountController extends HttpServlet {
                                 selectedRoleIds.add(r.getRoleId());
                             }
                         }
-
-                        if (account != null) {
-                            java.util.Set<String> perms = permissionRepository.getUserPermissionCodes(account.getUserId());
-                            boolean hasSales = perms != null && perms.stream().anyMatch(p -> p != null && (p.startsWith("SALES_") || p.startsWith("ORDER_")));
-                            if (hasSales) {
-                                employeeType = "SALES";
-                            }
-                        }
                     } catch (NumberFormatException ignored) {}
                 }
                 req.setAttribute("account", account);
                 req.setAttribute("user", account);
                 req.setAttribute("formMode", "edit");
-                req.setAttribute("employeeType", employeeType);
                 req.setAttribute("selectedRoleIds", selectedRoleIds);
 
                 forwardToForm(req, resp, "Sửa tài khoản");
@@ -136,18 +124,12 @@ public class AccountController extends HttpServlet {
                     try {
                         int id = Integer.parseInt(idStr);
                         if (userRepository.isUserInUse(id)) {
-                            req.getSession().setAttribute("errorMessage", "Không thể xóa tài khoản này vì đã có dữ liệu liên quan (đơn hàng, bài viết, đánh giá...).");
+                            req.getSession().setAttribute("errorMessage", "Không thể xóa tài khoản này vì đã có dữ liệu liên quan.");
                         } else {
-                            boolean deleted = userRepository.delete(id);
-                            if (deleted) {
-                                req.getSession().setAttribute("successMessage", "Xóa tài khoản thành công.");
-                            } else {
-                                req.getSession().setAttribute("errorMessage", "Không thể xóa tài khoản.");
-                            }
+                            userRepository.delete(id);
+                            req.getSession().setAttribute("successMessage", "Xóa tài khoản thành công.");
                         }
-                    } catch (Exception e) {
-                        req.getSession().setAttribute("errorMessage", "Không thể xóa tài khoản.");
-                    }
+                    } catch (NumberFormatException ignored) {}
                 }
                 resp.sendRedirect(req.getContextPath() + "/manage/admin/accounts");
                 break;
@@ -180,7 +162,7 @@ public class AccountController extends HttpServlet {
         if (action == null) action = "/";
 
         if ("/save".equals(action)) {
-            handleSave(req, resp);
+            handleCreate(req, resp);
         } else if ("/update".equals(action)) {
             handleUpdate(req, resp);
         } else {
@@ -188,9 +170,9 @@ public class AccountController extends HttpServlet {
         }
     }
 
-    // ─── Save (INSERT) ────────────────────────────────────────────────────────
+    // ─── Create (CREATE) ──────────────────────────────────────────────────────
 
-    private void handleSave(HttpServletRequest req, HttpServletResponse resp)
+    private void handleCreate(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
 
         String email       = trim(req.getParameter("email"));
@@ -200,7 +182,6 @@ public class AccountController extends HttpServlet {
         String gender      = trim(req.getParameter("gender"));
         String dobStr      = trim(req.getParameter("dateOfBirth"));
         String status      = trim(req.getParameter("status"));
-        String employeeType = trim(req.getParameter("employeeType"));
         String[] roleIdStrs = req.getParameterValues("roleIds");
 
         List<Integer> roleIds = parseRoleIds(roleIdStrs);
@@ -214,13 +195,10 @@ public class AccountController extends HttpServlet {
         if (error == null && !phone.isEmpty() && userRepository.existsByPhone(phone, null)) {
             error = "Số điện thoại \"" + phone + "\" đã được sử dụng.";
         }
-        if (error == null && isEmployee && employeeType.isEmpty()) {
-            employeeType = "SALES";
-        }
 
         if (error != null) {
             User draft = buildUser(0, email, null, fullName, phone, gender, dobStr, status);
-            showFormWithError(req, resp, draft, roleIds, employeeType, error, "Thêm tài khoản", "add");
+            showFormWithError(req, resp, draft, roleIds, error, "Thêm tài khoản", "add");
             return;
         }
 
@@ -231,7 +209,7 @@ public class AccountController extends HttpServlet {
         userRepository.insert(user, roleIds);
 
         if (isEmployee) {
-            updateEmployeePermissions(user.getUserId(), employeeType);
+            updateEmployeePermissions(user.getUserId());
         } else {
             permissionRepository.updateUserPermissions(user.getUserId(), java.util.Collections.emptyList());
         }
@@ -252,7 +230,6 @@ public class AccountController extends HttpServlet {
         String gender      = trim(req.getParameter("gender"));
         String dobStr      = trim(req.getParameter("dateOfBirth"));
         String status      = trim(req.getParameter("status"));
-        String employeeType = trim(req.getParameter("employeeType"));
         String[] roleIdStrs = req.getParameterValues("roleIds");
 
         int id = 0;
@@ -269,13 +246,10 @@ public class AccountController extends HttpServlet {
         if (error == null && !phone.isEmpty() && userRepository.existsByPhone(phone, id)) {
             error = "Số điện thoại \"" + phone + "\" đã được dùng bởi tài khoản khác.";
         }
-        if (error == null && isEmployee && employeeType.isEmpty()) {
-            employeeType = "SALES";
-        }
 
         if (error != null) {
             User draft = buildUser(id, email, null, fullName, phone, gender, dobStr, status);
-            showFormWithError(req, resp, draft, roleIds, employeeType, error, "Sửa tài khoản", "edit");
+            showFormWithError(req, resp, draft, roleIds, error, "Sửa tài khoản", "edit");
             return;
         }
 
@@ -292,7 +266,7 @@ public class AccountController extends HttpServlet {
         userRepository.update(user, roleIds);
 
         if (isEmployee) {
-            updateEmployeePermissions(user.getUserId(), employeeType);
+            updateEmployeePermissions(user.getUserId());
         } else {
             permissionRepository.updateUserPermissions(user.getUserId(), java.util.Collections.emptyList());
         }
@@ -303,14 +277,13 @@ public class AccountController extends HttpServlet {
     // ─── Utilities ───────────────────────────────────────────────────────────
 
     private void showFormWithError(HttpServletRequest req, HttpServletResponse resp,
-                                   User draft, List<Integer> roleIds, String employeeType,
+                                   User draft, List<Integer> roleIds,
                                    String error, String pageTitle, String formMode)
             throws ServletException, IOException {
         req.setAttribute("errorMessage", error);
         req.setAttribute("account", draft);
         req.setAttribute("user", draft);
         req.setAttribute("formMode", formMode);
-        req.setAttribute("employeeType", employeeType);
         req.setAttribute("selectedRoleIds", roleIds);
         forwardToForm(req, resp, pageTitle);
     }
@@ -326,7 +299,7 @@ public class AccountController extends HttpServlet {
         return false;
     }
 
-    private void updateEmployeePermissions(int userId, String employeeType) {
+    private void updateEmployeePermissions(int userId) {
         List<com.watchstore.model.Permission> allPerms = permissionRepository.findAll();
         List<Integer> targetPermIds = new ArrayList<>();
         for (com.watchstore.model.Permission p : allPerms) {

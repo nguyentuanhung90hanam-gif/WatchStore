@@ -26,10 +26,10 @@ public class PermissionController extends HttpServlet {
 
     private void setCommonAttributes(HttpServletRequest req) {
         req.setAttribute("adminArea", "admin");
-        req.setAttribute("pageTitle", "Ma trận Phân quyền Nhân viên");
-        req.setAttribute("moduleTitle", "Phân quyền & Vai trò");
+        req.setAttribute("pageTitle", "Phân quyền Nhân viên bán hàng");
+        req.setAttribute("moduleTitle", "Phân quyền Nhân viên bán hàng");
         req.setAttribute("moduleKicker", "EMPLOYEE PERMISSION MATRIX");
-        req.setAttribute("moduleDescription", "Bật/Tắt quyền hạn chi tiết từng phân hệ Bán hàng & Kho cho mỗi Nhân viên.");
+        req.setAttribute("moduleDescription", "Cấu hình quyền cho tài khoản Nhân viên bán hàng. Chỉ các tài khoản EMPLOYEE được hiển thị.");
     }
 
     @Override
@@ -49,21 +49,23 @@ public class PermissionController extends HttpServlet {
             } catch (NumberFormatException ignored) {}
         }
 
-        if (selectedUserId == 0 && !employees.isEmpty()) {
-            selectedUserId = employees.get(0).getUserId();
-        }
-
         User selectedEmployee = null;
-        for (User u : employees) {
-            if (u.getUserId() == selectedUserId) {
-                selectedEmployee = u;
-                break;
+        if (selectedUserId > 0) {
+            for (User u : employees) {
+                if (u.getUserId() == selectedUserId) {
+                    selectedEmployee = u;
+                    break;
+                }
             }
         }
 
         List<Permission> permissions = permissionRepository.findAll();
-        Set<Integer> activePermissionIds = permissionRepository.getUserPermissionIds(selectedUserId);
-        Set<String> activePermissionCodes = permissionRepository.getUserPermissionCodes(selectedUserId);
+        Set<Integer> activePermissionIds = (selectedEmployee != null)
+                ? permissionRepository.getUserPermissionIds(selectedUserId)
+                : java.util.Collections.emptySet();
+        Set<String> activePermissionCodes = (selectedEmployee != null)
+                ? permissionRepository.getUserPermissionCodes(selectedUserId)
+                : java.util.Collections.emptySet();
 
         java.util.Map<String, Permission> permByCode = new java.util.HashMap<>();
         for (Permission p : permissions) {

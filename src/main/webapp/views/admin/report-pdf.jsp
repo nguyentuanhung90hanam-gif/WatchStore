@@ -161,10 +161,6 @@
             <span>Sản phẩm quản lý</span>
             <b>${totalProductsCount} mặt hàng</b>
         </div>
-        <div class="metric-box">
-            <span>Cảnh báo tồn kho</span>
-            <b style="color:${lowStockCount > 0 ? '#c92a2a' : '#2b8a3e'};">${lowStockCount} sản phẩm</b>
-        </div>
     </div>
 
     <%-- 1. Sản phẩm bán chạy --%>
@@ -226,38 +222,6 @@
         <c:if test="${empty topCustomers}">
             <tr>
                 <td colspan="6" class="text-center" style="color:#888;">Chưa có dữ liệu chi tiêu khách hàng.</td>
-            </tr>
-        </c:if>
-        </tbody>
-    </table>
-
-    <%-- 3. Cảnh báo tồn kho --%>
-    <div class="section-title">3. BÁO CÁO CẢNH BÁO TỒN KHO THẤP</div>
-    <table>
-        <thead>
-        <tr>
-            <th style="width:40px;">STT</th>
-            <th>Sản phẩm</th>
-            <th>SKU</th>
-            <th class="text-right">Tồn thực tế</th>
-            <th class="text-right">Có thể bán</th>
-            <th class="text-center">Trạng thái</th>
-        </tr>
-        </thead>
-        <tbody>
-        <c:forEach items="${lowStockItems}" var="item" varStatus="st">
-            <tr>
-                <td class="text-center">${st.index + 1}</td>
-                <td><b>${item.productName}</b></td>
-                <td>${item.sku}</td>
-                <td class="text-right">${item.onHand}</td>
-                <td class="text-right"><b>${item.available}</b></td>
-                <td class="text-center" style="color:#c92a2a;font-weight:bold;">${item.status}</td>
-            </tr>
-        </c:forEach>
-        <c:if test="${empty lowStockItems}">
-            <tr>
-                <td colspan="6" class="text-center" style="color:#2b8a3e;font-weight:bold;">✓ Kho hàng ổn định — Không có sản phẩm nào tồn thấp.</td>
             </tr>
         </c:if>
         </tbody>

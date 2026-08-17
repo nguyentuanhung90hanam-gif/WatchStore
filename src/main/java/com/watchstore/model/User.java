@@ -279,7 +279,7 @@ public class User {
                     return Role.ADMIN;
                 }
 
-                if ("EMPLOYEE".equals(code) || "SALES".equals(code) || "WAREHOUSE".equals(code)) {
+                if ("EMPLOYEE".equals(code)) {
                     return Role.EMPLOYEE;
                 }
 
