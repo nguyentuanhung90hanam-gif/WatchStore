@@ -48,54 +48,48 @@
                 <a href="${cp}/manage/admin/statistics" class="${fn:contains(uri,'/manage/admin/statistics') || fn:contains(uri,'/manage/admin/reports') || fn:contains(uri,'/manage/sales/report') ? 'active' : ''}">Thống kê &amp; Báo cáo</a>
             </c:when>
 
-            <%-- MODE 2: EMPLOYEE (PERMISSION-BASED FUNCTIONAL GROUPS) --%>
+            <%-- MODE 2: EMPLOYEE (DYNAMIC PHÂN QUYỀN NGHIỆP VỤ) --%>
             <c:when test="${sessionScope.user.role == 'EMPLOYEE'}">
                 <div class="sidebar-section-title">TỔNG QUAN</div>
                 <a href="${cp}/manage/sales/dashboard" class="${fn:contains(uri,'/manage/sales/dashboard') ? 'active' : ''}">Dashboard</a>
 
                 <%-- NHÓM 1: SẢN PHẨM --%>
-                <c:if test="${sessionScope.userPermissions.contains('PRODUCT_VIEW')}">
+                <c:if test="${sessionScope.userPermissions.contains('PRODUCT_VIEW') || sessionScope.userPermissions.contains('PRODUCT_CREATE') || sessionScope.userPermissions.contains('PRODUCT_EDIT')}">
                     <div class="sidebar-section-title">SẢN PHẨM</div>
                     <a href="${cp}/manage/admin/products" class="${fn:contains(uri,'/manage/admin/product') ? 'active' : ''}">Sản phẩm</a>
                     <a href="${cp}/manage/admin/categories" class="${fn:contains(uri,'/manage/admin/categor') ? 'active' : ''}">Danh mục</a>
                     <a href="${cp}/manage/admin/brands" class="${fn:contains(uri,'/manage/admin/brand') ? 'active' : ''}">Thương hiệu</a>
                 </c:if>
 
-                <%-- NHÓM 2: BÁN HÀNG --%>
-                <c:if test="${sessionScope.userPermissions.contains('ORDER_VIEW') || sessionScope.userPermissions.contains('SALES_ORDER') || sessionScope.userPermissions.contains('CUSTOMER_VIEW') || sessionScope.userPermissions.contains('SALES_CUSTOMER')}">
-                    <div class="sidebar-section-title">BÁN HÀNG</div>
-                    <c:if test="${sessionScope.userPermissions.contains('ORDER_VIEW') || sessionScope.userPermissions.contains('SALES_ORDER')}">
-                        <a href="${cp}/manage/sales/orders" class="${fn:contains(uri,'/manage/sales/order') ? 'active' : ''}">Đơn hàng</a>
-                    </c:if>
-                    <c:if test="${sessionScope.userPermissions.contains('CUSTOMER_VIEW') || sessionScope.userPermissions.contains('SALES_CUSTOMER')}">
-                        <a href="${cp}/manage/sales/customers" class="${fn:contains(uri,'/manage/sales/customer') ? 'active' : ''}">Khách hàng</a>
-                    </c:if>
-                </c:if>
-
-                <%-- NHÓM 3: REVIEW & COMMENT --%>
-                <c:if test="${sessionScope.userPermissions.contains('SALES_RETURN') || sessionScope.userPermissions.contains('SALES_DELIVERY') || sessionScope.userPermissions.contains('REVIEW_VIEW') || sessionScope.userPermissions.contains('COMMENT_VIEW')}">
-                    <div class="sidebar-section-title">REVIEW &amp; COMMENT</div>
-                    <a href="${cp}/manage/sales/reviews" class="${fn:contains(uri,'/manage/sales/review') ? 'active' : ''}">Review</a>
-                    <a href="${cp}/manage/sales/comments" class="${fn:contains(uri,'/manage/sales/comment') ? 'active' : ''}">Comment</a>
-                </c:if>
-
-                <%-- NHÓM 4: BẢO HÀNH --%>
-                <c:if test="${sessionScope.userPermissions.contains('SALES_WARRANTY') || sessionScope.userPermissions.contains('WARRANTY_VIEW')}">
-                    <div class="sidebar-section-title">BẢO HÀNH</div>
-                    <a href="${cp}/manage/sales/warranty" class="${fn:contains(uri,'/manage/sales/warranty') ? 'active' : ''}">Quản lý bảo hành</a>
-                </c:if>
-
-                <%-- NHÓM 5: VOUCHER --%>
-                <c:if test="${sessionScope.userPermissions.contains('VOUCHER_VIEW')}">
+                <%-- NHÓM 2: VOUCHER --%>
+                <c:if test="${sessionScope.userPermissions.contains('VOUCHER_VIEW') || sessionScope.userPermissions.contains('VOUCHER_CREATE') || sessionScope.userPermissions.contains('VOUCHER_EDIT')}">
                     <div class="sidebar-section-title">VOUCHER</div>
                     <a href="${cp}/manage/admin/vouchers" class="${fn:contains(uri,'/manage/admin/voucher') ? 'active' : ''}">Voucher</a>
                 </c:if>
 
-                <%-- NHÓM 6: BANNER & BÀI VIẾT --%>
-                <c:if test="${sessionScope.userPermissions.contains('INVENTORY_VIEW') || sessionScope.userPermissions.contains('BANNER_VIEW') || sessionScope.userPermissions.contains('POST_VIEW')}">
-                    <div class="sidebar-section-title">BANNER &amp; BÀI VIẾT</div>
-                    <a href="${cp}/manage/admin/banners" class="${fn:contains(uri,'/manage/admin/banner') ? 'active' : ''}">Banner</a>
-                    <a href="${cp}/manage/admin/posts" class="${fn:contains(uri,'/manage/admin/post') ? 'active' : ''}">Bài viết</a>
+                <%-- NHÓM 3: ĐƠN HÀNG --%>
+                <c:if test="${sessionScope.userPermissions.contains('ORDER_VIEW') || sessionScope.userPermissions.contains('SALES_ORDER') || sessionScope.userPermissions.contains('ORDER_CREATE') || sessionScope.userPermissions.contains('ORDER_EDIT') || sessionScope.userPermissions.contains('ORDER_APPROVE') || sessionScope.userPermissions.contains('ORDER_EXPORT')}">
+                    <div class="sidebar-section-title">ĐƠN HÀNG</div>
+                    <a href="${cp}/manage/sales/orders" class="${fn:contains(uri,'/manage/sales/order') ? 'active' : ''}">Quản lý đơn hàng</a>
+                </c:if>
+
+                <%-- NHÓM 4: KHÁCH HÀNG --%>
+                <c:if test="${sessionScope.userPermissions.contains('CUSTOMER_VIEW') || sessionScope.userPermissions.contains('SALES_CUSTOMER') || sessionScope.userPermissions.contains('CUSTOMER_CREATE') || sessionScope.userPermissions.contains('CUSTOMER_EDIT')}">
+                    <div class="sidebar-section-title">KHÁCH HÀNG</div>
+                    <a href="${cp}/manage/sales/customers" class="${fn:contains(uri,'/manage/sales/customer') ? 'active' : ''}">Danh sách khách hàng</a>
+                </c:if>
+
+                <%-- NHÓM 5: REVIEW & COMMENT --%>
+                <c:if test="${sessionScope.userPermissions.contains('CUSTOMER_VIEW') || sessionScope.userPermissions.contains('SALES_CUSTOMER') || sessionScope.userPermissions.contains('CUSTOMER_EDIT')}">
+                    <div class="sidebar-section-title">REVIEW &amp; COMMENT</div>
+                    <a href="${cp}/manage/sales/reviews" class="${fn:contains(uri,'/manage/sales/review') ? 'active' : ''}">Kiểm duyệt đánh giá</a>
+                    <a href="${cp}/manage/sales/comments" class="${fn:contains(uri,'/manage/sales/comment') ? 'active' : ''}">Bình luận</a>
+                </c:if>
+
+                <%-- NHÓM 6: BẢO HÀNH --%>
+                <c:if test="${sessionScope.userPermissions.contains('SALES_WARRANTY')}">
+                    <div class="sidebar-section-title">BẢO HÀNH</div>
+                    <a href="${cp}/manage/sales/warranty" class="${fn:contains(uri,'/manage/sales/warranty') ? 'active' : ''}">Quản lý bảo hành</a>
                 </c:if>
 
                 <%-- NHÓM 7: BÁO CÁO --%>

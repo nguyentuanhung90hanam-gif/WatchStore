@@ -119,42 +119,58 @@
                 </select>
             </div>
 
-            <div>
-                <label style="display:block;font-weight:600;margin-bottom:6px;color:#334155;">Vai trò (Role) — <small style="color:#64748b;font-weight:normal;">Chỉ xem</small></label>
-                <div style="padding:9px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;display:flex;align-items:center;gap:10px;min-height:42px;">
-                    <c:choose>
-                        <c:when test="${formMode == 'edit'}">
-                            <c:choose>
-                                <c:when test="${requestScope.account.role == 'ADMIN' || requestScope.account.roleNames == 'ADMIN' || requestScope.account.roleNames == 'Quản trị viên'}">
-                                    <span class="status-badge" style="background:#fef3c7;color:#92400e;font-weight:700;padding:4px 10px;border-radius:20px;">ADMIN</span>
-                                    <span style="font-size:13px;color:#64748b;">(Quản trị viên toàn quyền)</span>
-                                </c:when>
-                                <c:when test="${requestScope.account.role == 'EMPLOYEE' || requestScope.account.roleNames == 'EMPLOYEE' || requestScope.account.roleNames == 'Nhân viên bán hàng'}">
-                                    <span class="status-badge" style="background:#eff6ff;color:#1d4ed8;font-weight:700;padding:4px 10px;border-radius:20px;">EMPLOYEE</span>
-                                    <span style="font-size:13px;color:#64748b;">(Nhân viên Sales — Phân quyền tại <a href="${pageContext.request.contextPath}/manage/admin/permissions" style="color:#b8860b;font-weight:600;">Phân quyền</a>)</span>
-                                </c:when>
-                                <c:otherwise>
-                                    <span class="status-badge" style="background:#f1f5f9;color:#475569;font-weight:600;padding:4px 10px;border-radius:20px;">CUSTOMER</span>
-                                    <span style="font-size:13px;color:#64748b;">(Khách hàng mua sắm)</span>
-                                </c:otherwise>
-                            </c:choose>
-                        </c:when>
-                        <c:otherwise>
-                            <span class="status-badge" style="background:#f1f5f9;color:#475569;font-weight:600;padding:4px 10px;border-radius:20px;">CUSTOMER</span>
-                            <span style="font-size:13px;color:#64748b;">(Mặc định là Khách hàng)</span>
-                        </c:otherwise>
-                    </c:choose>
-                </div>
+            <div style="grid-column: span 2;">
+                <label style="display:block;font-weight:600;margin-bottom:8px;color:#334155;">Vai trò người dùng <span style="color:#dc2626;">*</span></label>
+
+                <c:choose>
+
+                    <%-- Nếu là ADMIN: Khóa chỉ xem để bảo vệ tài khoản Admin --%>
+                    <c:when test="${formMode == 'edit' && not empty requestScope.account && (requestScope.account.email == 'admin@watchstore.vn' || (not empty requestScope.account.role && requestScope.account.role.name() == 'ADMIN') || fn:contains(requestScope.account.roleNames, 'ADMIN'))}">
+                        <div style="padding:12px 16px;background:#fef3c7;border:1px solid #fde68a;border-radius:8px;display:flex;align-items:center;gap:10px;">
+                            <span class="status-badge" style="background:#d97706;color:#fff;font-weight:700;padding:4px 12px;border-radius:20px;">ADMIN</span>
+                            <span style="font-size:13.5px;color:#92400e;font-weight:600;">Quản trị viên toàn quyền (Không thể thay đổi vai trò)</span>
+                            <input type="hidden" name="roleCode" value="ADMIN">
+                        </div>
+                    </c:when>
+
+                    <%-- Load động danh sách Role từ dbo.Roles --%>
+                    <c:otherwise>
+                        <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:center;padding:12px 16px;background:#f8fafc;border:1px solid #cbd5e1;border-radius:8px;">
+                            <c:forEach items="${allRoles}" var="r">
+                                <c:if test="${r.roleCode != 'ADMIN'}">
+                                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;color:#1e293b;font-size:14px;">
+                                        <input type="radio"
+                                               name="roleCode"
+                                               value="${r.roleCode}"
+                                               id="role_${r.roleCode}"
+                                               ${(empty requestScope.account && r.roleCode == 'CUSTOMER') || (not empty requestScope.account && ((not empty requestScope.account.role && requestScope.account.role.name() == r.roleCode) || fn:contains(requestScope.account.roleNames, r.roleCode) || selectedRoleIds.contains(r.roleId))) ? 'checked' : ''}
+                                               style="width:18px;height:18px;accent-color:#d4af37;cursor:pointer;">
+                                        <span>${r.roleName} (${r.roleCode})</span>
+                                    </label>
+                                </c:if>
+                            </c:forEach>
+                        </div>
+
+                        <small style="color:#64748b;margin-top:6px;display:block;">
+                            Tài khoản <b>Nhân viên (EMPLOYEE)</b> sau khi tạo sẽ tự động xuất hiện trong danh sách <b>Hệ thống → Phân quyền</b> để Admin cấp quyền chi tiết.
+                        </small>
+                    </c:otherwise>
+
+                </c:choose>
             </div>
 
         </div>
 
         <div style="display:flex;gap:12px;margin-top:24px;border-top:1px solid #f1f5f9;padding-top:18px;">
-            <button type="submit" class="button button-gold" style="padding:10px 28px;font-weight:700;border-radius:8px;cursor:pointer;">
+            <button type="submit"
+                    class="button button-gold"
+                    style="padding:10px 28px;font-weight:700;border-radius:8px;cursor:pointer;">
                 💾 Lưu thông tin
             </button>
+
             <a href="${pageContext.request.contextPath}/manage/admin/accounts"
-               class="button button-outline" style="padding:10px 20px;border-radius:8px;text-decoration:none;">
+               class="button button-outline"
+               style="padding:10px 20px;border-radius:8px;text-decoration:none;">
                 Hủy bỏ
             </a>
         </div>

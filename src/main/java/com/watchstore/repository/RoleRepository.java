@@ -22,4 +22,6 @@ public interface RoleRepository {
     boolean isRoleInUse(int roleId);
 
     boolean existsByCode(String code, Integer excludeId);
+
+    Role findByCode(String code);
 }

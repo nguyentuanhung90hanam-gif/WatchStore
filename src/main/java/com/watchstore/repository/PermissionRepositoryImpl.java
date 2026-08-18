@@ -81,7 +81,7 @@ public class PermissionRepositoryImpl implements PermissionRepository {
             FROM dbo.Users u
             JOIN dbo.UserRoles ur ON u.UserID = ur.UserID
             JOIN dbo.Roles r ON ur.RoleID = r.RoleID
-            WHERE r.RoleCode = 'EMPLOYEE' AND u.Status = 'ACTIVE'
+            WHERE r.RoleCode = 'EMPLOYEE'
             ORDER BY u.FullName ASC
             """;
         try (Connection con = getConnection();

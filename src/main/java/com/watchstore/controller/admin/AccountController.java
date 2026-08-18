@@ -189,9 +189,31 @@ public class AccountController extends HttpServlet {
         String gender      = trim(req.getParameter("gender"));
         String dobStr      = trim(req.getParameter("dateOfBirth"));
         String status      = trim(req.getParameter("status"));
+        String roleCode    = trim(req.getParameter("roleCode"));
 
-        // Tài khoản tạo mới mặc định có Role CUSTOMER (RoleID = 3)
-        List<Integer> defaultRoleIds = java.util.Collections.singletonList(3);
+        // Bảo vệ vai trò: Không cho phép form thông thường tạo tài khoản ADMIN
+        if (roleCode.isEmpty() || "ADMIN".equalsIgnoreCase(roleCode)) {
+            roleCode = "CUSTOMER";
+        }
+
+        Role selectedRole = roleRepository.findByCode(roleCode);
+        List<Integer> selectedRoleIds = new ArrayList<>();
+        if (selectedRole != null) {
+            selectedRoleIds.add(selectedRole.getRoleId());
+        } else {
+            // Fallback nếu chưa tìm thấy bằng code
+            List<Role> allRoles = roleRepository.findAll();
+            for (Role r : allRoles) {
+                if (roleCode.equalsIgnoreCase(r.getRoleCode())) {
+                    selectedRoleIds.add(r.getRoleId());
+                    break;
+                }
+            }
+            if (selectedRoleIds.isEmpty()) {
+                Role customerRole = roleRepository.findByCode("CUSTOMER");
+                if (customerRole != null) selectedRoleIds.add(customerRole.getRoleId());
+            }
+        }
 
         // Validation
         String error = validateUser(email, fullName, password, phone, dobStr, status, true);
@@ -204,15 +226,18 @@ public class AccountController extends HttpServlet {
 
         if (error != null) {
             User draft = buildUser(0, email, null, fullName, phone, gender, dobStr, status);
-            showFormWithError(req, resp, draft, defaultRoleIds, error, "Thêm tài khoản", "add");
+            if (selectedRole != null) {
+                draft.setRole(roleCode);
+            }
+            showFormWithError(req, resp, draft, selectedRoleIds, error, "Thêm tài khoản", "add");
             return;
         }
 
-        // Hash password
+        // Hash password SHA-256
         String passwordHash = hashSHA256(password);
 
         User user = buildUser(0, email, passwordHash, fullName, phone, gender, dobStr, status);
-        userRepository.insert(user, defaultRoleIds);
+        userRepository.insert(user, selectedRoleIds);
 
         req.getSession().setAttribute("successMessage", "Tạo mới tài khoản thành công!");
         resp.sendRedirect(req.getContextPath() + "/manage/admin/accounts");
@@ -231,6 +256,7 @@ public class AccountController extends HttpServlet {
         String gender      = trim(req.getParameter("gender"));
         String dobStr      = trim(req.getParameter("dateOfBirth"));
         String status      = trim(req.getParameter("status"));
+        String roleCode    = trim(req.getParameter("roleCode"));
 
         int id = 0;
         try { id = Integer.parseInt(idStr); } catch (NumberFormatException ignored) {}
@@ -241,22 +267,47 @@ public class AccountController extends HttpServlet {
             return;
         }
 
-        // Bảo vệ tài khoản admin@watchstore.vn: không cho đổi email
-        if ("admin@watchstore.vn".equalsIgnoreCase(existing.getEmail())
+        boolean isSuperAdmin = "admin@watchstore.vn".equalsIgnoreCase(existing.getEmail())
                 || existing.getRole() == com.watchstore.enums.Role.ADMIN
-                || (existing.getRoleNames() != null && existing.getRoleNames().contains("ADMIN"))) {
+                || (existing.getRoleNames() != null && existing.getRoleNames().contains("ADMIN"));
+
+        // Bảo vệ tài khoản admin@watchstore.vn: không cho đổi email
+        if (isSuperAdmin) {
             email = "admin@watchstore.vn";
         }
 
-        // LẤY ROLE HIỆN CÓ — TUYỆT ĐỐI KHÔNG ĐỔI ROLE TỪ TRANG ACCOUNT
-        List<Integer> existingRoleIds = new ArrayList<>();
-        if (existing.getRoles() != null) {
-            for (Role r : existing.getRoles()) {
-                existingRoleIds.add(r.getRoleId());
+        List<Integer> targetRoleIds = new ArrayList<>();
+        if (isSuperAdmin) {
+            // Giữ nguyên vai trò ADMIN
+            if (existing.getRoles() != null) {
+                for (Role r : existing.getRoles()) {
+                    targetRoleIds.add(r.getRoleId());
+                }
             }
-        }
-        if (existingRoleIds.isEmpty()) {
-            existingRoleIds.add(3); // Mặc định Customer
+        } else {
+            // Xử lý vai trò động từ database
+            if (roleCode.isEmpty() || "ADMIN".equalsIgnoreCase(roleCode)) {
+                roleCode = "CUSTOMER";
+            }
+            Role selectedRole = roleRepository.findByCode(roleCode);
+            if (selectedRole != null) {
+                targetRoleIds.add(selectedRole.getRoleId());
+            } else {
+                List<Role> allRoles = roleRepository.findAll();
+                for (Role r : allRoles) {
+                    if (roleCode.equalsIgnoreCase(r.getRoleCode())) {
+                        targetRoleIds.add(r.getRoleId());
+                        break;
+                    }
+                }
+            }
+
+            // An toàn phân quyền: Nếu chuyển từ EMPLOYEE sang vai trò khác (như CUSTOMER), dọn dẹp UserPermissions cũ
+            boolean wasEmployee = existing.getRole() == com.watchstore.enums.Role.EMPLOYEE
+                    || (existing.getRoleNames() != null && existing.getRoleNames().contains("EMPLOYEE"));
+            if (wasEmployee && !"EMPLOYEE".equalsIgnoreCase(roleCode)) {
+                permissionRepository.updateUserPermissions(id, java.util.Collections.emptyList());
+            }
         }
 
         // Validation — password không bắt buộc khi update
@@ -272,7 +323,10 @@ public class AccountController extends HttpServlet {
             User draft = buildUser(id, email, null, fullName, phone, gender, dobStr, status);
             draft.setRoles(existing.getRoles());
             draft.setRoleNames(existing.getRoleNames());
-            showFormWithError(req, resp, draft, existingRoleIds, error, "Sửa tài khoản", "edit");
+            if (!isSuperAdmin) {
+                draft.setRole(roleCode);
+            }
+            showFormWithError(req, resp, draft, targetRoleIds, error, "Sửa tài khoản", "edit");
             return;
         }
 
@@ -285,7 +339,7 @@ public class AccountController extends HttpServlet {
         }
 
         User user = buildUser(id, email, passwordHash, fullName, phone, gender, dobStr, status);
-        userRepository.update(user, existingRoleIds);
+        userRepository.update(user, targetRoleIds);
 
         req.getSession().setAttribute("successMessage", "Cập nhật tài khoản " + user.getFullName() + " thành công!");
         resp.sendRedirect(req.getContextPath() + "/manage/admin/accounts");
@@ -303,28 +357,6 @@ public class AccountController extends HttpServlet {
         req.setAttribute("formMode", formMode);
         req.setAttribute("selectedRoleIds", roleIds);
         forwardToForm(req, resp, pageTitle);
-    }
-
-    private boolean isEmployeeRoleSelected(List<Integer> roleIds) {
-        if (roleIds == null || roleIds.isEmpty()) return false;
-        List<Role> allRoles = roleRepository.findAll();
-        for (Role r : allRoles) {
-            if ("EMPLOYEE".equalsIgnoreCase(r.getRoleCode()) && roleIds.contains(r.getRoleId())) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private void updateEmployeePermissions(int userId) {
-        List<com.watchstore.model.Permission> allPerms = permissionRepository.findAll();
-        List<Integer> targetPermIds = new ArrayList<>();
-        for (com.watchstore.model.Permission p : allPerms) {
-            if ("SALES".equalsIgnoreCase(p.getModuleCode()) || (p.getPermissionCode() != null && (p.getPermissionCode().startsWith("SALES_") || p.getPermissionCode().startsWith("ORDER_") || p.getPermissionCode().startsWith("CUSTOMER_") || p.getPermissionCode().startsWith("WARRANTY_")))) {
-                targetPermIds.add(p.getPermissionId());
-            }
-        }
-        permissionRepository.updateUserPermissions(userId, targetPermIds);
     }
 
     private String trim(String s) {

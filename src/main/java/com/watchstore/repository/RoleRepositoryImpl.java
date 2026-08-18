@@ -253,4 +253,29 @@ public class RoleRepositoryImpl implements RoleRepository {
         }
         return false;
     }
+
+    @Override
+    public Role findByCode(String code) {
+        if (code == null || code.isBlank()) return null;
+
+        String sql = """
+                SELECT r.*,
+                       (SELECT COUNT(*) FROM UserRoles ur WHERE ur.RoleID = r.RoleID) AS UserCount
+                FROM Roles r
+                WHERE LOWER(r.RoleCode) = LOWER(?)
+                """;
+
+        try (Connection con = getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setString(1, code.trim());
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return mapRow(rs);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 }
