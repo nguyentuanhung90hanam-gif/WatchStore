@@ -134,7 +134,7 @@
             <button type="submit"
                     class="button button-gold"
                     style="padding:10px 28px;border-radius:8px;border:none;cursor:pointer;font-weight:700;font-size:14px;">
-                ${empty category.categoryId ? "💾 Thêm danh mục" : "✏️ Cập nhật"}
+                ${empty category.categoryId ? " Thêm danh mục" : " Cập nhật"}
             </button>
         </div>
 

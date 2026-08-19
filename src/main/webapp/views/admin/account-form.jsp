@@ -165,7 +165,7 @@
             <button type="submit"
                     class="button button-gold"
                     style="padding:10px 28px;font-weight:700;border-radius:8px;cursor:pointer;">
-                💾 Lưu thông tin
+                 Lưu thông tin
             </button>
 
             <a href="${pageContext.request.contextPath}/manage/admin/accounts"

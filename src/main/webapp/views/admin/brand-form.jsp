@@ -127,7 +127,7 @@
             <button type="submit"
                     class="button button-gold"
                     style="padding:10px 28px;border-radius:8px;border:none;cursor:pointer;font-weight:700;font-size:14px;">
-                ${empty brand.brandID || brand.brandID == 0 ? "💾 Thêm thương hiệu" : "✏️ Cập nhật"}
+                ${empty brand.brandID || brand.brandID == 0 ? " Thêm thương hiệu" : " Cập nhật"}
             </button>
         </div>
 

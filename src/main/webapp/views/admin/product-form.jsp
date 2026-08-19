@@ -159,7 +159,7 @@
 
             <button type="submit" class="button button-gold"
                     style="padding:10px 28px;border-radius:8px;border:none;cursor:pointer;font-weight:700;font-size:14px;">
-                ${empty product.productId || product.productId == 0 ? "💾 Thêm sản phẩm" : "✏️ Lưu thay đổi"}
+                ${empty product.productId || product.productId == 0 ? " Thêm sản phẩm" : " Lưu thay đổi"}
             </button>
         </div>
 

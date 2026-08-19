@@ -10,7 +10,7 @@
     </div>
     <div style="margin-top:8px;">
         <a href="${pageContext.request.contextPath}/manage/admin/reports/pdf" target="_blank" class="btn" style="display:inline-flex;align-items:center;gap:8px;padding:10px 18px;background:var(--gold-dark,#b8860b);color:#fff;border-radius:6px;text-decoration:none;font-weight:600;font-size:0.9em;box-shadow:0 2px 6px rgba(0,0,0,0.15);">
-            📄 Xuất PDF
+             Xuất PDF
         </a>
     </div>
 </div>

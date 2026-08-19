@@ -33,11 +33,6 @@
 
                 <div class="brand-title">
 
-                    <div class="brand-icon">
-                        ⌚
-                    </div>
-
-
                     <div>
 
                         <h2>
@@ -90,7 +85,7 @@
                     <input
                             type="text"
                             name="keyword"
-                            placeholder="🔍 Nhập tên hoặc mã thương hiệu">
+                            placeholder=" Nhập tên hoặc mã thương hiệu">
 
 
                 </div>
@@ -168,7 +163,7 @@
 
 
                         <td>
-                            🌎 ${b.originCountry}
+                             ${b.originCountry}
                         </td>
 
 
@@ -182,7 +177,7 @@
                                 <c:when test="${b.status == 'ACTIVE'}">
 
                                     <span class="status status-active">
-                                        ● Hoạt động
+                                         Hoạt động
                                     </span>
 
                                 </c:when>
@@ -191,7 +186,7 @@
                                 <c:otherwise>
 
                                     <span class="status status-inactive">
-                                        ● Ngừng
+                                         Ngừng
                                     </span>
 
 
@@ -216,7 +211,7 @@
 
                                    href="${pageContext.request.contextPath}/manage/admin/brands/edit?id=${b.brandID}">
 
-                                    ✏ Sửa
+                                     Sửa
 
                                 </a>
 
@@ -229,7 +224,7 @@
 
                                    href="${pageContext.request.contextPath}/manage/admin/brands/delete?id=${b.brandID}">
 
-                                    🗑 Xóa
+                                     Xóa
 
                                 </a>
 

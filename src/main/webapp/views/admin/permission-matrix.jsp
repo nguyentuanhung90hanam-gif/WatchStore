@@ -229,7 +229,7 @@
                         <div class="perm-user-meta">
                             <span>✉ ${selectedEmployee.email}</span>
                             <c:if test="${not empty selectedEmployee.phone}">
-                                <span>📞 ${selectedEmployee.phone}</span>
+                                <span> ${selectedEmployee.phone}</span>
                             </c:if>
                             <span class="badge-role-emp">Vai trò: EMPLOYEE</span>
                         </div>
@@ -258,14 +258,14 @@
                 <div class="perm-card system-card">
                     <div class="perm-card-header">
                         <div class="perm-card-title">
-                            <span>🔒</span> HỆ THỐNG — CHỈ QUẢN TRỊ VIÊN (ADMIN)
+                             HỆ THỐNG — CHỈ QUẢN TRỊ VIÊN (ADMIN)
                         </div>
                         <span class="perm-badge-locked">KHÓA VĨNH VIỄN</span>
                     </div>
                     <div style="padding: 16px 24px;">
                         <div class="locked-row">
                             <div style="display:flex;align-items:center;gap:10px;margin-bottom:2px;">
-                                <strong style="color:#991b1b;font-size:14px;">🔒 Tài khoản (ACCOUNT)</strong>
+                                <strong style="color:#991b1b;font-size:14px;"> Tài khoản (ACCOUNT)</strong>
                                 <span style="font-size:11.5px;color:#dc2626;background:#fef2f2;padding:1px 6px;border-radius:4px;font-weight:600;">Chỉ Admin</span>
                             </div>
                             <p style="margin:0;font-size:13px;color:#64748b;">Quản trị tài khoản người dùng, phân loại vai trò và trạng thái truy cập.</p>
@@ -273,7 +273,7 @@
 
                         <div class="locked-row">
                             <div style="display:flex;align-items:center;gap:10px;margin-bottom:2px;">
-                                <strong style="color:#991b1b;font-size:14px;">🔒 Vai trò (ROLE)</strong>
+                                <strong style="color:#991b1b;font-size:14px;"> Vai trò (ROLE)</strong>
                                 <span style="font-size:11.5px;color:#dc2626;background:#fef2f2;padding:1px 6px;border-radius:4px;font-weight:600;">Chỉ Admin</span>
                             </div>
                             <p style="margin:0;font-size:13px;color:#64748b;">Quản trị vai trò hệ thống và mô hình phân quyền cơ bản.</p>
@@ -281,7 +281,7 @@
 
                         <div class="locked-row">
                             <div style="display:flex;align-items:center;gap:10px;margin-bottom:2px;">
-                                <strong style="color:#991b1b;font-size:14px;">🔒 Phân quyền (PERMISSION)</strong>
+                                <strong style="color:#991b1b;font-size:14px;"> Phân quyền (PERMISSION)</strong>
                                 <span style="font-size:11.5px;color:#dc2626;background:#fef2f2;padding:1px 6px;border-radius:4px;font-weight:600;">Chỉ Admin</span>
                             </div>
                             <p style="margin:0;font-size:13px;color:#64748b;">Cấu hình và phân quyền thao tác cho từng tài khoản nhân viên.</p>
@@ -304,7 +304,7 @@
                         <div class="group-section">
                             <div class="group-header">
                                 <div class="group-name">
-                                    <span>📦</span> SẢN PHẨM, DANH MỤC &amp; THƯƠNG HIỆU
+                                     SẢN PHẨM, DANH MỤC &amp; THƯƠNG HIỆU
                                 </div>
                                 <span class="group-tag">PRODUCT</span>
                             </div>
@@ -348,7 +348,7 @@
                         <div class="group-section">
                             <div class="group-header">
                                 <div class="group-name">
-                                    <span>🎟️</span> VOUCHER &amp; KHUYẾN MÃI
+                                     VOUCHER &amp; KHUYẾN MÃI
                                 </div>
                                 <span class="group-tag">VOUCHER</span>
                             </div>
@@ -469,7 +469,7 @@
                         <div class="group-section">
                             <div class="group-header">
                                 <div class="group-name">
-                                    <span>👥</span> QUẢN LÝ KHÁCH HÀNG &amp; TƯƠNG TÁC
+                                     QUẢN LÝ KHÁCH HÀNG &amp; TƯƠNG TÁC
                                 </div>
                                 <span class="group-tag">CUSTOMER</span>
                             </div>
@@ -524,7 +524,7 @@
                         <div class="group-section">
                             <div class="group-header">
                                 <div class="group-name">
-                                    <span>🛡️</span> DỊCH VỤ BẢO HÀNH
+                                     DỊCH VỤ BẢO HÀNH
                                 </div>
                                 <span class="group-tag">WARRANTY</span>
                             </div>
@@ -546,7 +546,7 @@
                         <div class="group-section">
                             <div class="group-header">
                                 <div class="group-name">
-                                    <span>📊</span> BÁO CÁO &amp; THỐNG KÊ
+                                     BÁO CÁO &amp; THỐNG KÊ
                                 </div>
                                 <span class="group-tag">REPORT</span>
                             </div>
@@ -599,7 +599,7 @@
                     <button type="submit"
                             class="button button-gold"
                             style="padding:10px 32px;border-radius:8px;border:none;cursor:pointer;font-weight:700;font-size:14px;">
-                        💾 Lưu phân quyền
+                         Lưu phân quyền
                     </button>
                 </div>
 
