@@ -224,7 +224,6 @@ GO
 -- CATEGORIES
 CREATE TABLE dbo.Categories (
     CategoryID          INT IDENTITY(1,1) PRIMARY KEY,
-    ParentCategoryID    INT NULL,
     CategoryCode        VARCHAR(40) NULL,
     CategoryName        NVARCHAR(120) NOT NULL,
     CategorySlug        VARCHAR(150) NOT NULL,
@@ -232,8 +231,7 @@ CREATE TABLE dbo.Categories (
     ImageUrl            NVARCHAR(500) NULL,
     DisplayOrder        INT NOT NULL CONSTRAINT DF_Categories_Order DEFAULT 0,
     Status              VARCHAR(20) NOT NULL CONSTRAINT DF_Categories_Status DEFAULT 'ACTIVE',
-    CONSTRAINT UQ_Categories_Slug UNIQUE (CategorySlug),
-    CONSTRAINT FK_Categories_Parent FOREIGN KEY (ParentCategoryID) REFERENCES dbo.Categories(CategoryID)
+    CONSTRAINT UQ_Categories_Slug UNIQUE (CategorySlug)
 );
 GO
 

@@ -438,10 +438,10 @@
                     </label>
 
                     <input type="number"
-                           min="1"
+                           min="0"
                            name="usageLimit"
-                           value="${voucher.usageLimit}"
-                           placeholder="VD: 100 (Để trống = Không giới hạn)">
+                           value="${voucher.usageLimit == null || voucher.usageLimit == 0 ? '' : voucher.usageLimit}"
+                           placeholder="VD: 100 (Để trống hoặc 0 = Không giới hạn)">
                 </div>
 
                 <div class="form-group">
@@ -453,6 +453,7 @@
                            min="1"
                            name="usageLimitPerUser"
                            value="${empty voucher.usageLimitPerUser ? 1 : voucher.usageLimitPerUser}"
+                           placeholder="VD: 1"
                            required>
                 </div>
 
@@ -477,7 +478,6 @@
                     <input type="datetime-local"
                            name="startAt"
                            value="${startAtFormatted}"
-                           min="${minDateTimeFormatted}"
                            required>
                 </div>
 
@@ -490,7 +490,6 @@
                     <input type="datetime-local"
                            name="endAt"
                            value="${endAtFormatted}"
-                           min="${minDateTimeFormatted}"
                            required>
                 </div>
 

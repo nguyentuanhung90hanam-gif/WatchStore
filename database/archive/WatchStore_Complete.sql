@@ -219,7 +219,6 @@ GO
 
 CREATE TABLE dbo.Categories (
     CategoryID          INT IDENTITY(1,1) PRIMARY KEY,
-    ParentCategoryID    INT NULL,
     CategoryCode        VARCHAR(40) NOT NULL,
     CategoryName        NVARCHAR(120) NOT NULL,
     Slug                VARCHAR(150) NOT NULL,
@@ -229,7 +228,6 @@ CREATE TABLE dbo.Categories (
     Status              VARCHAR(20) NOT NULL CONSTRAINT DF_Categories_Status DEFAULT 'ACTIVE',
     CONSTRAINT UQ_Categories_Code UNIQUE (CategoryCode),
     CONSTRAINT UQ_Categories_Slug UNIQUE (Slug),
-    CONSTRAINT FK_Categories_Parent FOREIGN KEY (ParentCategoryID) REFERENCES dbo.Categories(CategoryID),
     CONSTRAINT CK_Categories_Status CHECK (Status IN ('ACTIVE','INACTIVE'))
 );
 GO

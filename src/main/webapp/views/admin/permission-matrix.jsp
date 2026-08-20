@@ -204,7 +204,7 @@
         <%-- TRƯỜNG HỢP 1: CHƯA CÓ NHÂN VIÊN TRONG HỆ THỐNG --%>
         <c:when test="${empty employees}">
             <div class="perm-header-card" style="flex-direction:column;align-items:center;text-align:center;padding:40px 24px;">
-                <div style="font-size:48px;margin-bottom:12px;">👤</div>
+                <div style="font-size:48px;margin-bottom:12px;"></div>
                 <h2 style="margin:0 0 8px 0;color:#1e293b;">Chưa có tài khoản Nhân viên (EMPLOYEE)</h2>
                 <p style="color:#64748b;font-size:14px;max-width:500px;margin:0 0 20px 0;">
                     Hệ thống chưa có tài khoản nhân viên nào để phân quyền. Vui lòng tạo tài khoản nhân viên tại Quản lý tài khoản.

@@ -7,7 +7,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,13 +19,6 @@ public class CategoryRepositoryImpl implements CategoryRepository {
     private Category mapResultSetToCategory(ResultSet rs) throws SQLException {
         Category c = new Category();
         c.setCategoryId(rs.getInt("CategoryID"));
-
-        if (rs.getObject("ParentCategoryID") != null) {
-            c.setParentCategoryId(rs.getInt("ParentCategoryID"));
-        } else {
-            c.setParentCategoryId(null);
-        }
-
         c.setCategoryCode(rs.getString("CategoryCode"));
         c.setCategoryName(rs.getString("CategoryName"));
         c.setSlug(rs.getString("CategorySlug"));
@@ -157,7 +149,6 @@ public class CategoryRepositoryImpl implements CategoryRepository {
         String sql = """
                 INSERT INTO Categories
                 (
-                    ParentCategoryID,
                     CategoryCode,
                     CategoryName,
                     CategorySlug,
@@ -166,30 +157,24 @@ public class CategoryRepositoryImpl implements CategoryRepository {
                     DisplayOrder,
                     Status
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """;
 
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            if (c.getParentCategoryId() != null && c.getParentCategoryId() > 0) {
-                ps.setInt(1, c.getParentCategoryId());
-            } else {
-                ps.setNull(1, Types.INTEGER);
-            }
-
-            ps.setString(2, c.getCategoryCode());
-            ps.setString(3, c.getCategoryName());
-            ps.setString(4, c.getSlug());
-            ps.setString(5, c.getDescription());
-            ps.setString(6, c.getImageUrl());
+            ps.setString(1, c.getCategoryCode());
+            ps.setString(2, c.getCategoryName());
+            ps.setString(3, c.getSlug());
+            ps.setString(4, c.getDescription());
+            ps.setString(5, c.getImageUrl());
 
             int displayOrder = (c.getDisplayOrder() != null && c.getDisplayOrder() > 0)
                     ? c.getDisplayOrder()
                     : getNextDisplayOrder();
 
-            ps.setInt(7, displayOrder);
-            ps.setString(8, c.getStatus() != null ? c.getStatus() : "ACTIVE");
+            ps.setInt(6, displayOrder);
+            ps.setString(7, c.getStatus() != null ? c.getStatus() : "ACTIVE");
 
             ps.executeUpdate();
         } catch (Exception e) {
@@ -202,7 +187,6 @@ public class CategoryRepositoryImpl implements CategoryRepository {
         String sql = """
                 UPDATE Categories
                 SET 
-                    ParentCategoryID = ?,
                     CategoryCode = ?,
                     CategoryName = ?,
                     CategorySlug = ?,
@@ -216,20 +200,14 @@ public class CategoryRepositoryImpl implements CategoryRepository {
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            if (c.getParentCategoryId() != null && c.getParentCategoryId() > 0) {
-                ps.setInt(1, c.getParentCategoryId());
-            } else {
-                ps.setNull(1, Types.INTEGER);
-            }
-
-            ps.setString(2, c.getCategoryCode());
-            ps.setString(3, c.getCategoryName());
-            ps.setString(4, c.getSlug());
-            ps.setString(5, c.getDescription());
-            ps.setString(6, c.getImageUrl());
-            ps.setInt(7, (c.getDisplayOrder() != null && c.getDisplayOrder() > 0) ? c.getDisplayOrder() : getNextDisplayOrder());
-            ps.setString(8, c.getStatus() != null ? c.getStatus() : "ACTIVE");
-            ps.setInt(9, c.getCategoryId());
+            ps.setString(1, c.getCategoryCode());
+            ps.setString(2, c.getCategoryName());
+            ps.setString(3, c.getSlug());
+            ps.setString(4, c.getDescription());
+            ps.setString(5, c.getImageUrl());
+            ps.setInt(6, (c.getDisplayOrder() != null && c.getDisplayOrder() > 0) ? c.getDisplayOrder() : getNextDisplayOrder());
+            ps.setString(7, c.getStatus() != null ? c.getStatus() : "ACTIVE");
+            ps.setInt(8, c.getCategoryId());
 
             ps.executeUpdate();
         } catch (Exception e) {
@@ -292,7 +270,6 @@ public class CategoryRepositoryImpl implements CategoryRepository {
         if (id == null || id <= 0) return false;
         String sql = """
                 SELECT (
-                    (SELECT COUNT(*) FROM Categories WHERE ParentCategoryID = ?) +
                     (SELECT COUNT(*) FROM Products WHERE CategoryID = ?) +
                     (SELECT COUNT(*) FROM VoucherCategories WHERE CategoryID = ?)
                 ) AS TotalRefs
@@ -301,7 +278,6 @@ public class CategoryRepositoryImpl implements CategoryRepository {
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setInt(1, id);
             ps.setInt(2, id);
-            ps.setInt(3, id);
             ResultSet rs = ps.executeQuery();
             if (rs.next()) {
                 return rs.getInt(1) > 0;

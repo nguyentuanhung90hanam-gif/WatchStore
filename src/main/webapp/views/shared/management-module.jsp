@@ -134,7 +134,7 @@
 
                 <a class="reset-btn"
                    href="${pageContext.request.contextPath}/manage/${empty adminArea ? 'admin' : adminArea}/${empty tableKind ? 'dashboard' : tableKind}">
-                    ↻ Đặt lại
+                     Đặt lại
                 </a>
 
             </c:if>
@@ -150,7 +150,7 @@
     <c:when test="${not empty requestScope.errorMessage}">
 
         <div style="background:#fff3cd;color:#856404;border:1px solid #ffc107;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:0.95em;">
-            ⚠ ${requestScope.errorMessage}
+             ${requestScope.errorMessage}
         </div>
 
     </c:when>
@@ -158,7 +158,7 @@
     <c:when test="${not empty sessionScope.errorMessage}">
 
         <div style="background:#fff3cd;color:#856404;border:1px solid #ffc107;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:0.95em;">
-            ⚠ ${sessionScope.errorMessage}
+             ${sessionScope.errorMessage}
         </div>
 
         <c:remove var="errorMessage" scope="session"/>
@@ -875,7 +875,7 @@
                                     <c:when test="${role.isSystem}">
                                         <span class="status-badge"
                                               style="background:#e3f2fd;color:#0d47a1;">
-                                            🔒 Hệ thống
+                                             Hệ thống
                                         </span>
                                     </c:when>
 
@@ -1151,7 +1151,6 @@
                         <th>Mã</th>
                         <th>Tên danh mục</th>
                         <th>Slug</th>
-                        <th>Danh mục cha</th>
                         <th>Trạng thái</th>
                         <th>Thao tác</th>
                     </tr>
@@ -1180,34 +1179,6 @@
                                 <small style="color:#777;">
                                     ${cat.slug}
                                 </small>
-                            </td>
-
-                            <td>
-
-                                <c:choose>
-
-                                    <c:when test="${not empty cat.parentCategoryId}">
-
-                                        <c:forEach items="${allCategories}" var="parent">
-
-                                            <c:if test="${parent.categoryId == cat.parentCategoryId}">
-                                                <span style="font-size:0.9em;color:#555;">
-                                                    ${parent.categoryName}
-                                                </span>
-                                            </c:if>
-
-                                        </c:forEach>
-
-                                    </c:when>
-
-                                    <c:otherwise>
-                                        <span style="color:#aaa;font-size:0.85em;">
-                                            —
-                                        </span>
-                                    </c:otherwise>
-
-                                </c:choose>
-
                             </td>
 
                             <td>
@@ -1254,7 +1225,7 @@
 
                         <tr>
 
-                            <td colspan="7"
+                            <td colspan="6"
                                 style="text-align:center;color:#888;padding:20px;">
                                 Chưa có danh mục nào trong hệ thống.
                             </td>
@@ -1334,7 +1305,7 @@
                                 <c:choose>
 
                                     <c:when test="${not empty brand.originCountry}">
-                                        🌍 ${brand.originCountry}
+                                         ${brand.originCountry}
                                     </c:when>
 
                                     <c:otherwise>

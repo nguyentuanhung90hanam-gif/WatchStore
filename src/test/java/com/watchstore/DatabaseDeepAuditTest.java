@@ -148,6 +148,34 @@ public class DatabaseDeepAuditTest {
             assertTrue(rowCounts.getOrDefault("dbo.ProductComments", 0) > 0, "ProductComments table must have data");
             System.out.println("  --> All Core Business Tables contain valid active records.");
 
+            System.out.println("\n[AUDIT 8] Current Vouchers & SQL Time:");
+            try (Statement st = conn.createStatement();
+                 ResultSet rs = st.executeQuery("SELECT GETDATE() AS SqlGetDate, SYSDATETIME() AS SqlSysDateTime, SYSUTCDATETIME() AS SqlUtcDateTime")) {
+                if (rs.next()) {
+                    System.out.println("  - SQL GETDATE(): " + rs.getString("SqlGetDate"));
+                    System.out.println("  - SQL SYSDATETIME(): " + rs.getString("SqlSysDateTime"));
+                    System.out.println("  - SQL SYSUTCDATETIME(): " + rs.getString("SqlUtcDateTime"));
+                    System.out.println("  - Java LocalDateTime.now(): " + java.time.LocalDateTime.now());
+                }
+            }
+
+            try (Statement st = conn.createStatement();
+                 ResultSet rs = st.executeQuery("SELECT VoucherID, VoucherCode, VoucherName, DiscountType, DiscountValue, MinimumOrderValue, MaximumDiscount, UsageLimit, UsageLimitPerUser, UsedCount, StartAt, EndAt, IsPublic, Status FROM dbo.Vouchers")) {
+                while (rs.next()) {
+                    System.out.printf("  [VOUCHER] ID: %d | Code: %s | Type: %s | Limit: %d | PerUser: %d | Used: %d | Start: %s | End: %s | Public: %b | Status: %s%n",
+                            rs.getInt("VoucherID"),
+                            rs.getString("VoucherCode"),
+                            rs.getString("DiscountType"),
+                            rs.getInt("UsageLimit"),
+                            rs.getInt("UsageLimitPerUser"),
+                            rs.getInt("UsedCount"),
+                            rs.getString("StartAt"),
+                            rs.getString("EndAt"),
+                            rs.getBoolean("IsPublic"),
+                            rs.getString("Status"));
+                }
+            }
+
             System.out.println("\n================================================================================");
             System.out.println("  DATABASE AUDIT PASS - ALL CHECKS SUCCESSFUL");
             System.out.println("================================================================================");

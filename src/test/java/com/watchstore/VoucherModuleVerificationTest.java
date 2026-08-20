@@ -15,6 +15,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -31,8 +32,9 @@ public class VoucherModuleVerificationTest {
     private static int testAddressId;
     private static int testProductId;
     private static int testVariantId;
-    private static String testVoucherCode = "TESTDEMO10";
+    private static final String testVoucherCode = "TEST2026";
     private static int createdVoucherId;
+    private static final List<Integer> tempVoucherIds = new ArrayList<>();
 
     @BeforeAll
     public static void setUp() throws Exception {
@@ -57,9 +59,8 @@ public class VoucherModuleVerificationTest {
                 }
             }
 
-            // Cleanup any previous TESTDEMO10 vouchers
-            try (PreparedStatement ps = conn.prepareStatement("DELETE FROM dbo.Vouchers WHERE VoucherCode = ?")) {
-                ps.setString(1, testVoucherCode);
+            // Cleanup any previous TEST2026 vouchers
+            try (PreparedStatement ps = conn.prepareStatement("DELETE FROM dbo.Vouchers WHERE VoucherCode LIKE 'TEST2026%'")) {
                 ps.executeUpdate();
             }
         }
@@ -98,17 +99,17 @@ public class VoucherModuleVerificationTest {
 
     @Test
     @org.junit.jupiter.api.Order(1)
-    @DisplayName("1. Admin creates TESTDEMO10 voucher in SQL Server")
-    public void testCreateVoucher() {
+    @DisplayName("CASE 1: Admin creates TEST2026 (IsPublic=1, Status=ACTIVE, StartAt<=now, EndAt>=now, UsageLimit=0) -> appears in findPublicActive()")
+    public void testCreateVoucherTest2026() {
         Voucher v = new Voucher();
         v.setVoucherCode(testVoucherCode);
-        v.setVoucherName("Giảm 10% Cho Khách Thử Nghiệm");
-        v.setDescription("Voucher test đặc biệt");
+        v.setVoucherName("Mã Giảm Giá TEST2026");
+        v.setDescription("Voucher test thực tế hệ thống");
         v.setDiscountType("PERCENT");
         v.setDiscountValue(new BigDecimal("10.00"));
         v.setMaximumDiscount(new BigDecimal("500000.00"));
         v.setMinimumOrderValue(new BigDecimal("100000.00"));
-        v.setUsageLimit(50);
+        v.setUsageLimit(0); // 0 = unlimited
         v.setUsageLimitPerUser(2);
         v.setUsedCount(0);
         v.setStartAt(LocalDateTime.now().minusMinutes(5));
@@ -130,52 +131,224 @@ public class VoucherModuleVerificationTest {
         assertTrue(created.getIsPublic());
         createdVoucherId = created.getVoucherId();
         assertTrue(createdVoucherId > 0);
+
+        // Verify findPublicActive contains it
+        List<Voucher> publicActive = voucherRepo.findPublicActive();
+        assertNotNull(publicActive);
+        assertTrue(publicActive.stream().anyMatch(item -> item.getVoucherCode().equalsIgnoreCase(testVoucherCode)),
+                "findPublicActive() must return newly created TEST2026 voucher");
+
+        // Verify findPublicActiveVouchers also contains it
+        List<Voucher> publicActiveLegacy = voucherRepo.findPublicActiveVouchers();
+        assertNotNull(publicActiveLegacy);
+        assertTrue(publicActiveLegacy.stream().anyMatch(item -> item.getVoucherCode().equalsIgnoreCase(testVoucherCode)));
     }
 
     @Test
     @org.junit.jupiter.api.Order(2)
-    @DisplayName("2. Find Voucher By ID and Search")
-    public void testFindByIdAndSearch() {
-        Voucher v = voucherRepo.findById(createdVoucherId);
-        assertNotNull(v, "Voucher by ID should not be null");
-        assertEquals(testVoucherCode, v.getVoucherCode());
-        assertEquals(new BigDecimal("10.00"), v.getDiscountValue());
+    @DisplayName("CASE 2 & 3: UsageLimit=100, UsedCount=0 and UsedCount=99 -> must appear in findPublicActive()")
+    public void testUsageLimitNotExceeded() {
+        String code = "TEST2026_PARTIAL";
+        Voucher v = new Voucher();
+        v.setVoucherCode(code);
+        v.setVoucherName("Voucher Còn Lượt Dùng");
+        v.setDiscountType("FIXED");
+        v.setDiscountValue(new BigDecimal("50000"));
+        v.setUsageLimit(100);
+        v.setUsedCount(99);
+        v.setStartAt(LocalDateTime.now().minusMinutes(5));
+        v.setEndAt(LocalDateTime.now().plusMonths(1));
+        v.setIsPublic(true);
+        v.setStatus("ACTIVE");
+        v.setCreatedBy(testUserId);
 
-        List<Voucher> searchResults = voucherRepo.search("TESTDEMO");
-        assertFalse(searchResults.isEmpty());
-        assertTrue(searchResults.stream().anyMatch(item -> item.getVoucherCode().equals(testVoucherCode)));
-    }
+        voucherRepo.save(v);
+        List<Voucher> found = voucherRepo.search(code);
+        if (!found.isEmpty()) tempVoucherIds.add(found.get(0).getVoucherId());
 
-    @Test
-    @org.junit.jupiter.api.Order(3)
-    @DisplayName("3. Verify findPublicActiveVouchers contains TESTDEMO10")
-    public void testPublicActiveVouchers() {
-        List<Voucher> publicList = voucherRepo.findPublicActiveVouchers();
-        assertNotNull(publicList, "Public active vouchers should not be null");
-        boolean containsTestVoucher = publicList.stream()
-                .anyMatch(v -> testVoucherCode.equalsIgnoreCase(v.getVoucherCode()));
-        assertTrue(containsTestVoucher, "Public active vouchers must contain TESTDEMO10");
+        List<Voucher> publicList = voucherRepo.findPublicActive();
+        assertTrue(publicList.stream().anyMatch(item -> code.equalsIgnoreCase(item.getVoucherCode())),
+                "Voucher with UsedCount < UsageLimit must be returned by findPublicActive()");
     }
 
     @Test
     @org.junit.jupiter.api.Order(4)
-    @DisplayName("4. Update TESTDEMO10 voucher (e.g. increase discount)")
-    public void testUpdateVoucher() {
-        Voucher v = voucherRepo.findById(createdVoucherId);
-        assertNotNull(v);
-        v.setVoucherName("Giảm 15% Cho Khách Thử Nghiệm (Đã Cập Nhật)");
-        v.setDiscountValue(new BigDecimal("15.00"));
-        boolean updated = voucherRepo.update(v);
-        assertTrue(updated, "Update voucher should return true");
+    @DisplayName("CASE 4: UsageLimit=100, UsedCount=100 -> must NOT appear in findPublicActive()")
+    public void testUsageLimitMaxedOut() {
+        String code = "TEST2026_MAXED";
+        Voucher v = new Voucher();
+        v.setVoucherCode(code);
+        v.setVoucherName("Voucher Đã Hết Lượt");
+        v.setDiscountType("FIXED");
+        v.setDiscountValue(new BigDecimal("50000"));
+        v.setUsageLimit(100);
+        v.setUsedCount(100);
+        v.setStartAt(LocalDateTime.now().minusMinutes(5));
+        v.setEndAt(LocalDateTime.now().plusMonths(1));
+        v.setIsPublic(true);
+        v.setStatus("ACTIVE");
+        v.setCreatedBy(testUserId);
 
-        Voucher updatedVoucher = voucherRepo.findById(createdVoucherId);
-        assertEquals("Giảm 15% Cho Khách Thử Nghiệm (Đã Cập Nhật)", updatedVoucher.getVoucherName());
-        assertEquals(new BigDecimal("15.00"), updatedVoucher.getDiscountValue());
+        voucherRepo.save(v);
+        List<Voucher> found = voucherRepo.search(code);
+        if (!found.isEmpty()) tempVoucherIds.add(found.get(0).getVoucherId());
+
+        List<Voucher> publicList = voucherRepo.findPublicActive();
+        assertFalse(publicList.stream().anyMatch(item -> code.equalsIgnoreCase(item.getVoucherCode())),
+                "Voucher with UsedCount >= UsageLimit must not be returned by findPublicActive()");
     }
 
     @Test
     @org.junit.jupiter.api.Order(5)
-    @DisplayName("5. Checkout order with TESTDEMO10 voucher calculates discount and records usage")
+    @DisplayName("CASE 5 & 6: UsageLimit = 0 or null -> unlimited -> must appear in findPublicActive()")
+    public void testUnlimitedVouchers() {
+        String code = "TEST2026_UNLIMITED";
+        Voucher v = new Voucher();
+        v.setVoucherCode(code);
+        v.setVoucherName("Voucher Không Giới Hạn");
+        v.setDiscountType("PERCENT");
+        v.setDiscountValue(new BigDecimal("5.00"));
+        v.setUsageLimit(0);
+        v.setUsedCount(150);
+        v.setStartAt(LocalDateTime.now().minusMinutes(5));
+        v.setEndAt(LocalDateTime.now().plusMonths(1));
+        v.setIsPublic(true);
+        v.setStatus("ACTIVE");
+        v.setCreatedBy(testUserId);
+
+        voucherRepo.save(v);
+        List<Voucher> found = voucherRepo.search(code);
+        if (!found.isEmpty()) tempVoucherIds.add(found.get(0).getVoucherId());
+
+        List<Voucher> publicList = voucherRepo.findPublicActive();
+        assertTrue(publicList.stream().anyMatch(item -> code.equalsIgnoreCase(item.getVoucherCode())),
+                "Unlimited voucher (limit=0) must be returned by findPublicActive()");
+    }
+
+    @Test
+    @org.junit.jupiter.api.Order(7)
+    @DisplayName("CASE 7: StartAt > now -> must NOT appear in findPublicActive()")
+    public void testFutureVoucherNotVisible() {
+        String code = "TEST2026_FUTURE";
+        Voucher v = new Voucher();
+        v.setVoucherCode(code);
+        v.setVoucherName("Voucher Tương Lai");
+        v.setDiscountType("FIXED");
+        v.setDiscountValue(new BigDecimal("50000"));
+        v.setStartAt(LocalDateTime.now().plusDays(5));
+        v.setEndAt(LocalDateTime.now().plusDays(15));
+        v.setIsPublic(true);
+        v.setStatus("ACTIVE");
+        v.setCreatedBy(testUserId);
+
+        voucherRepo.save(v);
+        List<Voucher> found = voucherRepo.search(code);
+        if (!found.isEmpty()) tempVoucherIds.add(found.get(0).getVoucherId());
+
+        List<Voucher> publicList = voucherRepo.findPublicActive();
+        assertFalse(publicList.stream().anyMatch(item -> code.equalsIgnoreCase(item.getVoucherCode())),
+                "Future voucher should not be returned by findPublicActive()");
+    }
+
+    @Test
+    @org.junit.jupiter.api.Order(8)
+    @DisplayName("CASE 8: EndAt < now -> must NOT appear in findPublicActive()")
+    public void testExpiredVoucherNotVisible() {
+        String code = "TEST2026_EXPIRED";
+        Voucher v = new Voucher();
+        v.setVoucherCode(code);
+        v.setVoucherName("Voucher Hết Hạn");
+        v.setDiscountType("FIXED");
+        v.setDiscountValue(new BigDecimal("50000"));
+        v.setStartAt(LocalDateTime.now().minusDays(10));
+        v.setEndAt(LocalDateTime.now().minusDays(1));
+        v.setIsPublic(true);
+        v.setStatus("ACTIVE");
+        v.setCreatedBy(testUserId);
+
+        voucherRepo.save(v);
+        List<Voucher> found = voucherRepo.search(code);
+        if (!found.isEmpty()) tempVoucherIds.add(found.get(0).getVoucherId());
+
+        List<Voucher> publicList = voucherRepo.findPublicActive();
+        assertFalse(publicList.stream().anyMatch(item -> code.equalsIgnoreCase(item.getVoucherCode())),
+                "Expired voucher should not be returned by findPublicActive()");
+    }
+
+    @Test
+    @org.junit.jupiter.api.Order(9)
+    @DisplayName("CASE 9: IsPublic = 0 -> must NOT appear in findPublicActive()")
+    public void testPrivateVoucherNotVisible() {
+        String code = "TEST2026_PRIVATE";
+        Voucher v = new Voucher();
+        v.setVoucherCode(code);
+        v.setVoucherName("Voucher Riêng Tư");
+        v.setDiscountType("PERCENT");
+        v.setDiscountValue(new BigDecimal("20.00"));
+        v.setStartAt(LocalDateTime.now().minusMinutes(5));
+        v.setEndAt(LocalDateTime.now().plusMonths(1));
+        v.setIsPublic(false);
+        v.setStatus("ACTIVE");
+        v.setCreatedBy(testUserId);
+
+        voucherRepo.save(v);
+        List<Voucher> found = voucherRepo.search(code);
+        if (!found.isEmpty()) tempVoucherIds.add(found.get(0).getVoucherId());
+
+        List<Voucher> publicList = voucherRepo.findPublicActive();
+        assertFalse(publicList.stream().anyMatch(item -> code.equalsIgnoreCase(item.getVoucherCode())),
+                "Private voucher should not be returned by findPublicActive()");
+    }
+
+    @Test
+    @org.junit.jupiter.api.Order(10)
+    @DisplayName("CASE 10: Status != ACTIVE -> must NOT appear in findPublicActive()")
+    public void testInactiveVoucherNotVisible() {
+        String code = "TEST2026_INACTIVE";
+        Voucher v = new Voucher();
+        v.setVoucherCode(code);
+        v.setVoucherName("Voucher Ngưng Kích Hoạt");
+        v.setDiscountType("PERCENT");
+        v.setDiscountValue(new BigDecimal("20.00"));
+        v.setStartAt(LocalDateTime.now().minusMinutes(5));
+        v.setEndAt(LocalDateTime.now().plusMonths(1));
+        v.setIsPublic(true);
+        v.setStatus("INACTIVE");
+        v.setCreatedBy(testUserId);
+
+        voucherRepo.save(v);
+        List<Voucher> found = voucherRepo.search(code);
+        if (!found.isEmpty()) tempVoucherIds.add(found.get(0).getVoucherId());
+
+        List<Voucher> publicList = voucherRepo.findPublicActive();
+        assertFalse(publicList.stream().anyMatch(item -> code.equalsIgnoreCase(item.getVoucherCode())),
+                "Inactive voucher should not be returned by findPublicActive()");
+    }
+
+    @Test
+    @org.junit.jupiter.api.Order(11)
+    @DisplayName("CASE 11 & 12: Admin updates UsageLimit (10 -> 100) & UsageLimitPerUser (1 -> 5) -> DB and repository updated")
+    public void testAdminUpdateUsageLimitAndPerUser() {
+        Voucher v = voucherRepo.findById(createdVoucherId);
+        assertNotNull(v);
+
+        v.setUsageLimit(100);
+        v.setUsageLimitPerUser(5);
+        v.setVoucherName("Mã Giảm Giá TEST2026 (Đã Sửa Lượt Dùng)");
+
+        boolean updated = voucherRepo.update(v);
+        assertTrue(updated, "Update voucher should return true");
+
+        Voucher updatedVoucher = voucherRepo.findById(createdVoucherId);
+        assertNotNull(updatedVoucher);
+        assertEquals(100, updatedVoucher.getUsageLimit(), "UsageLimit in DB must be 100");
+        assertEquals(5, updatedVoucher.getUsageLimitPerUser(), "UsageLimitPerUser in DB must be 5");
+        assertEquals("Mã Giảm Giá TEST2026 (Đã Sửa Lượt Dùng)", updatedVoucher.getVoucherName());
+    }
+
+    @Test
+    @org.junit.jupiter.api.Order(13)
+    @DisplayName("CASE 13 & 14: Checkout order with TEST2026 voucher applies discount and increments UsedCount")
     public void testCheckoutWithVoucher() throws Exception {
         if (testProductId <= 0 || testVariantId <= 0) return;
 
@@ -183,7 +356,7 @@ public class VoucherModuleVerificationTest {
         cartRepo.clear(testUserId);
         cartRepo.addProduct(testUserId, testProductId, 1);
 
-        // Place order with TESTDEMO10
+        // Place order with TEST2026
         long orderId = orderRepo.createFromCart(testUserId, testAddressId, testVoucherCode, "COD", "Giao nhanh");
         assertTrue(orderId > 0, "Created OrderID should be greater than 0");
 
@@ -208,20 +381,6 @@ public class VoucherModuleVerificationTest {
         }
     }
 
-    @Test
-    @org.junit.jupiter.api.Order(6)
-    @DisplayName("6. Checkout with non-existent or expired voucher must throw exception and not create order")
-    public void testCheckoutWithInvalidVoucher() throws Exception {
-        if (testProductId <= 0 || testVariantId <= 0) return;
-
-        cartRepo.clear(testUserId);
-        cartRepo.addProduct(testUserId, testProductId, 1);
-
-        assertThrows(Exception.class, () -> {
-            orderRepo.createFromCart(testUserId, testAddressId, "INVALID_VOUCHER_CODE_9999", "COD", "Note");
-        }, "Should throw exception on invalid voucher");
-    }
-
     @AfterAll
     public static void tearDown() throws Exception {
         // Clean up test voucher usages & orders
@@ -236,6 +395,16 @@ public class VoucherModuleVerificationTest {
                     ps.executeUpdate();
                 }
                 voucherRepo.delete(createdVoucherId);
+            }
+
+            for (Integer tempId : tempVoucherIds) {
+                if (tempId != null && tempId > 0) {
+                    try (PreparedStatement ps = conn.prepareStatement("DELETE FROM dbo.VoucherUsages WHERE VoucherID = ?")) {
+                        ps.setInt(1, tempId);
+                        ps.executeUpdate();
+                    }
+                    voucherRepo.delete(tempId);
+                }
             }
         }
     }

@@ -55,6 +55,9 @@
                             Hiệu lực dài lâu
                         </c:otherwise>
                     </c:choose>
+                    <c:if test="${not empty v.usageLimit and v.usageLimit > 0}">
+                        · Còn lại: ${v.usageLimit - v.usedCount > 0 ? (v.usageLimit - v.usedCount) : 0} lượt
+                    </c:if>
                 </small>
                 
                 <button type="button" data-copy="${v.voucherCode}">Sao chép mã</button>

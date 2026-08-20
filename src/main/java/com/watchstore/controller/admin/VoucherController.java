@@ -16,7 +16,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
+import java.util.List;
 
 @WebServlet(urlPatterns = {"/manage/admin/vouchers", "/manage/admin/vouchers/*"})
 public class VoucherController extends HttpServlet {
@@ -63,12 +63,12 @@ public class VoucherController extends HttpServlet {
             case "/add": {
                 req.setAttribute("adminArea", "admin");
                 req.setAttribute("pageTitle", "Thêm voucher");
-                
+
                 LocalDateTime now = LocalDateTime.now();
                 req.setAttribute("minDateTimeFormatted", now.format(DATE_TIME_FORMATTER));
                 req.setAttribute("startAtFormatted", now.format(DATE_TIME_FORMATTER));
                 req.setAttribute("endAtFormatted", now.plusMonths(1).format(DATE_TIME_FORMATTER));
-                
+
                 req.setAttribute("contentPage", "/views/admin/voucher-form.jsp");
                 req.getRequestDispatcher("/views/layout/admin-layout.jsp").forward(req, resp);
                 break;
@@ -210,9 +210,10 @@ public class VoucherController extends HttpServlet {
 
         try {
             if (usageLimitStr != null && !usageLimitStr.isBlank()) {
-                voucher.setUsageLimit(Integer.parseInt(usageLimitStr.trim()));
+                int ul = Integer.parseInt(usageLimitStr.trim());
+                voucher.setUsageLimit(Math.max(ul, 0));
             } else {
-                voucher.setUsageLimit(null);
+                voucher.setUsageLimit(0);
             }
         } catch (Exception e) {
             errorMessage = "Giới hạn sử dụng không hợp lệ.";
@@ -220,7 +221,8 @@ public class VoucherController extends HttpServlet {
 
         try {
             if (usageLimitPerUserStr != null && !usageLimitPerUserStr.isBlank()) {
-                voucher.setUsageLimitPerUser(Integer.parseInt(usageLimitPerUserStr.trim()));
+                int ulpu = Integer.parseInt(usageLimitPerUserStr.trim());
+                voucher.setUsageLimitPerUser(Math.max(ulpu, 1));
             } else {
                 voucher.setUsageLimitPerUser(1);
             }
@@ -229,30 +231,14 @@ public class VoucherController extends HttpServlet {
         }
 
         // Parse StartAt & EndAt
-        LocalDateTime startAt = null;
-        LocalDateTime endAt = null;
+        LocalDateTime startAt = parseDateTime(startAtStr);
+        LocalDateTime endAt = parseDateTime(endAtStr);
 
-        if (startAtStr != null && !startAtStr.isBlank()) {
-            try {
-                startAt = LocalDateTime.parse(startAtStr.trim(), DATE_TIME_FORMATTER);
-            } catch (DateTimeParseException e) {
-                try {
-                    startAt = LocalDateTime.parse(startAtStr.trim());
-                } catch (Exception ex) {
-                    errorMessage = "Thời gian bắt đầu không đúng định dạng.";
-                }
-            }
+        if (startAt == null && startAtStr != null && !startAtStr.isBlank()) {
+            errorMessage = "Thời gian bắt đầu không đúng định dạng.";
         }
-        if (endAtStr != null && !endAtStr.isBlank()) {
-            try {
-                endAt = LocalDateTime.parse(endAtStr.trim(), DATE_TIME_FORMATTER);
-            } catch (DateTimeParseException e) {
-                try {
-                    endAt = LocalDateTime.parse(endAtStr.trim());
-                } catch (Exception ex) {
-                    errorMessage = "Thời gian kết thúc không đúng định dạng.";
-                }
-            }
+        if (endAt == null && endAtStr != null && !endAtStr.isBlank()) {
+            errorMessage = "Thời gian kết thúc không đúng định dạng.";
         }
 
         voucher.setStartAt(startAt);
@@ -292,14 +278,8 @@ public class VoucherController extends HttpServlet {
                     errorMessage = "Giá trị giảm tối đa không được là số âm.";
                 } else if (voucher.getMinimumOrderValue() != null && voucher.getMinimumOrderValue().compareTo(BigDecimal.ZERO) < 0) {
                     errorMessage = "Đơn hàng tối thiểu không được là số âm.";
-                } else if (voucher.getUsageLimit() != null && voucher.getUsageLimit() < 0) {
-                    errorMessage = "Giới hạn sử dụng không được là số âm.";
-                } else if (voucher.getUsageLimitPerUser() != null && voucher.getUsageLimitPerUser() < 0) {
-                    errorMessage = "Lượt dùng / khách không được là số âm.";
                 } else if (voucher.getStartAt() == null) {
                     errorMessage = "Vui lòng chọn Thời gian bắt đầu.";
-                } else if (voucherId == null && voucher.getStartAt().isBefore(LocalDateTime.now().minusMinutes(2))) {
-                    errorMessage = "Thời gian bắt đầu không được nằm trong quá khứ.";
                 } else if (voucher.getEndAt() == null) {
                     errorMessage = "Vui lòng chọn Thời gian kết thúc.";
                 } else if (!voucher.getEndAt().isAfter(voucher.getStartAt())) {
@@ -338,16 +318,44 @@ public class VoucherController extends HttpServlet {
             } else {
                 voucher.setCreatedBy(1);
             }
-            voucherRepository.save(voucher);
+            boolean saved = voucherRepository.save(voucher);
+            if (saved) {
+                req.getSession().setAttribute("successMessage", "Tạo voucher mới thành công.");
+            } else {
+                req.getSession().setAttribute("errorMessage", "Không thể tạo voucher. Vui lòng thử lại.");
+            }
         } else {
             Voucher existing = voucherRepository.findById(voucherId);
             if (existing != null) {
                 voucher.setUsedCount(existing.getUsedCount());
                 voucher.setCreatedBy(existing.getCreatedBy());
             }
-            voucherRepository.update(voucher);
+            boolean updated = voucherRepository.update(voucher);
+            if (updated) {
+                req.getSession().setAttribute("successMessage", "Cập nhật voucher thành công.");
+            } else {
+                req.getSession().setAttribute("errorMessage", "Không thể cập nhật voucher. Vui lòng thử lại.");
+            }
         }
 
         resp.sendRedirect(req.getContextPath() + "/manage/admin/vouchers");
+    }
+
+    private LocalDateTime parseDateTime(String str) {
+        if (str == null || str.isBlank()) return null;
+        String s = str.trim();
+        List<DateTimeFormatter> formatters = List.of(
+                DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss"),
+                DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"),
+                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"),
+                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"),
+                DateTimeFormatter.ISO_LOCAL_DATE_TIME
+        );
+        for (DateTimeFormatter dtf : formatters) {
+            try {
+                return LocalDateTime.parse(s, dtf);
+            } catch (Exception ignored) {}
+        }
+        return null;
     }
 }

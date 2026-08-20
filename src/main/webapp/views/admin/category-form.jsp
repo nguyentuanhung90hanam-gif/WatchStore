@@ -67,25 +67,6 @@
                        required>
             </div>
 
-            <%-- Parent Category --%>
-            <div>
-                <label style="display:block;font-weight:600;margin-bottom:6px;color:#334155;font-size:14px;">
-                    Danh mục cha
-                </label>
-                <select name="parentCategoryId"
-                        style="width:100%;height:42px;padding:0 14px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px;box-sizing:border-box;background:#fff;">
-                    <option value="">-- Không có (danh mục gốc) --</option>
-                    <c:forEach items="${allCategories}" var="parent">
-                        <c:if test="${parent.categoryId != category.categoryId}">
-                            <option value="${parent.categoryId}"
-                                ${category.parentCategoryId == parent.categoryId ? 'selected' : ''}>
-                                ${parent.categoryName}
-                            </option>
-                        </c:if>
-                    </c:forEach>
-                </select>
-            </div>
-
             <%-- Status --%>
             <div>
                 <label style="display:block;font-weight:600;margin-bottom:6px;color:#334155;font-size:14px;">
@@ -100,7 +81,7 @@
             </div>
 
             <%-- Image URL --%>
-            <div>
+            <div style="grid-column: span 2;">
                 <label style="display:block;font-weight:600;margin-bottom:6px;color:#334155;font-size:14px;">
                     URL Ảnh danh mục
                 </label>

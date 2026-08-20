@@ -30,7 +30,7 @@ public class VoucherRepositoryImpl implements VoucherRepository {
         if (rs.getObject("UsageLimit") != null) {
             v.setUsageLimit(rs.getInt("UsageLimit"));
         } else {
-            v.setUsageLimit(null);
+            v.setUsageLimit(0);
         }
         v.setUsageLimitPerUser(rs.getInt("UsageLimitPerUser"));
         v.setUsedCount(rs.getInt("UsedCount"));
@@ -47,7 +47,7 @@ public class VoucherRepositoryImpl implements VoucherRepository {
 
         v.setIsPublic(rs.getBoolean("IsPublic"));
         v.setStatus(rs.getString("Status"));
-        
+
         if (rs.getObject("CreatedBy") != null) {
             v.setCreatedBy(rs.getInt("CreatedBy"));
         } else {
@@ -220,13 +220,13 @@ public class VoucherRepositoryImpl implements VoucherRepository {
 
             ps.setBigDecimal(7, voucher.getMinimumOrderValue() != null ? voucher.getMinimumOrderValue() : BigDecimal.ZERO);
 
-            if (voucher.getUsageLimit() != null) {
+            if (voucher.getUsageLimit() != null && voucher.getUsageLimit() > 0) {
                 ps.setInt(8, voucher.getUsageLimit());
             } else {
-                ps.setNull(8, Types.INTEGER);
+                ps.setInt(8, 0);
             }
 
-            ps.setInt(9, voucher.getUsageLimitPerUser() != null ? voucher.getUsageLimitPerUser() : 1);
+            ps.setInt(9, voucher.getUsageLimitPerUser() != null && voucher.getUsageLimitPerUser() > 0 ? voucher.getUsageLimitPerUser() : 1);
             ps.setInt(10, voucher.getUsedCount() != null ? voucher.getUsedCount() : 0);
 
             ps.setTimestamp(11, voucher.getStartAt() == null ? null : Timestamp.valueOf(voucher.getStartAt()));
@@ -294,13 +294,13 @@ public class VoucherRepositoryImpl implements VoucherRepository {
 
             ps.setBigDecimal(7, voucher.getMinimumOrderValue() != null ? voucher.getMinimumOrderValue() : BigDecimal.ZERO);
 
-            if (voucher.getUsageLimit() != null) {
+            if (voucher.getUsageLimit() != null && voucher.getUsageLimit() > 0) {
                 ps.setInt(8, voucher.getUsageLimit());
             } else {
-                ps.setNull(8, Types.INTEGER);
+                ps.setInt(8, 0);
             }
 
-            ps.setInt(9, voucher.getUsageLimitPerUser() != null ? voucher.getUsageLimitPerUser() : 1);
+            ps.setInt(9, voucher.getUsageLimitPerUser() != null && voucher.getUsageLimitPerUser() > 0 ? voucher.getUsageLimitPerUser() : 1);
             ps.setInt(10, voucher.getUsedCount() != null ? voucher.getUsedCount() : 0);
 
             ps.setTimestamp(11, voucher.getStartAt() == null ? null : Timestamp.valueOf(voucher.getStartAt()));
@@ -376,17 +376,17 @@ public class VoucherRepositoryImpl implements VoucherRepository {
     }
 
     @Override
-    public List<Voucher> findPublicActiveVouchers() {
+    public List<Voucher> findPublicActive() {
         List<Voucher> list = new ArrayList<>();
         String sql = """
             SELECT *
             FROM Vouchers
             WHERE Status = 'ACTIVE'
               AND IsPublic = 1
-              AND StartAt <= SYSDATETIME()
-              AND EndAt >= SYSDATETIME()
+              AND StartAt <= GETDATE()
+              AND EndAt >= GETDATE()
               AND (UsageLimit IS NULL OR UsageLimit = 0 OR UsedCount < UsageLimit)
-            ORDER BY DiscountValue DESC, VoucherID DESC
+            ORDER BY StartAt DESC, VoucherID DESC
             """;
 
         try (
@@ -402,5 +402,10 @@ public class VoucherRepositoryImpl implements VoucherRepository {
         }
 
         return list;
+    }
+
+    @Override
+    public List<Voucher> findPublicActiveVouchers() {
+        return findPublicActive();
     }
 }

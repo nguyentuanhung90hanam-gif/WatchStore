@@ -105,6 +105,10 @@ public class AdminController extends HttpServlet {
                 (VoucherRepository)
                         getServletContext()
                                 .getAttribute("voucherRepository");
+        if (vouchers == null) {
+            vouchers = new com.watchstore.repository.VoucherRepositoryImpl();
+            getServletContext().setAttribute("voucherRepository", vouchers);
+        }
 
         categories =
                 (CategoryRepository)

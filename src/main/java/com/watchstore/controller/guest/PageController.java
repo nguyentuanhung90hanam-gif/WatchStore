@@ -2,6 +2,7 @@ package com.watchstore.controller.guest;
 
 import com.watchstore.model.Product;
 import com.watchstore.model.User;
+import com.watchstore.model.Voucher;
 import com.watchstore.repository.AddressRepository;
 import com.watchstore.repository.CartRepository;
 import com.watchstore.repository.CommentRepository;
@@ -12,6 +13,8 @@ import com.watchstore.repository.ProductPage;
 import com.watchstore.repository.ReviewRepository;
 import com.watchstore.repository.UserAccountRepository;
 import com.watchstore.repository.WishlistRepository;
+import com.watchstore.repository.VoucherRepository;
+import com.watchstore.repository.VoucherRepositoryImpl;
 import com.watchstore.util.ViewRouter;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -23,6 +26,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 @WebServlet("/page/*")
@@ -36,7 +40,7 @@ public class PageController extends HttpServlet {
     private CartRepository cartRepository;
     private ReviewRepository reviewRepository;
     private CommentRepository commentRepository;
-    private com.watchstore.repository.VoucherRepository voucherRepository;
+    private VoucherRepository voucherRepository;
 
     @Override
     public void init() {
@@ -49,8 +53,11 @@ public class PageController extends HttpServlet {
         cartRepository = (CartRepository) getServletContext().getAttribute("cartRepository");
         reviewRepository = (ReviewRepository) getServletContext().getAttribute("reviewRepository");
         commentRepository = (CommentRepository) getServletContext().getAttribute("commentRepository");
-        voucherRepository = (com.watchstore.repository.VoucherRepository) getServletContext().getAttribute("voucherRepository");
-        if (voucherRepository == null) voucherRepository = new com.watchstore.repository.VoucherRepositoryImpl();
+        voucherRepository = (VoucherRepository) getServletContext().getAttribute("voucherRepository");
+        if (voucherRepository == null) {
+            voucherRepository = new VoucherRepositoryImpl();
+            getServletContext().setAttribute("voucherRepository", voucherRepository);
+        }
     }
 
     @Override
@@ -60,6 +67,9 @@ public class PageController extends HttpServlet {
     ) throws ServletException, IOException {
 
         String path = req.getPathInfo() == null ? "/home" : req.getPathInfo();
+        if (path.length() > 1 && path.endsWith("/")) {
+            path = path.substring(0, path.length() - 1);
+        }
         User current = (User) req.getSession().getAttribute("user");
 
         // Cart count for customer
@@ -166,20 +176,28 @@ public class PageController extends HttpServlet {
             return;
         }
 
-        if ("/reviews".equals(path) && current != null) {
-            if (reviewRepository != null) {
-                req.setAttribute("myReviews", reviewRepository.findByUserId(current.getUserId()));
-                req.setAttribute("pendingReviewItems", reviewRepository.findPendingReviewItems(current.getUserId()));
-            } else {
-                req.setAttribute("myReviews", Collections.emptyList());
-                req.setAttribute("pendingReviewItems", Collections.emptyList());
+        if ("/reviews".equals(path)) {
+            if (current != null) {
+                if (reviewRepository != null) {
+                    req.setAttribute("myReviews", reviewRepository.findByUserId(current.getUserId()));
+                    req.setAttribute("pendingReviewItems", reviewRepository.findPendingReviewItems(current.getUserId()));
+                } else {
+                    req.setAttribute("myReviews", Collections.emptyList());
+                    req.setAttribute("pendingReviewItems", Collections.emptyList());
+                }
             }
         }
 
-        if ("/vouchers".equals(path)) {
-            if (voucherRepository != null) {
-                req.setAttribute("vouchers", voucherRepository.findPublicActiveVouchers());
-            } else {
+        if ("/vouchers".equalsIgnoreCase(path)) {
+            try {
+                if (voucherRepository != null) {
+                    List<Voucher> publicVouchers = voucherRepository.findPublicActive();
+                    req.setAttribute("vouchers", publicVouchers != null ? publicVouchers : Collections.emptyList());
+                } else {
+                    req.setAttribute("vouchers", Collections.emptyList());
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
                 req.setAttribute("vouchers", Collections.emptyList());
             }
         }

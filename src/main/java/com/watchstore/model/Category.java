@@ -3,7 +3,6 @@ package com.watchstore.model;
 public class Category {
 
     private Integer categoryId;
-    private Integer parentCategoryId;
     private String categoryCode;
     private String categoryName;
     private String slug;
@@ -15,9 +14,8 @@ public class Category {
     public Category() {
     }
 
-    public Category(Integer categoryId, Integer parentCategoryId, String categoryCode, String categoryName, String slug, String description, String imageUrl, Integer displayOrder, String status) {
+    public Category(Integer categoryId, String categoryCode, String categoryName, String slug, String description, String imageUrl, Integer displayOrder, String status) {
         this.categoryId = categoryId;
-        this.parentCategoryId = parentCategoryId;
         this.categoryCode = categoryCode;
         this.categoryName = categoryName;
         this.slug = slug;
@@ -33,23 +31,6 @@ public class Category {
 
     public void setCategoryId(Integer categoryId) {
         this.categoryId = categoryId;
-    }
-
-    public Integer getParentCategoryId() {
-        return parentCategoryId;
-    }
-
-    public void setParentCategoryId(Integer parentCategoryId) {
-        this.parentCategoryId = parentCategoryId;
-    }
-
-    // Alias for backward compatibility
-    public Integer getParentId() {
-        return parentCategoryId;
-    }
-
-    public void setParentId(Integer parentId) {
-        this.parentCategoryId = parentId;
     }
 
     public String getCategoryCode() {

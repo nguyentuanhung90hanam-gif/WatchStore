@@ -30,7 +30,7 @@ public class CategoryController extends HttpServlet {
         req.setAttribute("pageTitle", "Quản lý danh mục");
         req.setAttribute("moduleTitle", "Danh mục sản phẩm");
         req.setAttribute("moduleKicker", "PHÂN LOẠI SẢN PHẨM");
-        req.setAttribute("moduleDescription", "Quản lý danh mục đồng hồ, phân cấp và thứ tự hiển thị.");
+        req.setAttribute("moduleDescription", "Quản lý danh mục đồng hồ và thứ tự hiển thị.");
         req.setAttribute("primaryAction", "Thêm danh mục");
     }
 
@@ -38,7 +38,6 @@ public class CategoryController extends HttpServlet {
                                List<Category> categories) throws ServletException, IOException {
         setCommonAttributes(req);
         req.setAttribute("categories", categories);
-        req.setAttribute("allCategories", categoryRepository.findAll()); // for parent dropdown
         req.setAttribute("contentPage", "/views/shared/management-module.jsp");
         req.getRequestDispatcher("/views/layout/admin-layout.jsp").forward(req, resp);
     }
@@ -64,7 +63,6 @@ public class CategoryController extends HttpServlet {
             case "/add": {
                 setCommonAttributes(req);
                 req.setAttribute("pageTitle", "Thêm danh mục");
-                req.setAttribute("allCategories", categoryRepository.findAll());
                 req.setAttribute("contentPage", "/views/admin/category-form.jsp");
                 req.getRequestDispatcher("/views/layout/admin-layout.jsp").forward(req, resp);
                 break;
@@ -82,7 +80,6 @@ public class CategoryController extends HttpServlet {
                 }
                 setCommonAttributes(req);
                 req.setAttribute("pageTitle", "Sửa danh mục");
-                req.setAttribute("allCategories", categoryRepository.findAll());
                 req.setAttribute("contentPage", "/views/admin/category-form.jsp");
                 req.getRequestDispatcher("/views/layout/admin-layout.jsp").forward(req, resp);
                 break;
@@ -93,7 +90,7 @@ public class CategoryController extends HttpServlet {
                     try {
                         int id = Integer.parseInt(idStr);
                         if (categoryRepository.isCategoryInUse(id)) {
-                            req.getSession().setAttribute("errorMessage", "Không thể xóa danh mục này vì có danh mục con hoặc sản phẩm thuộc danh mục.");
+                            req.getSession().setAttribute("errorMessage", "Không thể xóa danh mục này vì có sản phẩm thuộc danh mục.");
                         } else {
                             categoryRepository.delete(id);
                             req.getSession().setAttribute("successMessage", "Xóa danh mục thành công.");
@@ -150,10 +147,9 @@ public class CategoryController extends HttpServlet {
         String description  = trim(req.getParameter("description"));
         String imageUrl     = trim(req.getParameter("imageUrl"));
         String status       = trim(req.getParameter("status"));
-        String parentStr    = trim(req.getParameter("parentCategoryId"));
 
         // Validation
-        String error = validateCategory(categoryCode, categoryName, slug, description, imageUrl, status, parentStr, null);
+        String error = validateCategory(categoryCode, categoryName, slug, description, imageUrl, status, null);
         if (error == null) {
             // Duplicate check
             if (categoryRepository.existsByCode(categoryCode, null)) {
@@ -167,16 +163,15 @@ public class CategoryController extends HttpServlet {
             setCommonAttributes(req);
             req.setAttribute("pageTitle", "Thêm danh mục");
             req.setAttribute("errorMessage", error);
-            req.setAttribute("allCategories", categoryRepository.findAll());
             // Preserve form data
-            Category draft = buildCategory(null, parentStr, categoryCode, categoryName, slug, description, imageUrl, status);
+            Category draft = buildCategory(null, categoryCode, categoryName, slug, description, imageUrl, status);
             req.setAttribute("category", draft);
             req.setAttribute("contentPage", "/views/admin/category-form.jsp");
             req.getRequestDispatcher("/views/layout/admin-layout.jsp").forward(req, resp);
             return;
         }
 
-        Category c = buildCategory(null, parentStr, categoryCode, categoryName, slug, description, imageUrl, status);
+        Category c = buildCategory(null, categoryCode, categoryName, slug, description, imageUrl, status);
         categoryRepository.save(c);
         resp.sendRedirect(req.getContextPath() + "/manage/admin/categories");
     }
@@ -193,7 +188,6 @@ public class CategoryController extends HttpServlet {
         String description  = trim(req.getParameter("description"));
         String imageUrl     = trim(req.getParameter("imageUrl"));
         String status       = trim(req.getParameter("status"));
-        String parentStr    = trim(req.getParameter("parentCategoryId"));
 
         Integer id = null;
         try {
@@ -201,7 +195,7 @@ public class CategoryController extends HttpServlet {
         } catch (NumberFormatException ignored) {}
 
         // Validation
-        String error = validateCategory(categoryCode, categoryName, slug, description, imageUrl, status, parentStr, id);
+        String error = validateCategory(categoryCode, categoryName, slug, description, imageUrl, status, id);
         if (error == null) {
             if (categoryRepository.existsByCode(categoryCode, id)) {
                 error = "Mã danh mục \"" + categoryCode + "\" đã được sử dụng bởi danh mục khác.";
@@ -214,15 +208,14 @@ public class CategoryController extends HttpServlet {
             setCommonAttributes(req);
             req.setAttribute("pageTitle", "Sửa danh mục");
             req.setAttribute("errorMessage", error);
-            req.setAttribute("allCategories", categoryRepository.findAll());
-            Category draft = buildCategory(id, parentStr, categoryCode, categoryName, slug, description, imageUrl, status);
+            Category draft = buildCategory(id, categoryCode, categoryName, slug, description, imageUrl, status);
             req.setAttribute("category", draft);
             req.setAttribute("contentPage", "/views/admin/category-form.jsp");
             req.getRequestDispatcher("/views/layout/admin-layout.jsp").forward(req, resp);
             return;
         }
 
-        Category c = buildCategory(id, parentStr, categoryCode, categoryName, slug, description, imageUrl, status);
+        Category c = buildCategory(id, categoryCode, categoryName, slug, description, imageUrl, status);
         categoryRepository.update(c);
         resp.sendRedirect(req.getContextPath() + "/manage/admin/categories");
     }
@@ -234,7 +227,7 @@ public class CategoryController extends HttpServlet {
     }
 
     private String validateCategory(String code, String name, String slug, String description, String imageUrl,
-                                    String status, String parentStr, Integer excludeId) {
+                                    String status, Integer excludeId) {
         if (code.isBlank())   return "Mã danh mục không được để trống.";
         if (code.length() > 40) return "Mã danh mục không được vượt quá 40 ký tự.";
         if (name.isBlank())   return "Tên danh mục không được để trống.";
@@ -246,28 +239,13 @@ public class CategoryController extends HttpServlet {
         }
         if (!description.isEmpty() && description.length() > 1000) return "Mô tả danh mục không được vượt quá 1000 ký tự.";
         if (!imageUrl.isEmpty() && imageUrl.length() > 500) return "URL Ảnh danh mục không được vượt quá 500 ký tự.";
-        if (!parentStr.isEmpty()) {
-            try {
-                int parentId = Integer.parseInt(parentStr);
-                if (parentId > 0) {
-                    if (excludeId != null && parentId == excludeId) {
-                        return "Danh mục cha không thể là chính danh mục đang sửa.";
-                    }
-                    if (categoryRepository.findById(parentId) == null) {
-                        return "Danh mục cha được chọn không tồn tại.";
-                    }
-                }
-            } catch (NumberFormatException e) {
-                return "Danh mục cha không hợp lệ.";
-            }
-        }
         if (!"ACTIVE".equals(status) && !"INACTIVE".equals(status)) {
             return "Trạng thái không hợp lệ (phải là ACTIVE hoặc INACTIVE).";
         }
         return null;
     }
 
-    private Category buildCategory(Integer id, String parentStr, String code, String name,
+    private Category buildCategory(Integer id, String code, String name,
                                    String slug, String description, String imageUrl,
                                    String status) {
         Category c = new Category();
@@ -279,17 +257,6 @@ public class CategoryController extends HttpServlet {
         c.setImageUrl(imageUrl.isEmpty() ? null : imageUrl);
         c.setDisplayOrder(0);
         c.setStatus(status.isEmpty() ? "ACTIVE" : status);
-
-        if (parentStr != null && !parentStr.isEmpty()) {
-            try {
-                int parentId = Integer.parseInt(parentStr);
-                c.setParentCategoryId(parentId > 0 ? parentId : null);
-            } catch (NumberFormatException e) {
-                c.setParentCategoryId(null);
-            }
-        } else {
-            c.setParentCategoryId(null);
-        }
 
         return c;
     }
