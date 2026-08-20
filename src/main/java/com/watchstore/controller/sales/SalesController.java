@@ -7,8 +7,10 @@ import com.watchstore.enums.OrderStatus;
 import com.watchstore.model.User; // Đã bổ sung import User
 import com.watchstore.repository.CustomerRepository;
 import com.watchstore.repository.OrderRepository;
+import com.watchstore.repository.ProductRepository;
 import com.watchstore.repository.WarrantyRepository;
 import com.watchstore.util.ViewRouter;
+import java.sql.Date;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -27,6 +29,10 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import com.watchstore.model.Review;
+import com.watchstore.model.ProductComment;
+import com.watchstore.repository.ReviewRepository;
+import com.watchstore.repository.CommentRepository;
 import java.util.List;
 import java.util.Map;
 
@@ -36,6 +42,8 @@ public class SalesController extends HttpServlet {
     private CustomerRepository customerRepository;
     private OrderRepository orderRepository;
     private WarrantyRepository warrantyRepository;
+    private ReviewRepository reviewRepository;
+    private CommentRepository commentRepository;
     private com.watchstore.repository.VariantRepository variantRepository = new com.watchstore.repository.VariantRepository();
 
     private static final Map<String, String[]> PAGES = Map.ofEntries(
@@ -56,6 +64,8 @@ public class SalesController extends HttpServlet {
         customerRepository = (CustomerRepository) getServletContext().getAttribute("customerRepository");
         orderRepository = (OrderRepository) getServletContext().getAttribute("orderRepository");
         warrantyRepository = (WarrantyRepository) getServletContext().getAttribute("warrantyRepository");
+        reviewRepository = (ReviewRepository) getServletContext().getAttribute("reviewRepository");
+        commentRepository = (CommentRepository) getServletContext().getAttribute("commentRepository");
     }
 
     @Override
@@ -133,6 +143,10 @@ public class SalesController extends HttpServlet {
                 req.getSession().setAttribute("flash", "Lỗi: Quản trị viên không thực hiện lập phiếu bảo hành trong luồng nghiệp vụ thông thường.");
                 resp.sendRedirect(req.getContextPath() + "/manage/sales/warranty");
                 return;
+            }
+            ProductRepository prodRepo = (ProductRepository) getServletContext().getAttribute("productRepository");
+            if (prodRepo != null) {
+                req.setAttribute("activeProducts", prodRepo.findAll());
             }
             req.setAttribute("moduleTitle", "Thêm phiếu bảo hành");
             ViewRouter.admin(req, resp, "sales/warranty-add", "Thêm phiếu bảo hành", "sales");
@@ -483,11 +497,35 @@ public class SalesController extends HttpServlet {
             return;
         }
         try {
-            int orderId      = Integer.parseInt(req.getParameter("orderId"));
+            String warrantyType = req.getParameter("warrantyType");
+            String orderIdStr   = req.getParameter("orderId");
+
+            if ("OFFLINE".equalsIgnoreCase(warrantyType) || orderIdStr == null || orderIdStr.trim().isEmpty() || "0".equals(orderIdStr.trim())) {
+                String customerName  = req.getParameter("customerName");
+                String customerPhone = req.getParameter("customerPhone");
+                String customerEmail = req.getParameter("customerEmail");
+                String productName   = req.getParameter("productName");
+                String serial        = req.getParameter("serial");
+                int months           = 12;
+                try { months = Integer.parseInt(req.getParameter("months")); } catch (Exception ignored) {}
+                String buyDateStr    = req.getParameter("buyDate");
+                Date buyDate         = null;
+                if (buyDateStr != null && !buyDateStr.isBlank()) {
+                    try { buyDate = Date.valueOf(buyDateStr.trim()); } catch (Exception ignored) {}
+                }
+                String note          = req.getParameter("note");
+                String imageUrl      = req.getParameter("imageUrl");
+
+                warrantyRepository.insertOfflineWarranty(customerName, customerPhone, customerEmail, productName, serial, months, buyDate, note, imageUrl);
+                req.getSession().setAttribute("flash", "Đã lập phiếu bảo hành trực tiếp cho khách mua tại quầy thành công! Trạng thái: Đang xử lý.");
+                resp.sendRedirect(req.getContextPath() + "/manage/sales/warranty");
+                return;
+            }
+
+            int orderId = Integer.parseInt(orderIdStr.trim());
             String productName = req.getParameter("productName");
-            String serial    = req.getParameter("serial");
-            int months       = Integer.parseInt(req.getParameter("months"));
-            String note      = req.getParameter("note");
+            String note        = req.getParameter("note");
+            String imageUrl    = req.getParameter("imageUrl");
 
             if (orderRepository == null) {
                 req.getSession().setAttribute("flash", "Lỗi hệ thống: Không thể kết nối cơ sở dữ liệu đơn hàng.");
@@ -508,33 +546,15 @@ public class SalesController extends HttpServlet {
                 return;
             }
 
-            List<Map<String, Object>> items = orderRepository.getOrderItems(orderId);
-            boolean exists = items.stream().anyMatch(item -> {
-                String pName = String.valueOf(item.get("productName"));
-                String vName = String.valueOf(item.get("variantName"));
-                return productName.equalsIgnoreCase(pName) || productName.equalsIgnoreCase(vName) ||
-                        pName.toLowerCase().contains(productName.toLowerCase()) ||
-                        vName.toLowerCase().contains(productName.toLowerCase());
-            });
-
-            if (!exists) {
-                req.getSession().setAttribute("flash", "Lỗi: Sản phẩm '" + productName + "' không có trong đơn hàng #" + orderId + "!");
-                resp.sendRedirect(req.getContextPath() + "/manage/sales/warranty-add");
-                return;
-            }
-
-            warrantyRepository.insert(orderId, productName, serial, months, note);
+            warrantyRepository.insertOnlineWarranty(orderId, productName, note != null && !note.isBlank() ? note : "Lập phiếu bảo hành tại quầy", imageUrl);
             req.getSession().setAttribute("flash", "Đã tạo phiếu bảo hành thành công!");
             resp.sendRedirect(req.getContextPath() + "/manage/sales/warranty");
             return;
-        } catch (NumberFormatException e) {
-            req.getSession().setAttribute("flash", "Lỗi: Định dạng mã đơn hàng hoặc thời hạn không hợp lệ.");
-            resp.sendRedirect(req.getContextPath() + "/manage/sales/warranty-add");
-            return;
         } catch (Exception e) {
-            req.getSession().setAttribute("flash", "Lỗi khi tạo phiếu bảo hành: " + e.getMessage());
+            Throwable t = e;
+            while (t.getCause() != null) t = t.getCause();
+            req.getSession().setAttribute("flash", "Lỗi: " + (t.getMessage() == null ? "Thao tác không thành công." : t.getMessage()));
             resp.sendRedirect(req.getContextPath() + "/manage/sales/warranty-add");
-            return;
         }
     }
 
@@ -712,116 +732,36 @@ public class SalesController extends HttpServlet {
         ViewRouter.admin(req, resp, "sales/report", "Báo cáo bán hàng", "sales");
     }
 
-    private List<Map<String, Object>> getSampleReviews() {
-        List<Map<String, Object>> list = new ArrayList<>();
-        list.add(new HashMap<>(Map.ofEntries(
-                Map.entry("id", 1),
-                Map.entry("customerName", "Lê Thành Công"),
-                Map.entry("email", "cong.le@example.com"),
-                Map.entry("phone", "0988000007"),
-                Map.entry("productName", "Rolex Datejust 41"),
-                Map.entry("rating", 5),
-                Map.entry("content", "Đồng hồ chạy cực chuẩn, mẫu đẹp hơn mong đợi!"),
-                Map.entry("status", "APPROVED"),
-                Map.entry("createdAt", "2026-08-05"),
-                Map.entry("orderCode", "WS8504"),
-                Map.entry("reply", "Cảm ơn anh Lê Thành Công đã tin tưởng lựa chọn Rolex tại WatchStore. Rất mong được phục vụ anh trong các đơn hàng tới!")
-        )));
-        list.add(new HashMap<>(Map.ofEntries(
-                Map.entry("id", 2),
-                Map.entry("customerName", "Trần Minh Đức"),
-                Map.entry("email", "duc.tran@example.com"),
-                Map.entry("phone", "0988000006"),
-                Map.entry("productName", "Casio G-Shock GA-2100"),
-                Map.entry("rating", 4),
-                Map.entry("content", "Giao hàng nhanh, đóng gói chắc chắn."),
-                Map.entry("status", "PENDING"),
-                Map.entry("createdAt", "2026-08-04"),
-                Map.entry("orderCode", "WS8503"),
-                Map.entry("reply", "")
-        )));
-        list.add(new HashMap<>(Map.ofEntries(
-                Map.entry("id", 3),
-                Map.entry("customerName", "Nguyễn Văn An"),
-                Map.entry("email", "an.nguyen@example.com"),
-                Map.entry("phone", "0988000005"),
-                Map.entry("productName", "Seiko 5 Sports Automatic"),
-                Map.entry("rating", 5),
-                Map.entry("content", "Máy cơ bền bỉ, tích cót lâu."),
-                Map.entry("status", "APPROVED"),
-                Map.entry("createdAt", "2026-08-02"),
-                Map.entry("orderCode", "WS8502"),
-                Map.entry("reply", "")
-        )));
-        list.add(new HashMap<>(Map.ofEntries(
-                Map.entry("id", 4),
-                Map.entry("customerName", "Phạm Quốc Bảo"),
-                Map.entry("email", "bao.pham@example.com"),
-                Map.entry("phone", "0988000004"),
-                Map.entry("productName", "Citizen Eco-Drive"),
-                Map.entry("rating", 1),
-                Map.entry("content", "Hàng bị trầy xước nhẹ ở mặt kính."),
-                Map.entry("status", "REJECTED"),
-                Map.entry("createdAt", "2026-08-01"),
-                Map.entry("orderCode", "WS8501"),
-                Map.entry("reply", "")
-        )));
-        return list;
-    }
-
-    private List<Map<String, Object>> getSampleComments() {
-        List<Map<String, Object>> list = new ArrayList<>();
-        list.add(Map.of("id", 1, "customerName", "Lê Thành Công", "productName", "Rolex Datejust 41", "content", "Mẫu này còn hàng màu đơmi vàng không shop?", "commentDate", "2026-08-05 14:20", "status", "APPROVED"));
-        list.add(Map.of("id", 2, "customerName", "Trần Minh Đức", "productName", "Citizen Eco-Drive", "content", "Shop có hỗ trợ trả góp qua thẻ tín dụng không?", "commentDate", "2026-08-04 10:15", "status", "APPROVED"));
-        list.add(Map.of("id", 3, "customerName", "Nguyễn Văn An", "productName", "Orient Bambino Gen 2", "content", "Bảo hành tại showroom Hà Nội hay chuyển phát về shop?", "commentDate", "2026-08-03 09:45", "status", "PENDING"));
-        list.add(Map.of("id", 4, "customerName", "Hoàng Kim Ngân", "productName", "Casio G-Shock", "content", "Spam quảng cáo vô nghĩa.", "commentDate", "2026-08-02 11:10", "status", "HIDDEN"));
-        return list;
-    }
-
     private void showReviews(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
         String keyword = req.getParameter("keyword");
         String status  = req.getParameter("status");
         String ratingParam = req.getParameter("rating");
 
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> reviews = (List<Map<String, Object>>) req.getSession().getAttribute("sampleReviews");
-        if (reviews == null) {
-            reviews = getSampleReviews();
-            req.getSession().setAttribute("sampleReviews", reviews);
-        }
-
-        List<Map<String, Object>> filtered = new ArrayList<>(reviews);
-
-        if (keyword != null && !keyword.trim().isEmpty()) {
-            String k = keyword.trim().toLowerCase();
-            filtered = filtered.stream().filter(r ->
-                    (r.get("customerName") != null && r.get("customerName").toString().toLowerCase().contains(k)) ||
-                            (r.get("productName")  != null && r.get("productName").toString().toLowerCase().contains(k))  ||
-                            (r.get("content")      != null && r.get("content").toString().toLowerCase().contains(k))
-            ).toList();
-        }
-
-        if (status != null && !status.trim().isEmpty()) {
-            String st = status.trim();
-            filtered = filtered.stream().filter(r ->
-                    st.equalsIgnoreCase(r.get("status").toString()) ||
-                            (st.equals("Chờ duyệt") && "PENDING".equalsIgnoreCase(r.get("status").toString())) ||
-                            (st.equals("Đã duyệt")  && "APPROVED".equalsIgnoreCase(r.get("status").toString())) ||
-                            (st.equals("Đã từ chối") && "REJECTED".equalsIgnoreCase(r.get("status").toString()))
-            ).toList();
-        }
-
+        Integer rating = null;
         if (ratingParam != null && !ratingParam.trim().isEmpty()) {
             try {
-                int rVal = Integer.parseInt(ratingParam.trim());
-                filtered = filtered.stream().filter(r ->
-                        Integer.valueOf(rVal).equals(r.get("rating"))
-                ).toList();
+                rating = Integer.parseInt(ratingParam.trim());
             } catch (NumberFormatException ignored) {}
         }
 
-        req.setAttribute("reviews", filtered);
+        List<Review> list = reviewRepository != null ? reviewRepository.search(keyword, status, rating) : Collections.emptyList();
+        List<Map<String, Object>> reviews = new ArrayList<>();
+        for (Review r : list) {
+            Map<String, Object> m = new HashMap<>();
+            m.put("id", r.getReviewId());
+            m.put("customerName", r.getUserFullName() != null ? r.getUserFullName() : "Khách hàng #" + r.getUserId());
+            m.put("productName", r.getProductName() != null ? r.getProductName() : "Sản phẩm #" + r.getProductId());
+            m.put("rating", r.getRating());
+            m.put("content", r.getContent());
+            m.put("status", r.getStatus());
+            m.put("createdAt", r.getCreatedAt() != null ? r.getCreatedAt().toString().substring(0, 10) : "");
+            m.put("orderCode", r.getOrderCode() != null ? r.getOrderCode() : (r.getOrderId() != null ? "WS" + r.getOrderId() : "N/A"));
+            m.put("reply", "");
+            reviews.add(m);
+        }
+
+        req.setAttribute("reviews", reviews);
         req.setAttribute("keyword", keyword);
         req.setAttribute("status", status);
         req.setAttribute("rating", ratingParam);
@@ -834,34 +774,20 @@ public class SalesController extends HttpServlet {
         String keyword = req.getParameter("keyword");
         String status  = req.getParameter("status");
 
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> comments = (List<Map<String, Object>>) req.getSession().getAttribute("sampleComments");
-        if (comments == null) {
-            comments = getSampleComments();
-            req.getSession().setAttribute("sampleComments", comments);
-        }
-        List<Map<String, Object>> filtered = new ArrayList<>(comments);
-
-        if (keyword != null && !keyword.trim().isEmpty()) {
-            String k = keyword.trim().toLowerCase();
-            filtered = filtered.stream().filter(c ->
-                    (c.get("customerName") != null && c.get("customerName").toString().toLowerCase().contains(k)) ||
-                            (c.get("productName")  != null && c.get("productName").toString().toLowerCase().contains(k))  ||
-                            (c.get("content")      != null && c.get("content").toString().toLowerCase().contains(k))
-            ).toList();
+        List<ProductComment> list = commentRepository != null ? commentRepository.search(keyword, status) : Collections.emptyList();
+        List<Map<String, Object>> comments = new ArrayList<>();
+        for (ProductComment c : list) {
+            Map<String, Object> m = new HashMap<>();
+            m.put("id", c.getCommentId());
+            m.put("customerName", c.getUserFullName() != null ? c.getUserFullName() : "Khách hàng #" + c.getUserId());
+            m.put("productName", c.getProductName() != null ? c.getProductName() : "Sản phẩm #" + c.getProductId());
+            m.put("content", c.getContent());
+            m.put("status", c.getStatus());
+            m.put("commentDate", c.getCreatedAt() != null ? c.getCreatedAt().toString().substring(0, 16) : "");
+            comments.add(m);
         }
 
-        if (status != null && !status.trim().isEmpty()) {
-            String st = status.trim();
-            filtered = filtered.stream().filter(c ->
-                    st.equalsIgnoreCase(c.get("status").toString()) ||
-                            (st.equals("Chờ duyệt") && "PENDING".equalsIgnoreCase(c.get("status").toString())) ||
-                            (st.equals("Hiển thị")  && "APPROVED".equalsIgnoreCase(c.get("status").toString())) ||
-                            (st.equals("Ẩn")        && "HIDDEN".equalsIgnoreCase(c.get("status").toString()))
-            ).toList();
-        }
-
-        req.setAttribute("comments", filtered);
+        req.setAttribute("comments", comments);
         req.setAttribute("keyword", keyword);
         req.setAttribute("status", status);
         req.setAttribute("moduleTitle", "Bình luận");
@@ -872,43 +798,20 @@ public class SalesController extends HttpServlet {
         String idParam = req.getParameter("id");
         String status  = req.getParameter("status");
         String action  = req.getParameter("action");
-        String replyContent = req.getParameter("replyContent");
 
         if (status == null && action != null) {
             if ("approve".equalsIgnoreCase(action)) status = "APPROVED";
             else if ("reject".equalsIgnoreCase(action)) status = "REJECTED";
         }
 
-        if (idParam != null) {
+        if (idParam != null && status != null && reviewRepository != null) {
             try {
-                int id = Integer.parseInt(idParam);
-                @SuppressWarnings("unchecked")
-                List<Map<String, Object>> reviews = (List<Map<String, Object>>) req.getSession().getAttribute("sampleReviews");
-                if (reviews == null) {
-                    reviews = getSampleReviews();
-                }
-                for (int i = 0; i < reviews.size(); i++) {
-                    Map<String, Object> r = reviews.get(i);
-                    if (Integer.valueOf(id).equals(r.get("id"))) {
-                        Map<String, Object> updated = new HashMap<>(r);
-                        if (status != null) {
-                            updated.put("status", status);
-                        }
-                        if (replyContent != null) {
-                            updated.put("reply", replyContent.trim());
-                            updated.put("status", "APPROVED");
-                        }
-                        reviews.set(i, updated);
-                        break;
-                    }
-                }
-                req.getSession().setAttribute("sampleReviews", reviews);
-                if (replyContent != null) {
-                    req.getSession().setAttribute("flash", "Đã gửi phản hồi đánh giá thành công!");
-                } else {
-                    req.getSession().setAttribute("flash", "Đã cập nhật trạng thái đánh giá thành công!");
-                }
-            } catch (Exception ignored) {}
+                long id = Long.parseLong(idParam);
+                reviewRepository.updateStatus(id, status);
+                req.getSession().setAttribute("flash", "Đã cập nhật trạng thái đánh giá thành công!");
+            } catch (Exception e) {
+                req.getSession().setAttribute("flash", "Lỗi: " + e.getMessage());
+            }
         }
         resp.sendRedirect(req.getContextPath() + "/manage/sales/reviews");
     }
@@ -917,26 +820,14 @@ public class SalesController extends HttpServlet {
         String idParam = req.getParameter("id");
         String status  = req.getParameter("status");
 
-        if (idParam != null && status != null) {
+        if (idParam != null && status != null && commentRepository != null) {
             try {
-                int id = Integer.parseInt(idParam);
-                @SuppressWarnings("unchecked")
-                List<Map<String, Object>> comments = (List<Map<String, Object>>) req.getSession().getAttribute("sampleComments");
-                if (comments == null) {
-                    comments = getSampleComments();
-                }
-                for (int i = 0; i < comments.size(); i++) {
-                    Map<String, Object> c = comments.get(i);
-                    if (Integer.valueOf(id).equals(c.get("id"))) {
-                        Map<String, Object> updated = new HashMap<>(c);
-                        updated.put("status", status);
-                        comments.set(i, updated);
-                        break;
-                    }
-                }
-                req.getSession().setAttribute("sampleComments", comments);
+                long id = Long.parseLong(idParam);
+                commentRepository.updateStatus(id, status);
                 req.getSession().setAttribute("flash", "Đã xác nhận cập nhật trạng thái bình luận thành công!");
-            } catch (Exception ignored) {}
+            } catch (Exception e) {
+                req.getSession().setAttribute("flash", "Lỗi: " + e.getMessage());
+            }
         }
         resp.sendRedirect(req.getContextPath() + "/manage/sales/comments");
     }

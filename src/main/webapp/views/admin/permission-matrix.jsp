@@ -392,7 +392,7 @@
                         <div class="group-section">
                             <div class="group-header">
                                 <div class="group-name">
-                                    <span>🛒</span> QUẢN LÝ ĐƠN HÀNG
+                                     QUẢN LÝ ĐƠN HÀNG
                                 </div>
                                 <span class="group-tag">ORDER</span>
                             </div>

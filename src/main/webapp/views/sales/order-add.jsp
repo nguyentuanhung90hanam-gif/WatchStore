@@ -94,7 +94,7 @@
 
     <div class="header">
         <div>
-            <h1>📦 Tạo đơn hàng mới</h1>
+            <h1> Tạo đơn hàng mới</h1>
         </div>
         <a class="back" href="${pageContext.request.contextPath}/manage/sales/orders">← Quay lại danh sách</a>
     </div>
@@ -143,7 +143,7 @@
             <h2>2. SẢN PHẨM TRONG ĐƠN HÀNG</h2>
             
             <div class="form-group full search-wrapper">
-                <label for="productSearch">🔍 Tìm kiếm sản phẩm theo tên hoặc mã sản phẩm</label>
+                <label for="productSearch"> Tìm kiếm sản phẩm theo tên hoặc mã sản phẩm</label>
                 <input type="text" id="productSearch" placeholder="Nhập tên sản phẩm hoặc mã SKU..." autocomplete="off">
                 <div id="suggestions" class="suggestions-box"></div>
             </div>
@@ -201,7 +201,7 @@
         <input type="hidden" name="cartItemsJson" id="cartItemsJson" value="[]">
 
         <div class="buttons">
-            <button type="submit" class="btn btn-save">💾 Tạo đơn hàng</button>
+            <button type="submit" class="btn btn-save"> Tạo đơn hàng</button>
             <a href="${pageContext.request.contextPath}/manage/sales/orders" class="btn btn-back">Hủy</a>
         </div>
         

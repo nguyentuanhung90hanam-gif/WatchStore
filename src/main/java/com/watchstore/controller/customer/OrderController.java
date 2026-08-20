@@ -10,9 +10,13 @@ import com.watchstore.repository.WarrantyRepository;
 import com.watchstore.util.ViewRouter;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.*;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
 import java.io.IOException;
-import java.sql.SQLException;
+import java.util.List;
+import java.util.Map;
 
 @WebServlet("/orders/*")
 public class OrderController extends HttpServlet {
@@ -24,8 +28,11 @@ public class OrderController extends HttpServlet {
     @Override
     public void init() {
         orders = (OrderRepository) getServletContext().getAttribute("orderRepository");
+        if (orders == null) orders = new OrderRepository();
         cart = (CartRepository) getServletContext().getAttribute("cartRepository");
+        if (cart == null) cart = new CartRepository();
         addresses = (AddressRepository) getServletContext().getAttribute("addressRepository");
+        if (addresses == null) addresses = new AddressRepository();
         warrantyRepo = (WarrantyRepository) getServletContext().getAttribute("warrantyRepository");
         if (warrantyRepo == null) warrantyRepo = new WarrantyRepository();
     }
@@ -40,17 +47,24 @@ public class OrderController extends HttpServlet {
         String path = req.getPathInfo() == null ? "/list" : req.getPathInfo();
         try {
             if ("/detail".equals(path)) {
-                Order o = orders.findByCode(req.getParameter("code"));
-                if (o == null || o.getUserId() != u.getId()) {
-                    resp.sendError(404);
+                String code = req.getParameter("code");
+                if (code == null || code.isBlank()) {
+                    resp.sendRedirect(req.getContextPath() + "/orders/list");
+                    return;
+                }
+                Order o = orders.findByCode(code.trim());
+                if (o == null || o.getUserId() != u.getUserId()) {
+                    resp.sendError(404, "Không tìm thấy đơn hàng hoặc đơn hàng không thuộc tài khoản của bạn.");
                     return;
                 }
                 req.setAttribute("order", o);
-                req.setAttribute("orderItems", orders.getOrderItems(o.getId()));
+                List<Map<String, Object>> items = orders.getOrderItems(o.getId());
+                req.setAttribute("orderItems", items);
+                req.setAttribute("warranties", warrantyRepo.findByOrderId(o.getId()));
                 ViewRouter.customer(req, resp, "customer/order-detail", "Chi tiết đơn hàng");
                 return;
             }
-            req.setAttribute("orders", orders.findByCustomerId(u.getId()));
+            req.setAttribute("orders", orders.findByCustomerId(u.getUserId()));
             ViewRouter.customer(req, resp, "customer/order-list", "Đơn hàng của tôi");
         } catch (Exception e) {
             throw new ServletException(e);
@@ -59,68 +73,87 @@ public class OrderController extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        req.setCharacterEncoding("UTF-8");
         User u = (User) req.getSession().getAttribute("user");
         if (u == null) {
-            resp.sendRedirect(req.getContextPath() + "/auth/login");
+            resp.sendRedirect(req.getContextPath() + "/auth/login?required=1");
             return;
         }
         String path = req.getPathInfo() == null ? "/place" : req.getPathInfo();
         try {
             if ("/place".equals(path)) {
-                int addressId = parsePositive(req.getParameter("addressId"), "Địa chỉ giao hàng không hợp lệ.");
+                int addressId = parsePositive(req.getParameter("addressId"), "Vui lòng chọn địa chỉ nhận hàng.");
                 String payment = req.getParameter("payment");
-                if (!"COD".equals(payment) && !"BANK_TRANSFER".equals(payment))
-                    throw new IllegalArgumentException("Phương thức thanh toán không hợp lệ.");
+                if (!"COD".equalsIgnoreCase(payment) && !"BANK_TRANSFER".equalsIgnoreCase(payment)) {
+                    payment = "COD";
+                }
                 String voucher = req.getParameter("voucherCode");
-                if (voucher != null && voucher.trim().length() > 50)
-                    throw new IllegalArgumentException("Mã voucher quá dài.");
+                if (voucher != null && voucher.trim().length() > 50) {
+                    throw new IllegalArgumentException("Mã giảm giá không hợp lệ.");
+                }
                 String note = req.getParameter("note");
-                if (note != null && note.length() > 500)
+                if (note != null && note.length() > 500) {
                     throw new IllegalArgumentException("Ghi chú không được vượt quá 500 ký tự.");
-                long id = orders.createFromCart(u.getId(), addressId, voucher, payment, note);
-                Order o = orders.findById((int) id);
-                req.getSession().setAttribute("flash", "Đặt hàng thành công. Mã đơn: " + o.getCode());
-                resp.sendRedirect(req.getContextPath() + "/orders/detail?code=" + o.getCode());
+                }
+
+                long orderId = orders.createFromCart(u.getUserId(), addressId, voucher, payment, note);
+                Order o = orders.findById((int) orderId);
+                req.getSession().setAttribute("flash", "Đặt hàng thành công! Mã đơn hàng: #" + (o != null ? o.getCode() : orderId));
+                if (o != null) {
+                    resp.sendRedirect(req.getContextPath() + "/orders/detail?code=" + o.getCode());
+                } else {
+                    resp.sendRedirect(req.getContextPath() + "/orders/list");
+                }
                 return;
             }
             if ("/cancel".equals(path)) {
                 long orderId = parseLongPositive(req.getParameter("orderId"), "Đơn hàng không hợp lệ.");
                 String reason = req.getParameter("reason");
-                if (reason == null || reason.trim().length() < 3 || reason.trim().length() > 500)
+                if (reason == null || reason.trim().length() < 3 || reason.trim().length() > 500) {
                     throw new IllegalArgumentException("Lý do hủy phải từ 3 đến 500 ký tự.");
-                orders.cancel(orderId, u.getId(), reason.trim());
-                req.getSession().setAttribute("flash", "Đã hủy đơn hàng.");
+                }
+                orders.cancel(orderId, u.getUserId(), reason.trim());
+                req.getSession().setAttribute("flash", "Đã hủy đơn hàng thành công.");
                 resp.sendRedirect(req.getContextPath() + "/orders/list");
                 return;
             }
             if ("/warranty".equals(path)) {
                 int orderId = parsePositive(req.getParameter("orderId"), "Đơn hàng không hợp lệ.");
                 Order o = orders.findById(orderId);
-                if (o == null || o.getUserId() != u.getId()) throw new IllegalArgumentException("Đơn hàng không hợp lệ.");
-                if (o.getStatus() != OrderStatus.COMPLETED) throw new IllegalArgumentException("Chỉ được yêu cầu bảo hành với đơn hàng đã hoàn thành.");
+                if (o == null || o.getUserId() != u.getUserId()) {
+                    throw new IllegalArgumentException("Đơn hàng không hợp lệ hoặc không thuộc tài khoản của bạn.");
+                }
+                if (o.getStatus() != OrderStatus.COMPLETED) {
+                    throw new IllegalArgumentException("Chỉ được yêu cầu bảo hành với đơn hàng đã giao thành công (COMPLETED).");
+                }
                 String productName = req.getParameter("productName");
-                if (productName == null || productName.isBlank()) throw new IllegalArgumentException("Vui lòng chọn sản phẩm cần bảo hành.");
+                if (productName == null || productName.isBlank()) {
+                    throw new IllegalArgumentException("Vui lòng chọn sản phẩm cần bảo hành.");
+                }
                 String note = req.getParameter("note");
-                if (note == null || note.trim().length() < 3) throw new IllegalArgumentException("Vui lòng mô tả vấn đề sản phẩm gặp phải.");
-
-                if (warrantyRepo.hasActiveWarranty(orderId, productName.trim())) {
-                    throw new IllegalArgumentException("Sản phẩm này trong đơn hàng đang được bảo hành hoặc xử lý.");
+                if (note == null || note.trim().length() < 3) {
+                    throw new IllegalArgumentException("Vui lòng mô tả chi tiết lỗi sản phẩm gặp phải (từ 3 ký tự trở lên).");
                 }
 
-                String productImage = req.getParameter("productImage");
-                String finalNote = note.trim();
-                if (productImage != null && !productImage.trim().isEmpty()) {
-                    finalNote += " (Ảnh đính kèm: " + productImage.trim() + ")";
+                String imageUrl = req.getParameter("imageUrl");
+                if (imageUrl == null || imageUrl.isBlank()) {
+                    imageUrl = req.getParameter("productImage");
                 }
 
-                warrantyRepo.insert(orderId, productName.trim(), "", 12, finalNote);
-                req.getSession().setAttribute("flash", "Đã gửi yêu cầu bảo hành thành công. Nhân viên sẽ kiểm tra và phản hồi.");
+                // Gọi insertOnlineWarranty với backend validation đầy đủ
+                warrantyRepo.insertOnlineWarranty(orderId, productName.trim(), note.trim(), imageUrl != null ? imageUrl.trim() : null);
+                req.getSession().setAttribute("flash", "Đã gửi yêu cầu bảo hành thành công! Nhân viên kỹ thuật sẽ tiếp nhận và liên hệ với bạn.");
                 resp.sendRedirect(req.getContextPath() + "/orders/detail?code=" + o.getCode());
                 return;
             }
         } catch (Exception e) {
-            req.getSession().setAttribute("flash", root(e));
-            resp.sendRedirect(req.getContextPath() + "/orders/list");
+            req.getSession().setAttribute("flash", "Lỗi: " + root(e));
+            String code = req.getParameter("orderCode");
+            if (code != null && !code.isBlank()) {
+                resp.sendRedirect(req.getContextPath() + "/orders/detail?code=" + code.trim());
+            } else {
+                resp.sendRedirect(req.getContextPath() + "/orders/list");
+            }
         }
     }
 
@@ -145,6 +178,6 @@ public class OrderController extends HttpServlet {
     private String root(Exception e) {
         Throwable t = e;
         while (t.getCause() != null) t = t.getCause();
-        return t.getMessage() == null ? "Thao tác thất bại." : t.getMessage();
+        return t.getMessage() == null ? "Thao tác không thành công." : t.getMessage();
     }
 }

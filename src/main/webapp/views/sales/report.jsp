@@ -301,7 +301,7 @@
 <div class="container">
 
     <div class="header">
-        <h1>📊 Báo cáo bán hàng</h1>
+        <h1> Báo cáo bán hàng</h1>
         <p>Thống kê số lượng đơn hàng, doanh số và chi tiết doanh thu thực tế.</p>
     </div>
 
@@ -343,22 +343,22 @@
         </div>
 
         <div class="card">
-            <div class="card-title" style="color:#d97706;">⌛ Chờ xử lý</div>
+            <div class="card-title" style="color:#d97706;"> Chờ xử lý</div>
             <div class="card-value">${pendingOrders}</div>
         </div>
 
         <div class="card">
-            <div class="card-title" style="color:#2563eb;">🚚 Đang giao</div>
+            <div class="card-title" style="color:#2563eb;"> Đang giao</div>
             <div class="card-value">${shippingOrders}</div>
         </div>
 
         <div class="card">
-            <div class="card-title" style="color:#16a34a;">🟢 Hoàn thành</div>
+            <div class="card-title" style="color:#16a34a;"> Hoàn thành</div>
             <div class="card-value">${completedOrders}</div>
         </div>
 
         <div class="card">
-            <div class="card-title" style="color:#dc2626;">🔴 Đã hủy</div>
+            <div class="card-title" style="color:#dc2626;"> Đã hủy</div>
             <div class="card-value">${cancelledOrders}</div>
         </div>
     </div>
@@ -369,14 +369,11 @@
             <div class="title">Doanh thu thực tế (Đơn Hoàn thành)</div>
             <div class="value">${totalRevenue} ₫</div>
         </div>
-        <div class="revenue-card-right">
-            💰
-        </div>
     </div>
 
     <!-- ================= REVENUE TREND CHART ================= -->
     <div class="chart-box">
-        <h2>📈 Biểu đồ xu hướng doanh thu theo ngày</h2>
+        <h2> Biểu đồ xu hướng doanh thu theo ngày</h2>
         <div style="height: 320px; width: 100%; position: relative;">
             <canvas id="revenueChart"></canvas>
         </div>
@@ -389,10 +386,10 @@
             <c:if test="${sessionScope.user.role == 'ADMIN' || (not empty sessionScope.userPermissions && (sessionScope.userPermissions.contains('REPORT_EXPORT') || sessionScope.userPermissions.contains('SALES_REPORT')))}">
                 <div class="export-buttons" style="display:flex; gap:10px;">
                     <button type="button" onclick="exportToExcel()" class="btn" style="background:#16a34a; color:white; font-size:13px; height:34px; padding:0 14px;">
-                        📥 Xuất Excel
+                         Xuất Excel
                     </button>
                     <button type="button" onclick="exportToPDF()" class="btn" style="background:#dc2626; color:white; font-size:13px; height:34px; padding:0 14px;">
-                        📄 Xuất PDF
+                         Xuất PDF
                     </button>
                 </div>
             </c:if>
@@ -564,4 +561,4 @@
         window.print();
     }
 </script>
-
+

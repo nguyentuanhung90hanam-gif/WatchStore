@@ -21,4 +21,6 @@ public interface VoucherRepository {
 
     boolean isVoucherInUse(Integer id);
 
+    List<Voucher> findPublicActiveVouchers();
+
 }

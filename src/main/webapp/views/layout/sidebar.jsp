@@ -421,19 +421,19 @@
 
             </details>
 
-            <!-- MARKETING -->
+            <!-- KHUYẾN MÃI -->
 
             <details
                 class="sidebar-group"
-                ${fn:contains(uri, '/manage/admin/voucher')
-                    || fn:contains(uri, '/manage/admin/banner')
-                    || fn:contains(uri, '/manage/admin/post')
-                    ? 'open' : ''}
+                ${fn:contains(
+                    uri,
+                    '/manage/admin/voucher'
+                ) ? 'open' : ''}
             >
 
                 <summary>
                     <span class="sidebar-icon"></span>
-                    MARKETING &amp; NỘI DUNG
+                    KHUYẾN MÃI
                 </summary>
 
                 <div class="sidebar-submenu">
@@ -447,28 +447,6 @@
                             ) ? 'active' : ''}"
                     >
                         Voucher
-                    </a>
-
-                    <a
-                        href="${cp}/manage/admin/banners"
-                        class="sidebar-link
-                            ${fn:contains(
-                                uri,
-                                '/manage/admin/banner'
-                            ) ? 'active' : ''}"
-                    >
-                        Banner
-                    </a>
-
-                    <a
-                        href="${cp}/manage/admin/posts"
-                        class="sidebar-link
-                            ${fn:contains(
-                                uri,
-                                '/manage/admin/post'
-                            ) ? 'active' : ''}"
-                    >
-                        Bài viết
                     </a>
 
                 </div>

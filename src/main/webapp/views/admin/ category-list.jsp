@@ -164,13 +164,7 @@
 
                     </td>
 
-
-
-
-
                     <td>
-
-
                         <a class="btn-edit"
                            href="${pageContext.request.contextPath}/manage/admin/categories/edit?id=${c.categoryId}">
 

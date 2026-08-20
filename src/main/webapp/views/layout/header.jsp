@@ -56,11 +56,20 @@
                         </a>
                     </c:when>
                     <c:otherwise>
+                        <c:if test="${sessionScope.user.role == 'ADMIN' || sessionScope.user.role == 'EMPLOYEE'}">
+                            <a class="pro-action hide-mobile" href="${sessionScope.user.role == 'ADMIN' ? cp.concat('/manage/admin/dashboard') : cp.concat('/manage/sales/dashboard')}" style="color:#d4af37; font-weight:700; display:inline-flex; align-items:center; gap:6px;" aria-label="Trang quản trị">
+                                <svg viewBox="0 0 24 24" aria-hidden="true" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                <span>Trang quản trị</span>
+                            </a>
+                        </c:if>
                         <div class="user-avatar-dropdown" style="position:relative; display:inline-block;">
                             <a class="pro-action hide-mobile" href="${cp}/page/profile" aria-label="Tài khoản">
                                 <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4.5 21a7.5 7.5 0 0 1 15 0"/></svg><span>${sessionScope.user.fullName}</span>
                             </a>
                             <div class="dropdown-menu-box" style="display:none; position:absolute; right:0; top:100%; background:#fff; min-width:180px; box-shadow:0 4px 16px rgba(0,0,0,0.15); border-radius:8px; padding:8px 0; z-index:1000; border:1px solid #eee;">
+                                <c:if test="${sessionScope.user.role == 'ADMIN' || sessionScope.user.role == 'EMPLOYEE'}">
+                                    <a href="${sessionScope.user.role == 'ADMIN' ? cp.concat('/manage/admin/dashboard') : cp.concat('/manage/sales/dashboard')}" style="display:block; padding:8px 16px; color:#d4af37; font-weight:700; font-size:13px; text-decoration:none; border-bottom:1px solid #eee;">⚙ Trang quản trị</a>
+                                </c:if>
                                 <a href="${cp}/page/profile" style="display:block; padding:8px 16px; color:#333; font-size:13px; text-decoration:none;">Thông tin tài khoản</a>
                                 <a href="${cp}/page/profile" style="display:block; padding:8px 16px; color:#333; font-size:13px; text-decoration:none;">Chỉnh sửa hồ sơ</a>
                                 <a href="${cp}/page/change-password" style="display:block; padding:8px 16px; color:#333; font-size:13px; text-decoration:none;">Đổi mật khẩu</a>

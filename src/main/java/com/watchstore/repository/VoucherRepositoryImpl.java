@@ -374,4 +374,33 @@ public class VoucherRepositoryImpl implements VoucherRepository {
         }
         return false;
     }
+
+    @Override
+    public List<Voucher> findPublicActiveVouchers() {
+        List<Voucher> list = new ArrayList<>();
+        String sql = """
+            SELECT *
+            FROM Vouchers
+            WHERE Status = 'ACTIVE'
+              AND IsPublic = 1
+              AND StartAt <= SYSDATETIME()
+              AND EndAt >= SYSDATETIME()
+              AND (UsageLimit IS NULL OR UsageLimit = 0 OR UsedCount < UsageLimit)
+            ORDER BY DiscountValue DESC, VoucherID DESC
+            """;
+
+        try (
+                Connection con = DBContext.getConnection();
+                PreparedStatement ps = con.prepareStatement(sql);
+                ResultSet rs = ps.executeQuery()
+        ) {
+            while (rs.next()) {
+                list.add(mapResultSetToVoucher(rs));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return list;
+    }
 }

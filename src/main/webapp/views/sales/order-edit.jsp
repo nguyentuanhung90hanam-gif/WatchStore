@@ -46,7 +46,7 @@
 
     <div class="header">
         <div>
-            <h1>✏️ Chỉnh sửa đơn hàng #${order.id}</h1>
+            <h1>️ Chỉnh sửa đơn hàng #${order.id}</h1>
         </div>
         <a class="back" href="${pageContext.request.contextPath}/manage/sales/order-detail?id=${order.id}">← Quay lại chi tiết</a>
     </div>
@@ -114,7 +114,7 @@
             </div>
 
             <div class="buttons">
-                <button type="submit" class="btn btn-save">💾 Lưu thay đổi</button>
+                <button type="submit" class="btn btn-save"> Lưu thay đổi</button>
                 <a href="${pageContext.request.contextPath}/manage/sales/order-detail?id=${order.id}" class="btn btn-back">Hủy</a>
             </div>
 

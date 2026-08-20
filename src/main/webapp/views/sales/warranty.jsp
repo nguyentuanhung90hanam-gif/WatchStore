@@ -1,83 +1,84 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 
-    <style>
-        .container { max-width: 1200px; margin: auto; padding: 10px 0; }
-        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-        .page-header h1 { font-size: 26px; font-weight: 700; }
-        .page-header p { color: #777; font-size: 14px; margin-top: 4px; }
-        .btn {
-            display: inline-flex; align-items: center; gap: 6px;
-            padding: 10px 20px; border: none; border-radius: 8px;
-            font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none;
-            justify-content: center;
-        }
-        .btn-primary { background: #2563eb; color: white; }
-        .btn-primary:hover { background: #1d4ed8; }
-        .btn-sm { padding: 5px 12px; font-size: 12px; border-radius: 5px; height: 30px; }
-        .btn-outline { background: white; border: 1px solid #ddd; color: #333; }
-        .btn-outline:hover { background: #f0f0f0; }
+<style>
+    .container { max-width: 1200px; margin: auto; padding: 10px 0; }
+    .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .page-header h1 { font-size: 26px; font-weight: 700; }
+    .page-header p { color: #777; font-size: 14px; margin-top: 4px; }
+    .btn {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 10px 20px; border: none; border-radius: 8px;
+        font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none;
+        justify-content: center;
+    }
+    .btn-primary { background: #2563eb; color: white; }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-sm { padding: 5px 12px; font-size: 12px; border-radius: 5px; height: 30px; }
+    .btn-outline { background: white; border: 1px solid #ddd; color: #333; }
+    .btn-outline:hover { background: #f0f0f0; }
 
-        /* Stats */
-        .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
-        .stat-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
-        .stat-card .label { font-size: 13px; color: #888; margin-bottom: 8px; }
-        .stat-card .value { font-size: 30px; font-weight: 700; color: #1e293b; }
-        .stat-card.active .value { color: #16a34a; }
-        .stat-card.expired .value { color: #dc2626; }
-        .stat-card.pending .value { color: #d97706; }
+    /* Stats */
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+    .stat-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+    .stat-card .label { font-size: 13px; color: #888; margin-bottom: 8px; }
+    .stat-card .value { font-size: 30px; font-weight: 700; color: #1e293b; }
+    .stat-card.active .value { color: #16a34a; }
+    .stat-card.expired .value { color: #dc2626; }
+    .stat-card.pending .value { color: #d97706; }
 
-        /* Filter */
-        .filter-bar { background: white; padding: 16px 20px; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,.06); margin-bottom: 20px; display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
-        .filter-bar input, .filter-bar select { padding: 9px 12px; border: 1px solid #ddd; border-radius: 7px; font-size: 14px; outline: none; min-width: 180px; }
-        .filter-bar input:focus, .filter-bar select:focus { border-color: #2563eb; }
+    /* Filter */
+    .filter-bar { background: white; padding: 16px 20px; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,.06); margin-bottom: 20px; display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+    .filter-bar input, .filter-bar select { padding: 9px 12px; border: 1px solid #ddd; border-radius: 7px; font-size: 14px; outline: none; min-width: 180px; }
+    .filter-bar input:focus, .filter-bar select:focus { border-color: #2563eb; }
 
-        /* Table */
-        .card { background: white; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,.06); overflow: hidden; }
-        table { width: 100%; border-collapse: collapse; font-size: 14px; }
-        thead tr { background: #f8fafc; }
-        th { padding: 14px 16px; text-align: left; font-size: 12px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid #f0f0f0; }
-        td { padding: 14px 16px; border-bottom: 1px solid #f9f9f9; }
-        tr:last-child td { border-bottom: none; }
-        tr:hover td { background: #fafafa; }
-        .empty { text-align: center; padding: 40px; color: #aaa; }
-        .empty-icon { font-size: 48px; margin-bottom: 12px; }
+    /* Table */
+    .card { background: white; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,.06); overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    thead tr { background: #f8fafc; }
+    th { padding: 14px 16px; text-align: left; font-size: 12px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid #f0f0f0; }
+    td { padding: 14px 16px; border-bottom: 1px solid #f9f9f9; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #fafafa; }
+    .empty { text-align: center; padding: 40px; color: #aaa; }
+    .empty-icon { font-size: 48px; margin-bottom: 12px; }
 
-        /* Status badges */
-        .badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
-        .badge-active   { background: #d1fae5; color: #065f46; }
-        .badge-expired  { background: #fee2e2; color: #991b1b; }
-        .badge-pending  { background: #fef3c7; color: #92400e; }
-        .badge-repair   { background: #dbeafe; color: #1e40af; }
-        .badge-cancelled{ background: #f1f5f9; color: #64748b; }
+    /* Status badges */
+    .badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+    .badge-active   { background: #d1fae5; color: #065f46; }
+    .badge-expired  { background: #fee2e2; color: #991b1b; }
+    .badge-pending  { background: #fef3c7; color: #92400e; }
+    .badge-repair   { background: #dbeafe; color: #1e40af; }
+    .badge-cancelled{ background: #f1f5f9; color: #64748b; }
 
-        /* Flash */
-        .flash-success { background: #d1fae5; border: 1px solid #6ee7b7; color: #065f46; padding: 12px 18px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; }
-        .flash-error   { background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; padding: 12px 18px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; }
+    /* Flash */
+    .flash-success { background: #d1fae5; border: 1px solid #6ee7b7; color: #065f46; padding: 12px 18px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; }
+    .flash-error   { background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; padding: 12px 18px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; }
 
-        @media (max-width: 768px) {
-            .stats-row { grid-template-columns: 1fr 1fr; }
-        }
-    </style>
+    @media (max-width: 768px) {
+        .stats-row { grid-template-columns: 1fr 1fr; }
+    }
+</style>
 
 <div class="container">
 
     <div class="page-header">
         <div>
             <h1>🛡 Quản lý Bảo hành</h1>
-            <p>Theo dõi phiếu bảo hành sản phẩm đồng hồ.</p>
+            <p>Theo dõi và xử lý phiếu bảo hành sản phẩm (Online & Trực tiếp tại cửa hàng).</p>
         </div>
         <c:if test="${sessionScope.user.role != 'ADMIN'}">
             <a href="${pageContext.request.contextPath}/manage/sales/warranty-add" class="btn btn-primary">
-                ➕ Thêm phiếu bảo hành
+                 Thêm phiếu bảo hành
             </a>
         </c:if>
     </div>
 
     <%-- Flash message --%>
     <c:if test="${not empty sessionScope.flash}">
-        <div class="flash-success">✅ ${sessionScope.flash}</div>
+        <div class="flash-success"> ${sessionScope.flash}</div>
         <c:remove var="flash" scope="session"/>
     </c:if>
 
@@ -88,7 +89,7 @@
             <div class="value">${warranties.size()}</div>
         </div>
         <div class="stat-card active">
-            <div class="label">🟡 Chờ tiếp nhận</div>
+            <div class="label"> Chờ tiếp nhận (Online)</div>
             <div class="value">
                 <c:set var="pendingCount" value="0"/>
                 <c:forEach var="w" items="${warranties}">
@@ -98,7 +99,7 @@
             </div>
         </div>
         <div class="stat-card pending">
-            <div class="label">🔧 Đang xử lý</div>
+            <div class="label"> Đang xử lý</div>
             <div class="value">
                 <c:set var="processingCount" value="0"/>
                 <c:forEach var="w" items="${warranties}">
@@ -108,7 +109,7 @@
             </div>
         </div>
         <div class="stat-card expired">
-            <div class="label">🟢 Đã trả khách</div>
+            <div class="label"> Đã trả khách</div>
             <div class="value">
                 <c:set var="closedCount" value="0"/>
                 <c:forEach var="w" items="${warranties}">
@@ -122,7 +123,7 @@
     <%-- Filter --%>
     <form method="get" action="${pageContext.request.contextPath}/manage/sales/warranty">
         <div class="filter-bar">
-            <input type="text" name="keyword" value="${param.keyword}" placeholder="🔍 Tìm mã đơn, tên KH, serial..."/>
+            <input type="text" name="keyword" value="${param.keyword}" placeholder=" Tìm mã đơn, tên KH, serial, SĐT..."/>
             <select name="status">
                 <option value="">-- Tất cả trạng thái --</option>
                 <option value="Chờ tiếp nhận"   ${param.status == 'Chờ tiếp nhận'   ? 'selected' : ''}>Chờ tiếp nhận</option>
@@ -143,12 +144,12 @@
             <thead>
                 <tr>
                     <th>#</th>
-                    <th>Mã đơn hàng</th>
+                    <th>Nguồn & Đơn hàng</th>
+                    <th>Khách hàng</th>
                     <th>Sản phẩm</th>
                     <th>Số Serial</th>
-                    <th>Thời hạn BH</th>
-                    <th>Ngày bắt đầu</th>
-                    <th>Ngày hết hạn</th>
+                    <th>Thời hạn</th>
+                    <th>Hết hạn</th>
                     <th>Trạng thái</th>
                     <th>Thao tác</th>
                 </tr>
@@ -160,16 +161,34 @@
                             <tr>
                                 <td style="color:#aaa;">${loop.count}</td>
                                 <td>
-                                    <span style="font-weight:600;color:#2563eb;">${w.orderCode != null ? w.orderCode : 'N/A'}</span>
+                                    <c:choose>
+                                        <c:when test="${w.warrantyType == 'OFFLINE' || empty w.orderId}">
+                                            <span style="font-weight:600; color:#059669; background:#d1fae5; padding:2px 6px; border-radius:4px; font-size:12px;">🏪 Mua tại quầy</span>
+                                        </c:when>
+                                        <c:otherwise>
+                                            <span style="font-weight:600; color:#2563eb;">#${w.orderCode}</span>
+                                        </c:otherwise>
+                                    </c:choose>
+                                </td>
+                                <td>
+                                    <b>${w.customerName}</b>
+                                    <c:if test="${not empty w.customerPhone && w.customerPhone != '—'}">
+                                        <small style="display:block; color:#718096;">${w.customerPhone}</small>
+                                    </c:if>
                                 </td>
                                 <td style="font-weight:500;">${w.productName}</td>
-                                <td style="font-family:monospace;color:#555;">${w.serial != null ? w.serial : '—'}</td>
-                                <td style="text-align:center;font-weight:600;">${w.months} tháng</td>
-                                <td>
-                                    <fmt:formatDate value="${w.startDate}" pattern="dd/MM/yyyy"/>
-                                </td>
+                                <td style="font-family:monospace; color:#555;">${not empty w.serial ? w.serial : '—'}</td>
+                                <td style="font-weight:600;">${w.months} tháng</td>
                                 <td>
                                     <fmt:formatDate value="${w.endDate}" pattern="dd/MM/yyyy"/>
+                                    <c:choose>
+                                        <c:when test="${w.isExpired}">
+                                            <small style="display:block; color:#dc2626; font-weight:600;">(Hết hạn)</small>
+                                        </c:when>
+                                        <c:otherwise>
+                                            <small style="display:block; color:#16a34a;">(Còn ${w.remainingDays} ngày)</small>
+                                        </c:otherwise>
+                                    </c:choose>
                                 </td>
                                 <td>
                                     <c:choose>
@@ -191,19 +210,17 @@
                                         <c:when test="${w.status == 'Từ chối bảo hành'}">
                                             <span class="badge badge-expired">Từ chối BH</span>
                                         </c:when>
-                                        <c:when test="${w.status == 'Hết hạn'}">
-                                            <span class="badge badge-expired">Hết hạn</span>
-                                        </c:when>
                                         <c:otherwise>
                                             <span class="badge badge-cancelled">${w.status}</span>
                                         </c:otherwise>
                                     </c:choose>
                                 </td>
                                 <td>
-                                    <div style="display:flex; gap:6px;">
+                                    <div style="display:flex; gap:6px; flex-wrap:wrap;">
                                         <button type="button" class="btn btn-sm btn-outline"
                                                 data-id="${w.id}"
                                                 data-order-code="${w.orderCode}"
+                                                data-warranty-type="${w.warrantyType}"
                                                 data-customer="${w.customerName}"
                                                 data-phone="${w.customerPhone}"
                                                 data-email="${w.customerEmail}"
@@ -213,8 +230,11 @@
                                                 data-months="${w.months}"
                                                 data-start-date="<fmt:formatDate value="${w.startDate}" pattern="dd/MM/yyyy"/>"
                                                 data-end-date="<fmt:formatDate value="${w.endDate}" pattern="dd/MM/yyyy"/>"
+                                                data-remaining-days="${w.remainingDays}"
+                                                data-is-expired="${w.isExpired}"
                                                 data-status="${w.status}"
                                                 data-note="${w.note}"
+                                                data-image-url="${w.imageUrl}"
                                                 data-receive-date="<fmt:formatDate value="${w.receiveDate}" pattern="dd/MM/yyyy"/>"
                                                 data-receive-note="${w.receiveNote}"
                                                 data-repair-content="${w.repairContent}"
@@ -284,20 +304,20 @@
         </table>
     </div>
 
-    <!-- ================= MODAL XEM CHI TIẾT PHIẾU BẢO HÀNH ================= -->
+    <!-- ================= MODAL XEM CHI TIẾT PHIẾU BẢO HÀNH (VỚI ẢNH THẬT) ================= -->
     <div id="detail-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; justify-content:center; align-items:center; padding:15px;">
-        <div style="background:white; border-radius:12px; max-width:600px; width:100%; box-shadow:0 10px 25px rgba(0,0,0,0.25); padding:25px; position:relative; max-height:90vh; overflow-y:auto; text-align:left;">
+        <div style="background:white; border-radius:12px; max-width:680px; width:100%; box-shadow:0 10px 25px rgba(0,0,0,0.25); padding:25px; position:relative; max-height:90vh; overflow-y:auto; text-align:left;">
             <span style="position:absolute; top:15px; right:15px; font-size:24px; color:#aaa; cursor:pointer; font-weight:bold;" onclick="closeModal('detail-modal')">&times;</span>
             <h2 style="margin-top:0; margin-bottom:20px; font-size:20px; color:#1e293b; border-bottom:1px solid #e2e8f0; padding-bottom:12px;">Chi tiết phiếu bảo hành <span id="modal-id-text" style="color:#2563eb;"></span></h2>
             
             <div style="display:grid; grid-template-columns:1fr; gap:16px; font-size:14px;">
                 <!-- TRẠNG THÁI -->
                 <div style="display:flex; justify-content:space-between; align-items:center; background:#f8fafc; padding:10px 15px; border-radius:8px; border:1px solid #e2e8f0;">
-                    <span style="font-weight:600; color:#475569;">Trạng thái bảo hành:</span>
+                    <span style="font-weight:600; color:#475569;">Trạng thái xử lý:</span>
                     <span id="modal-status-badge" class="badge"></span>
                 </div>
 
-                <!-- KHÁCH HÀNG & ĐƠN HÀNG -->
+                <!-- KHÁCH HÀNG & THÔNG TIN MUA HÀNG -->
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; background:#f8fafc; padding:15px; border-radius:8px; border:1px solid #e2e8f0;">
                     <div>
                         <strong style="color:#0f172a; display:block; margin-bottom:6px; font-size:13px; text-transform:uppercase;">👤 Khách hàng</strong>
@@ -306,36 +326,49 @@
                         Email: <span id="modal-email"></span>
                     </div>
                     <div>
-                        <strong style="color:#0f172a; display:block; margin-bottom:6px; font-size:13px; text-transform:uppercase;">📦 Thông tin mua hàng</strong>
-                        Mã đơn: <span id="modal-order-code" style="font-weight:bold; color:#2563eb;"></span><br>
+                        <strong style="color:#0f172a; display:block; margin-bottom:6px; font-size:13px; text-transform:uppercase;"> Nguồn mua hàng</strong>
+                        Mã đơn / Nguồn: <span id="modal-order-code" style="font-weight:bold; color:#2563eb;"></span><br>
                         Ngày mua: <span id="modal-buy-date"></span><br>
-                        Thời hạn: <span id="modal-months" style="font-weight:bold;"></span> tháng
+                        Loại hình: <span id="modal-warranty-type" style="font-weight:bold;"></span>
                     </div>
                 </div>
 
-                <!-- SẢN PHẨM & THỜI HẠN -->
+                <!-- SẢN PHẨM & THỜI HẠN BẢO HÀNH -->
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; background:#f8fafc; padding:15px; border-radius:8px; border:1px solid #e2e8f0;">
                     <div>
-                        <strong style="color:#0f172a; display:block; margin-bottom:4px; font-size:13px; text-transform:uppercase;">⌚ Sản phẩm & Serial</strong>
+                        <strong style="color:#0f172a; display:block; margin-bottom:4px; font-size:13px; text-transform:uppercase;"> Sản phẩm & Serial</strong>
                         Tên sản phẩm: <span id="modal-product" style="font-weight:bold;"></span><br>
                         Số Serial: <span id="modal-serial" style="font-family:monospace; font-weight:bold; color:#ef4444;"></span>
                     </div>
                     <div>
-                        <strong style="color:#0f172a; display:block; margin-bottom:4px; font-size:13px; text-transform:uppercase;">📅 Ngày bảo hành</strong>
-                        Ngày bắt đầu: <span id="modal-start-date"></span><br>
-                        Ngày kết thúc: <span id="modal-end-date" style="color:#dc2626; font-weight:bold;"></span>
+                        <strong style="color:#0f172a; display:block; margin-bottom:4px; font-size:13px; text-transform:uppercase;"> Thời hạn bảo hành (<span id="modal-months"></span> tháng)</strong>
+                        Bắt đầu: <span id="modal-start-date"></span><br>
+                        Hết hạn: <span id="modal-end-date" style="font-weight:bold;"></span><br>
+                        Tình trạng: <span id="modal-expired-badge" style="font-weight:bold;"></span>
                     </div>
                 </div>
 
-                <!-- LÝ DO BẢO HÀNH BAN ĐẦU -->
+                <!-- LÝ DO BẢO HÀNH & ẢNH MINH CHỨNG THẬT -->
                 <div style="background:#f1f5f9; padding:15px; border-radius:8px; border:1px solid #cbd5e1;">
-                    <strong style="color:#475569; display:block; margin-bottom:4px; font-size:13px; text-transform:uppercase;">📝 Nội dung / Lý do bảo hành ban đầu</strong>
-                    <span id="modal-note" style="font-style:italic;"></span>
+                    <strong style="color:#475569; display:block; margin-bottom:4px; font-size:13px; text-transform:uppercase;"> Nội dung / Lý do bảo hành ban đầu</strong>
+                    <p id="modal-note" style="margin:4px 0 10px 0; color:#334155; line-height:1.5;"></p>
+
+                    <!-- KHU VỰC HIỂN THỊ ẢNH MINH CHỨNG TRỰC TIẾP -->
+                    <div id="modal-image-container" style="margin-top:10px; display:none; border-top:1px dashed #cbd5e1; padding-top:10px;">
+                        <strong style="color:#475569; display:block; margin-bottom:6px; font-size:13px; text-transform:uppercase;"> Ảnh minh chứng đính kèm</strong>
+                        <div style="display:flex; gap:10px; align-items:center;">
+                            <img id="modal-image-preview" src="" alt="Ảnh minh chứng lỗi"
+                                 style="max-width:240px; max-height:180px; object-fit:contain; border-radius:8px; border:1px solid #cbd5e0; cursor:pointer; background:#fff;"
+                                 onclick="window.open(this.src, '_blank')"
+                                 title="Bấm để mở ảnh lớn">
+                            <small style="color:#64748b;">(Bấm vào ảnh để xem kích thước đầy đủ)</small>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- TIẾP NHẬN BẢO HÀNH -->
                 <div id="modal-receive-section" style="background:#fffbeb; padding:15px; border-radius:8px; border:1px solid #fef3c7; display:none;">
-                    <strong style="color:#92400e; display:block; margin-bottom:6px; font-size:13px; text-transform:uppercase;">🔧 Thông tin tiếp nhận sửa chữa</strong>
+                    <strong style="color:#92400e; display:block; margin-bottom:6px; font-size:13px; text-transform:uppercase;"> Thông tin tiếp nhận sửa chữa</strong>
                     Ngày tiếp nhận: <span id="modal-receive-date" style="font-weight:bold;"></span><br>
                     Nội dung/Tình trạng máy khi nhận:<br>
                     <p id="modal-receive-note" style="margin-top:4px; background:white; padding:8px; border-radius:4px; border:1px solid #fde047; font-style:italic;"></p>
@@ -343,7 +376,7 @@
 
                 <!-- KẾT QUẢ SỬA CHỮA -->
                 <div id="modal-repair-section" style="background:#eff6ff; padding:15px; border-radius:8px; border:1px solid #bfdbfe; display:none;">
-                    <strong style="color:#1e40af; display:block; margin-bottom:6px; font-size:13px; text-transform:uppercase;">⚙️ Kết quả sửa chữa</strong>
+                    <strong style="color:#1e40af; display:block; margin-bottom:6px; font-size:13px; text-transform:uppercase;"> Kết quả sửa chữa</strong>
                     Ngày hoàn thành: <span id="modal-complete-date" style="font-weight:bold;"></span><br>
                     Nội dung đã sửa: <span id="modal-repair-content" style="font-weight:bold;"></span><br>
                     Linh kiện đã thay: <span id="modal-component" style="font-weight:bold; color:#2563eb;"></span><br>
@@ -352,7 +385,7 @@
 
                 <!-- NGÀY TRẢ KHÁCH -->
                 <div id="modal-return-section" style="background:#ecfdf5; padding:12px; border-radius:8px; border:1px solid #a7f3d0; display:none;">
-                    🚚 <strong>Ngày đã trả sản phẩm cho khách:</strong> <span id="modal-return-date" style="font-weight:bold; color:#065f46;"></span>
+                     <strong>Ngày đã trả sản phẩm cho khách:</strong> <span id="modal-return-date" style="font-weight:bold; color:#065f46;"></span>
                 </div>
             </div>
             
@@ -438,7 +471,6 @@
     </form>
 
     <script>
-        // Set default dates to today
         document.addEventListener("DOMContentLoaded", function() {
             var today = new Date().toISOString().split('T')[0];
             if (document.getElementById('receive-date-input')) {
@@ -448,6 +480,10 @@
                 document.getElementById('repair-date-input').value = today;
             }
         });
+
+        function closeModal(id) {
+            document.getElementById(id).style.display = 'none';
+        }
 
         function submitWarrantyAction(id, status) {
             document.getElementById('action-id').value = id;
@@ -493,7 +529,6 @@
             var btn = event.currentTarget;
             var id = btn.getAttribute('data-id');
             var code = btn.getAttribute('data-order-code');
-            var product = btn.getAttribute('data-product');
             
             document.getElementById('receive-id').value = id;
             document.getElementById('receive-order-code').innerText = code ? '#' + code : '#' + id;
@@ -504,7 +539,6 @@
             var btn = event.currentTarget;
             var id = btn.getAttribute('data-id');
             var code = btn.getAttribute('data-order-code');
-            var product = btn.getAttribute('data-product');
             
             document.getElementById('repair-id').value = id;
             document.getElementById('repair-order-code').innerText = code ? '#' + code : '#' + id;
@@ -515,6 +549,7 @@
             var btn = event.currentTarget;
             var id = btn.getAttribute('data-id');
             var orderCode = btn.getAttribute('data-order-code');
+            var warrantyType = btn.getAttribute('data-warranty-type');
             var customer = btn.getAttribute('data-customer');
             var phone = btn.getAttribute('data-phone');
             var email = btn.getAttribute('data-email');
@@ -524,7 +559,10 @@
             var months = btn.getAttribute('data-months');
             var startDate = btn.getAttribute('data-start-date');
             var endDate = btn.getAttribute('data-end-date');
+            var remainingDays = btn.getAttribute('data-remaining-days');
+            var isExpired = btn.getAttribute('data-is-expired') === 'true';
             var status = btn.getAttribute('data-status');
+            var imageUrl = btn.getAttribute('data-image-url');
             
             var receiveDate = btn.getAttribute('data-receive-date');
             var receiveNote = btn.getAttribute('data-receive-note');
@@ -537,17 +575,44 @@
             
             document.getElementById('modal-id-text').innerText = '#' + id;
             document.getElementById('modal-customer').innerText = customer || 'Chưa rõ';
-            document.getElementById('modal-phone').innerText = phone || 'Chưa rõ';
-            document.getElementById('modal-email').innerText = email || 'Chưa rõ';
-            document.getElementById('modal-order-code').innerText = orderCode ? '#' + orderCode : 'N/A';
-            document.getElementById('modal-buy-date').innerText = buyDate || 'Chưa rõ';
+            document.getElementById('modal-phone').innerText = phone || '—';
+            document.getElementById('modal-email').innerText = email || '—';
+            document.getElementById('modal-order-code').innerText = orderCode ? (orderCode.startsWith('WS') ? '#' + orderCode : orderCode) : 'Mua tại quầy';
+            document.getElementById('modal-warranty-type').innerText = warrantyType === 'OFFLINE' ? ' Mua tại cửa hàng' : ' Đặt hàng Online';
+            document.getElementById('modal-buy-date').innerText = buyDate || '—';
             document.getElementById('modal-months').innerText = months || '12';
             document.getElementById('modal-product').innerText = product || '—';
             document.getElementById('modal-serial').innerText = serial || '—';
             document.getElementById('modal-start-date').innerText = startDate || '—';
             document.getElementById('modal-end-date').innerText = endDate || '—';
+            
+            var expiredBadge = document.getElementById('modal-expired-badge');
+            if (isExpired) {
+                expiredBadge.innerText = ' ĐÃ HẾT HẠN';
+                expiredBadge.style.color = '#dc2626';
+            } else {
+                expiredBadge.innerText = ' CÒN BẢO HÀNH (Còn ' + remainingDays + ' ngày)';
+                expiredBadge.style.color = '#16a34a';
+            }
+
             document.getElementById('modal-note').innerText = note || 'Không có ghi chú lỗi ban đầu.';
             
+            // XỬ LÝ ẢNH MINH CHỨNG THẬT (RENDER <img>)
+            var imgContainer = document.getElementById('modal-image-container');
+            var imgPreview = document.getElementById('modal-image-preview');
+            if (imageUrl && imageUrl.trim() !== '' && imageUrl !== 'null') {
+                var src = imageUrl.trim();
+                if (!src.startsWith('http://') && !src.startsWith('https://') && !src.startsWith('/')) {
+                    src = '${pageContext.request.contextPath}/assets/images/' + src;
+                } else if (src.startsWith('/')) {
+                    src = '${pageContext.request.contextPath}' + src;
+                }
+                imgPreview.src = src;
+                imgContainer.style.display = 'block';
+            } else {
+                imgContainer.style.display = 'none';
+            }
+
             // Status badge rendering
             var badge = document.getElementById('modal-status-badge');
             badge.className = 'badge';
@@ -576,9 +641,6 @@
             } else if (status === 'Từ chối bảo hành') {
                 badge.innerText = 'Từ chối BH';
                 badge.classList.add('badge-expired');
-            } else if (status === 'Hết hạn') {
-                badge.innerText = 'Hết hạn';
-                badge.classList.add('badge-expired');
             } else {
                 badge.innerText = status || 'Chờ xử lý';
                 badge.classList.add('badge-cancelled');
@@ -598,12 +660,12 @@
                 document.getElementById('modal-complete-date').innerText = completeDate;
                 document.getElementById('modal-repair-content').innerText = repairContent || '—';
                 document.getElementById('modal-component').innerText = componentReplaced || 'Không thay linh kiện';
-                document.getElementById('modal-repair-note').innerText = repairNote || 'Không';
+                document.getElementById('modal-repair-note').innerText = repairNote || '—';
                 document.getElementById('modal-repair-section').style.display = 'block';
             } else {
                 document.getElementById('modal-repair-section').style.display = 'none';
             }
-            
+
             // Return section
             if (returnDate && returnDate.trim() !== '') {
                 document.getElementById('modal-return-date').innerText = returnDate;
@@ -611,13 +673,8 @@
             } else {
                 document.getElementById('modal-return-section').style.display = 'none';
             }
-            
-            document.getElementById('detail-modal').style.display = 'flex';
-        }
 
-        function closeModal(modalId) {
-            document.getElementById(modalId).style.display = 'none';
+            document.getElementById('detail-modal').style.display = 'flex';
         }
     </script>
 </div>
-

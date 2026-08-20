@@ -34,7 +34,7 @@
         <div class="stat-desc">
             <c:choose>
                 <c:when test="${pendingOrders > 0}">
-                    <span class="stat-badge warning">⚠ ${pendingOrders} đơn chờ xác nhận</span>
+                    <span class="stat-badge warning"> ${pendingOrders} đơn chờ xác nhận</span>
                 </c:when>
                 <c:otherwise>
                     <span class="stat-badge success">✓ Tất cả đơn đã xử lý</span>

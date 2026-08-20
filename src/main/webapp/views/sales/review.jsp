@@ -249,7 +249,7 @@
 
     <c:if test="${not empty sessionScope.flash}">
         <div style="background:#d1fae5; border:1px solid #6ee7b7; color:#065f46; padding:12px 16px; border-radius:8px; margin-bottom:20px; font-size:14px;">
-            ✅ ${sessionScope.flash}
+             ${sessionScope.flash}
         </div>
         <c:remove var="flash" scope="session"/>
     </c:if>
@@ -694,4 +694,4 @@
         }
     </script>
 
-</div>
+</div>

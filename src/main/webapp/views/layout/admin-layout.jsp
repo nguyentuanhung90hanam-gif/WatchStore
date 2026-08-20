@@ -10,7 +10,11 @@
             <button class="icon-button portal-menu" data-sidebar-toggle>☰</button>
             <div><small>WATCHSTORE / ${adminArea}</small><h1>${pageTitle}</h1></div>
 
-            <div class="topbar-actions">
+            <div class="topbar-actions" style="display:flex; align-items:center; gap:12px;">
+                <a href="${cp}/page/home" class="admin-home-btn" style="display:inline-flex; align-items:center; gap:6px; padding:7px 14px; font-size:12px; font-weight:600; text-decoration:none; border-radius:6px; border:1px solid #d4af37; color:#d4af37; background:transparent; transition:all 0.2s;" onmouseover="this.style.background='#d4af37';this.style.color='#111';" onmouseout="this.style.background='transparent';this.style.color='#d4af37';">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                    <span>Trang chủ</span>
+                </a>
                 <a href="${cp}/page/notifications">♢</a>
                 <div class="user-avatar-dropdown" style="position:relative; display:inline-block;">
                     <span style="cursor:pointer; display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:50%; background:#d4af37; color:#fff; font-weight:700; font-size:14px;">${empty sessionScope.user ? 'TN' : fn:substring(sessionScope.user.fullName, 0, 1)}</span>

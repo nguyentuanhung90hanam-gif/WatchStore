@@ -457,7 +457,7 @@
                     <h2 style="margin:0;">Thông tin giao nhận hàng</h2>
                     <c:if test="${order.statusCode != 'COMPLETED' && order.statusCode != 'CANCELLED'}">
                         <button type="button" class="btn" style="background:#e5e7eb; color:#333; width:auto; height:32px; padding:0 12px; font-size:12px; font-weight:600; cursor:pointer;" onclick="toggleEditShipping()">
-                            ✏️ Sửa thông tin nhận
+                             Sửa thông tin nhận
                         </button>
                     </c:if>
                 </div>
@@ -678,7 +678,7 @@
                 <c:if test="${order.statusCode == 'PENDING' && sessionScope.user.role == 'EMPLOYEE'}">
                     <p style="margin-bottom: 12px;">
                         <button type="button" class="btn" style="background:#059669; font-weight:600; cursor:pointer;" onclick="confirmAction(${order.id}, 'confirm')">
-                            ✅ Xác nhận đơn hàng
+                             Xác nhận đơn hàng
                         </button>
                     </p>
                 </c:if>
@@ -686,7 +686,7 @@
                 <c:if test="${order.statusCode == 'PENDING' || order.statusCode == 'CONFIRMED'}">
                     <p style="margin-bottom: 12px;">
                         <a href="${pageContext.request.contextPath}/manage/sales/order-edit?id=${order.id}" class="btn" style="background:#d97706; font-weight:600; display:inline-flex; align-items:center; justify-content:center; text-decoration:none; cursor:pointer;">
-                            ✏️ Sửa thông tin đơn hàng
+                             Sửa thông tin đơn hàng
                         </a>
                     </p>
                 </c:if>
@@ -694,7 +694,7 @@
                 <c:if test="${order.statusCode != 'COMPLETED' && order.statusCode != 'CANCELLED' && order.statusCode != 'RETURNED'}">
                     <p style="margin-bottom: 15px;">
                         <button type="button" class="btn" style="background:#dc2626; font-weight:600; cursor:pointer;" onclick="confirmAction(${order.id}, 'cancel')">
-                            ❌ Hủy đơn hàng
+                             Hủy đơn hàng
                         </button>
                     </p>
                 </c:if>
@@ -703,7 +703,7 @@
 
                 <p>
                     <a href="${pageContext.request.contextPath}/manage/sales/warranty" style="text-decoration:none; color:#2563eb;">
-                        🛡️ Quản lý bảo hành
+                         Quản lý bảo hành
                     </a>
                 </p>
 
@@ -750,4 +750,4 @@
         }
     }
 </script>
-
+

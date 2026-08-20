@@ -9,7 +9,7 @@
 
     <c:if test="${not empty errorMessage}">
         <div style="background:#fff3cd;color:#856404;border:1px solid #ffc107;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:0.95em;">
-            ⚠ ${errorMessage}
+             ${errorMessage}
         </div>
     </c:if>
 

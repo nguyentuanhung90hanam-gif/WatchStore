@@ -223,7 +223,7 @@
         </div>
         <c:if test="${sessionScope.user.role == 'ADMIN' || sessionScope.user.role == 'EMPLOYEE'}">
             <a href="${pageContext.request.contextPath}/manage/sales/order-add" class="btn btn-search" style="text-decoration: none; font-weight: bold; background: #2563eb; color: white;">
-                ➕ Thêm đơn hàng
+                 Thêm đơn hàng
             </a>
         </c:if>
     </div>
@@ -465,4 +465,4 @@
         }
     }
 </script>
-
+

@@ -47,6 +47,7 @@ GO
 DROP FUNCTION IF EXISTS dbo.fn_CalculateVoucherDiscount;
 GO
 
+DROP TABLE IF EXISTS dbo.ProductComments;
 DROP TABLE IF EXISTS dbo.OtpVerifications;
 DROP TABLE IF EXISTS dbo.Returns;
 DROP TABLE IF EXISTS dbo.Warranties;
@@ -405,6 +406,7 @@ CREATE TABLE dbo.OrderItems (
     UnitPrice           DECIMAL(18,2) NOT NULL,
     Quantity            INT NOT NULL,
     DiscountAmount      DECIMAL(18,2) NOT NULL DEFAULT 0,
+    WarrantyMonths      INT NOT NULL CONSTRAINT DF_OrderItems_WarrantyMonths DEFAULT 12,
     LineTotal           AS ((UnitPrice * Quantity) - DiscountAmount) PERSISTED,
     CONSTRAINT FK_OrderItems_Order FOREIGN KEY (OrderID) REFERENCES dbo.Orders(OrderID) ON DELETE CASCADE,
     CONSTRAINT FK_OrderItems_Variant FOREIGN KEY (VariantID) REFERENCES dbo.ProductVariants(VariantID)
@@ -446,7 +448,7 @@ GO
 -- WARRANTIES
 CREATE TABLE dbo.Warranties (
     WarrantyID          INT IDENTITY(1,1) PRIMARY KEY,
-    OrderID             BIGINT NOT NULL,
+    OrderID             BIGINT NULL,
     ProductName         NVARCHAR(250) NOT NULL,
     SerialNumber        VARCHAR(100) NULL,
     WarrantyMonths      INT NOT NULL DEFAULT 12,
@@ -461,6 +463,11 @@ CREATE TABLE dbo.Warranties (
     RepairNote          NVARCHAR(500) NULL,
     CompleteDate        DATE NULL,
     ReturnDate          DATE NULL,
+    ImageUrl            NVARCHAR(1000) NULL,
+    CustomerName        NVARCHAR(150) NULL,
+    CustomerPhone       VARCHAR(20) NULL,
+    CustomerEmail       VARCHAR(150) NULL,
+    WarrantyType        VARCHAR(20) NOT NULL CONSTRAINT DF_Warranties_WarrantyType DEFAULT 'ONLINE',
     CreatedAt           DATETIME2 NOT NULL CONSTRAINT DF_Warranties_CreatedAt DEFAULT SYSDATETIME(),
     CONSTRAINT FK_Warranties_Order FOREIGN KEY (OrderID) REFERENCES dbo.Orders(OrderID)
 );
@@ -520,10 +527,13 @@ GO
 CREATE TABLE dbo.OtpVerifications (
     OtpID               BIGINT IDENTITY(1,1) PRIMARY KEY,
     Email               VARCHAR(150) NOT NULL,
-    OtpCode             VARCHAR(10) NOT NULL,
-    OtpType             VARCHAR(30) NOT NULL,
-    IsUsed              BIT NOT NULL DEFAULT 0,
+    OtpHash             VARCHAR(255) NOT NULL,
+    Purpose             VARCHAR(50) NOT NULL,
     ExpiresAt           DATETIME2 NOT NULL,
+    Attempts            INT NOT NULL CONSTRAINT DF_Otp_Attempts DEFAULT 0,
+    Verified            BIT NOT NULL CONSTRAINT DF_Otp_Verified DEFAULT 0,
+    LastSentAt          DATETIME2 NOT NULL CONSTRAINT DF_Otp_LastSentAt DEFAULT SYSDATETIME(),
+    ResendCount         INT NOT NULL CONSTRAINT DF_Otp_ResendCount DEFAULT 0,
     CreatedAt           DATETIME2 NOT NULL CONSTRAINT DF_Otp_CreatedAt DEFAULT SYSDATETIME()
 );
 GO
@@ -712,6 +722,19 @@ CREATE TABLE dbo.Reviews (
     CONSTRAINT FK_Reviews_Product FOREIGN KEY (ProductID) REFERENCES dbo.Products(ProductID),
     CONSTRAINT FK_Reviews_User FOREIGN KEY (UserID) REFERENCES dbo.Users(UserID),
     CONSTRAINT FK_Reviews_Order FOREIGN KEY (OrderID) REFERENCES dbo.Orders(OrderID)
+);
+GO
+
+-- PRODUCT COMMENTS (Bổ sung hỗ trợ CommentRepositoryImpl)
+CREATE TABLE dbo.ProductComments (
+    CommentID           BIGINT IDENTITY(1,1) PRIMARY KEY,
+    ProductID           INT NOT NULL,
+    UserID              INT NOT NULL,
+    Content             NVARCHAR(1000) NOT NULL,
+    Status              VARCHAR(20) NOT NULL CONSTRAINT DF_ProductComments_Status DEFAULT 'APPROVED',
+    CreatedAt           DATETIME2 NOT NULL CONSTRAINT DF_ProductComments_CreatedAt DEFAULT SYSDATETIME(),
+    CONSTRAINT FK_ProductComments_Product FOREIGN KEY (ProductID) REFERENCES dbo.Products(ProductID) ON DELETE CASCADE,
+    CONSTRAINT FK_ProductComments_User FOREIGN KEY (UserID) REFERENCES dbo.Users(UserID) ON DELETE CASCADE
 );
 GO
 
@@ -918,9 +941,9 @@ INSERT INTO dbo.Brands (BrandID, BrandCode, BrandName, BrandSlug, Country, LogoU
 (1, 'SEIKO',    N'Seiko',    'seiko',    N'Nhật Bản', '/assets/images/brands/seiko.png',    N'Thương hiệu đồng hồ nổi tiếng Nhật Bản với lịch sử hơn 100 năm.'),
 (2, 'ORIENT',   N'Orient',   'orient',   N'Nhật Bản', '/assets/images/brands/orient.png',   N'Nổi tiếng với các dòng đồng hồ cơ Automatic chất lượng cao.'),
 (3, 'CASIO',    N'Casio',    'casio',    N'Nhật Bản', '/assets/images/brands/casio.png',    N'Đồng hồ thể thao, G-Shock bền bỉ hàng đầu.'),
-(4, 'TISSOT',   N'Tissot',   'tissot',   N'Thụy Sỹ',  '/assets/images/brands/tissot.png',   N'Đồng hồ Thụy Sỹ đẳng cấp với bộ máy Powermatic 80 ấn tượng.'),
+(4, 'TISSOT',   N'Tissot',   'tissot',   N'Việt Nam',  '/assets/images/brands/tissot.png',   N'Đồng hồ Thụy Sỹ đẳng cấp với bộ máy Powermatic 80 ấn tượng.'),
 (5, 'CITIZEN',  N'Citizen',  'citizen',  N'Nhật Bản', '/assets/images/brands/citizen.png',  N'Tiên phong với công nghệ năng lượng ánh sáng Eco-Drive.'),
-(6, 'LONGINES', N'Longines', 'longines', N'Thụy Sỹ',  '/assets/images/brands/longines.png', N'Thương hiệu đồng hồ cao cấp sang trọng của Thụy Sỹ.');
+(6, 'LONGINES', N'Longines', 'longines', N'Việt Nam',  '/assets/images/brands/longines.png', N'Thương hiệu đồng hồ cao cấp sang trọng của Thụy Sỹ.');
 SET IDENTITY_INSERT dbo.Brands OFF;
 GO
 
@@ -1032,10 +1055,7 @@ GO
 PRINT N'================================================================================';
 PRINT N'  ĐỒNG BỘ DATABASE WATCHSTORE_FINAL HOÀN THÀNH VÀ SẴN SÀNG SỬ DỤNG!';
 PRINT N'================================================================================';
-
-use master 
-alter database WatchStore set single_user with rollback immediate;
-drop database WatchStore;
+GO
 
 UPDATE dbo.Users
 SET PasswordHash = '8D969EEF6ECAD3C29A3A629280E686CF0C3F5D5A86AFF3CA12020C923ADC6C92'

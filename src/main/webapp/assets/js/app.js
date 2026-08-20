@@ -218,10 +218,49 @@
       toast(btn.dataset.demoToast);
     }),
   );
+  function copyTextToClipboard(text, onSuccess, onError) {
+    if (!text) return;
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text)
+        .then(() => { if (onSuccess) onSuccess(text); })
+        .catch(() => fallbackCopy(text, onSuccess, onError));
+    } else {
+      fallbackCopy(text, onSuccess, onError);
+    }
+  }
+
+  function fallbackCopy(text, onSuccess, onError) {
+    try {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.style.position = "fixed";
+      textArea.style.left = "-9999px";
+      textArea.style.top = "-9999px";
+      textArea.setAttribute("readonly", "");
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      const successful = document.execCommand("copy");
+      document.body.removeChild(textArea);
+      if (successful) {
+        if (onSuccess) onSuccess(text);
+      } else {
+        if (onError) onError();
+      }
+    } catch (err) {
+      if (onError) onError();
+    }
+  }
+
   document.querySelectorAll("[data-copy]").forEach((btn) =>
-    btn.addEventListener("click", () => {
-      navigator.clipboard?.writeText(btn.dataset.copy);
-      toast("Đã sao chép mã " + btn.dataset.copy);
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      const code = btn.dataset.copy;
+      copyTextToClipboard(
+        code,
+        (copied) => toast("Đã sao chép mã " + copied),
+        () => toast("Không thể sao chép mã, vui lòng thử lại.")
+      );
     }),
   );
   setTimeout(
